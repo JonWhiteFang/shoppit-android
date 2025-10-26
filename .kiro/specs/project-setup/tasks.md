@@ -6,18 +6,18 @@
   - Set up Hilt application class and basic dependency injection
   - _Requirements: 1.1, 1.2, 1.4, 2.1, 2.2_
 
-- [ ] 2. Implement core infrastructure components
-  - [ ] 2.1 Create error handling framework with AppError sealed class and AppResult type alias
+- [x] 2. Implement core infrastructure components
+  - [x] 2.1 Create error handling framework with AppError sealed class and AppResult type alias
     - Write AppError sealed class with NetworkError, DatabaseError, ValidationError, and UnknownError cases
     - Implement AppResult type alias and extension functions for result handling
     - _Requirements: 4.1, 4.2, 4.4_
 
-  - [ ] 2.2 Implement base UseCase abstract class for domain operations
+  - [x] 2.2 Implement base UseCase abstract class for domain operations
     - Create abstract UseCase class with invoke operator and exception mapping
     - Add error mapping utilities for converting exceptions to AppError types
     - _Requirements: 4.3, 4.4_
 
-  - [ ] 2.3 Configure logging framework for debugging and monitoring
+  - [x] 2.3 Configure logging framework for debugging and monitoring
     - Set up Timber or similar logging framework with appropriate log levels
     - Configure logging for debug and release builds
     - _Requirements: 4.5_

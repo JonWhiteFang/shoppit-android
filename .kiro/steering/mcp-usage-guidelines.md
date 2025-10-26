@@ -39,12 +39,29 @@ Use `mcp_sequential_thinking_sequentialthinking` for:
 - Breaking down complex problems
 - Iterative problem refinement
 
+### GitHub Operations → GitHub MCP
+Use when working with GitHub repositories:
+- `mcp_github_create_repository` - Create new repositories
+- `mcp_github_create_or_update_file` - Create/update single files
+- `mcp_github_push_files` - Push multiple files in one commit
+- `mcp_github_get_file_contents` - Read repository files
+- `mcp_github_create_issue` - Create issues
+- `mcp_github_create_pull_request` - Create pull requests
+- `mcp_github_create_branch` - Create branches
+- `mcp_github_fork_repository` - Fork repositories
+- `mcp_github_search_repositories` - Search for repositories
+- `mcp_github_search_code` - Search code across GitHub
+- `mcp_github_search_issues` - Search issues and PRs
+- `mcp_github_list_commits` - List repository commits
+- `mcp_github_merge_pull_request` - Merge pull requests
+
 ## Decision Tree
 
 1. **File operation needed?** → Use Filesystem MCP
 2. **Need library docs?** → Use Context7 MCP  
 3. **Need web research?** → Use Brave Search MCP
 4. **Complex reasoning required?** → Use Sequential Thinking MCP
+5. **GitHub repository operations?** → Use GitHub MCP
 
 ## Best Practices
 
