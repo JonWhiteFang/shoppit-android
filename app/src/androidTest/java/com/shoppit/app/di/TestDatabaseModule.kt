@@ -2,6 +2,7 @@ package com.shoppit.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.shoppit.app.data.local.dao.MealDao
 import com.shoppit.app.data.local.database.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -39,8 +40,6 @@ object TestDatabaseModule {
             .build()
     }
     
-    // Future test DAO providers will be added here as features are implemented
-    // Example:
-    // @Provides
-    // fun provideMealDao(database: AppDatabase): MealDao = database.mealDao()
+    @Provides
+    fun provideMealDao(database: AppDatabase): MealDao = database.mealDao()
 }
