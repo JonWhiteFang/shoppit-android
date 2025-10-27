@@ -140,14 +140,14 @@
     - Format ingredient display (e.g., "2 cups flour")
     - _Requirements: 3.2_
 
-- [ ] 9. Implement add/edit meal screen
-  - [ ] 9.1 Create AddEditMealScreen stateful composable
+- [x] 9. Implement add/edit meal screen
+  - [x] 9.1 Create AddEditMealScreen stateful composable
     - Inject AddEditMealViewModel with hiltViewModel()
     - Collect uiState as State
     - Handle navigation after successful save
     - _Requirements: 1.1, 4.1_
   
-  - [ ] 9.2 Create AddEditMealContent stateless composable
+  - [x] 9.2 Create AddEditMealContent stateless composable
     - Implement Scaffold with TopAppBar and save button
     - Create form with meal name TextField
     - Create notes TextField (optional)
@@ -156,7 +156,7 @@
     - Show loading indicator while saving
     - _Requirements: 1.1, 1.2, 4.1, 4.2, 4.5, 6.1, 6.4, 8.1_
   
-  - [ ] 9.3 Create IngredientInput composable
+  - [x] 9.3 Create IngredientInput composable
     - Create form for ingredient name, quantity, and unit
     - Implement add button to add ingredient to list
     - Display current ingredient list with remove buttons
