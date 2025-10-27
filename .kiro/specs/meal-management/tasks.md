@@ -212,8 +212,8 @@
     - Test saveMeal validates and calls appropriate use case
     - _Requirements: 1.1, 4.1, 4.5, 6.1, 6.4_
 
-- [ ] 14. Write instrumented tests for data layer
-  - [ ] 14.1 Test MealDao with in-memory database
+- [x] 14. Write instrumented tests for data layer
+  - [x] 14.1 Test MealDao with in-memory database
     - Test insertMeal and getAllMeals
     - Test getMealById returns correct meal
     - Test updateMeal modifies existing meal
@@ -221,7 +221,7 @@
     - Test getAllMeals returns meals sorted by name
     - _Requirements: 2.1, 2.2, 3.1, 5.2, 7.3_
   
-  - [ ] 14.2 Test MealRepositoryImpl
+  - [x] 14.2 Test MealRepositoryImpl
     - Test getMeals maps entities to domain models
     - Test addMeal persists to database
     - Test error handling for database exceptions
