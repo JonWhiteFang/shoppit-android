@@ -12,6 +12,7 @@ import com.shoppit.app.data.local.entity.PlaceholderEntity
  * 
  * This database serves as the offline-first data persistence layer.
  * 
+ * Version 3: Added indices on meals table for performance optimization
  * Version 2: Added MealEntity and MealDao for meal management feature
  * Version 1: Initial database setup with placeholder entity
  */
@@ -20,7 +21,7 @@ import com.shoppit.app.data.local.entity.PlaceholderEntity
         PlaceholderEntity::class,
         MealEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class, MealConverters::class)

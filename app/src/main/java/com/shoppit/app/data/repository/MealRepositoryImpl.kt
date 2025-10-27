@@ -187,4 +187,65 @@ class MealRepositoryImpl @Inject constructor(
             Result.failure(DatabaseException("Failed to delete meal", e))
         }
     }
+    
+    /**
+     * Adds multiple meals to the database in a single batch operation and invalidates cache.
+     * Validates all meals before persisting. If any meal fails validation, the entire operation fails.
+     * More efficient than adding meals one by one.
+     *
+     * @param meals The list of meals to add
+     * @return Result with list of IDs of newly created meals or ValidationException/DatabaseException
+     */
+    override suspend fun addMeals(meals: List<Meal>): Result<List<Long>> {
+        // Validate all meals first
+        val validationErrors = mutableListOf<String>()
+        meals.forEachIndexed { index, meal ->
+            val validationResult = mealValidator.validate(meal)
+            if (validationResult.isInvalid()) {
+                val errors = validationResult.getErrors()
+                val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
+                validationErrors.add("Meal $index: $message")
+            }
+        }
+        
+        if (validationErrors.isNotEmpty()) {
+            val message = validationErrors.joinToString("; ")
+            Timber.w("Batch meal validation failed: $message")
+            return Result.failure(ValidationException(message))
+        }
+        
+        return try {
+            val entities = meals.map { it.toEntity() }
+            val ids = mealDao.insertMeals(entities)
+            // Invalidate meal list cache since we added new meals
+            mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
+            Timber.d("Added ${ids.size} meals in batch and invalidated cache")
+            Result.success(ids)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to add meals in batch")
+            Result.failure(DatabaseException("Failed to add meals in batch", e))
+        }
+    }
+    
+    /**
+     * Retrieves a paginated list of meals from the database as a reactive Flow.
+     * Useful for loading large datasets efficiently.
+     * Does not use cache for paginated queries to ensure consistency.
+     *
+     * @param limit Maximum number of meals to retrieve (default: 50)
+     * @param offset Number of meals to skip (default: 0)
+     * @return Flow emitting Result with paginated list of meals or DatabaseException
+     */
+    override fun getMealsPaginated(limit: Int, offset: Int): Flow<Result<List<Meal>>> {
+        return mealDao.getMealsPaginated(limit, offset)
+            .map { entities ->
+                val meals = entities.map { it.toDomainModel() }
+                Timber.d("Loaded ${meals.size} meals (paginated: limit=$limit, offset=$offset)")
+                Result.success(meals)
+            }
+            .catch { e ->
+                Timber.e(e, "Failed to load paginated meals")
+                emit(Result.failure(DatabaseException("Failed to load paginated meals", e)))
+            }
+    }
 }

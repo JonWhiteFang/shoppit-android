@@ -49,4 +49,23 @@ interface MealRepository {
      * @return Result indicating success or error
      */
     suspend fun deleteMeal(mealId: Long): Result<Unit>
+    
+    /**
+     * Adds multiple meals to the repository in a single batch operation.
+     * More efficient than adding meals one by one.
+     *
+     * @param meals The list of meals to add
+     * @return Result with list of IDs of the newly created meals or error
+     */
+    suspend fun addMeals(meals: List<Meal>): Result<List<Long>>
+    
+    /**
+     * Retrieves a paginated list of meals as a reactive Flow.
+     * Useful for loading large datasets efficiently.
+     *
+     * @param limit Maximum number of meals to retrieve (default: 50)
+     * @param offset Number of meals to skip (default: 0)
+     * @return Flow emitting Result with paginated list of meals or error
+     */
+    fun getMealsPaginated(limit: Int = 50, offset: Int = 0): Flow<Result<List<Meal>>>
 }

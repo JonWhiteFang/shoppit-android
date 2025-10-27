@@ -20,3 +20,15 @@ class DatabaseException(
 class NotFoundException(
     message: String
 ) : Exception(message)
+
+/**
+ * Exception thrown when a backup or restore operation fails.
+ * Wraps the underlying cause for debugging purposes.
+ *
+ * @property message Descriptive error message
+ * @property cause The underlying exception that caused the backup error
+ */
+class BackupException(
+    message: String,
+    cause: Throwable? = null
+) : Exception(message, cause)

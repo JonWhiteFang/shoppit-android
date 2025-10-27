@@ -4,10 +4,18 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.shoppit.app.data.backup.BackupManager
+import com.shoppit.app.data.backup.BackupManagerImpl
+import com.shoppit.app.data.backup.CheckpointManager
+import com.shoppit.app.data.backup.DatabaseIntegrityChecker
 import com.shoppit.app.data.local.dao.MealDao
 import com.shoppit.app.data.local.database.AppDatabase
 import com.shoppit.app.data.local.database.migration.MigrationHandler
 import com.shoppit.app.data.local.database.migration.MigrationHandlerImpl
+import com.shoppit.app.data.maintenance.MaintenanceManager
+import com.shoppit.app.data.maintenance.MaintenanceManagerImpl
+import com.shoppit.app.data.performance.PerformanceMonitor
+import com.shoppit.app.data.performance.PerformanceMonitorImpl
 import com.shoppit.app.data.transaction.TransactionManager
 import com.shoppit.app.data.transaction.TransactionManagerImpl
 import dagger.Module
@@ -76,5 +84,49 @@ object DatabaseModule {
     @Singleton
     fun provideTransactionManager(database: AppDatabase): TransactionManager {
         return TransactionManagerImpl(database)
+    }
+    
+    @Provides
+    @Singleton
+    fun providePerformanceMonitor(): PerformanceMonitor {
+        return PerformanceMonitorImpl()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideBackupManager(
+        @ApplicationContext context: Context,
+        database: AppDatabase
+    ): BackupManager {
+        return BackupManagerImpl(context, database)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideDatabaseIntegrityChecker(
+        @ApplicationContext context: Context,
+        database: AppDatabase,
+        backupManager: BackupManager
+    ): DatabaseIntegrityChecker {
+        return DatabaseIntegrityChecker(context, database, backupManager)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideCheckpointManager(
+        @ApplicationContext context: Context,
+        backupManager: BackupManager,
+        integrityChecker: DatabaseIntegrityChecker
+    ): CheckpointManager {
+        return CheckpointManager(context, backupManager, integrityChecker)
+    }
+    
+    @Provides
+    @Singleton
+    fun provideMaintenanceManager(
+        @ApplicationContext context: Context,
+        database: AppDatabase
+    ): MaintenanceManager {
+        return MaintenanceManagerImpl(context, database)
     }
 }

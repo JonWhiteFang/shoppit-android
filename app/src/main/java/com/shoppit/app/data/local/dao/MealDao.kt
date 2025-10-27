@@ -60,4 +60,26 @@ interface MealDao {
      */
     @Query("DELETE FROM meals WHERE id = :mealId")
     suspend fun deleteMealById(mealId: Long)
+    
+    /**
+     * Inserts multiple meals into the database in a single transaction.
+     * If meals with the same IDs exist, they will be replaced.
+     * This is more efficient than inserting meals one by one.
+     *
+     * @param meals The list of meal entities to insert
+     * @return List of row IDs of the inserted meals
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMeals(meals: List<MealEntity>): List<Long>
+    
+    /**
+     * Retrieves a paginated list of meals, sorted alphabetically by name.
+     * Useful for loading large datasets efficiently.
+     *
+     * @param limit Maximum number of meals to retrieve
+     * @param offset Number of meals to skip
+     * @return Flow emitting paginated list of meals
+     */
+    @Query("SELECT * FROM meals ORDER BY name ASC LIMIT :limit OFFSET :offset")
+    fun getMealsPaginated(limit: Int, offset: Int): Flow<List<MealEntity>>
 }
