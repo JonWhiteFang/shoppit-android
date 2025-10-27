@@ -6,7 +6,7 @@
 - [x] **data-persistence** - Local storage and caching
 
 ## Phase 2: Core Features
-- [ ] **meal-planning** - Weekly meal planning functionality
+- [x] **meal-planning** - Weekly meal planning functionality
 - [ ] **shopping-list-generation** - Automatic shopping list creation
 - [ ] **shopping-list-management** - Interactive shopping list
 
