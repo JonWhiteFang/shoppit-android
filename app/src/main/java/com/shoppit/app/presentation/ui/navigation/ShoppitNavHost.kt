@@ -3,13 +3,22 @@ package com.shoppit.app.presentation.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.shoppit.app.presentation.ui.common.HomeScreen
+import androidx.navigation.navArgument
+import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
+import com.shoppit.app.presentation.ui.meal.MealDetailScreen
+import com.shoppit.app.presentation.ui.meal.MealListScreen
 
 /**
  * Main navigation host for the Shoppit app.
  * Defines all navigation routes and their corresponding composable screens.
+ *
+ * Requirements:
+ * - 2.5: Navigate from meal list to meal detail
+ * - 3.3: Provide edit action button on detail screen
+ * - 3.4: Provide delete action button on detail screen
  *
  * @param navController The navigation controller for managing navigation
  * @param modifier Optional modifier for the NavHost
@@ -21,17 +30,76 @@ fun ShoppitNavHost(
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route,
+        startDestination = Screen.MealList.route,
         modifier = modifier
     ) {
-        composable(Screen.Home.route) {
-            HomeScreen()
+        // Meal list screen - starting destination
+        composable(Screen.MealList.route) {
+            MealListScreen(
+                onMealClick = { mealId ->
+                    navController.navigate(Screen.MealDetail.createRoute(mealId))
+                },
+                onAddMealClick = {
+                    navController.navigate(Screen.AddMeal.route)
+                }
+            )
+        }
+        
+        // Meal detail screen with mealId argument
+        composable(
+            route = Screen.MealDetail.route,
+            arguments = listOf(
+                navArgument("mealId") {
+                    type = NavType.LongType
+                }
+            )
+        ) {
+            MealDetailScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onEditClick = { mealId ->
+                    navController.navigate(Screen.EditMeal.createRoute(mealId))
+                },
+                onDeleteClick = { mealId ->
+                    // After deletion, navigate back to meal list
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Add meal screen
+        composable(Screen.AddMeal.route) {
+            AddEditMealScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onMealSaved = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Edit meal screen with mealId argument
+        composable(
+            route = Screen.EditMeal.route,
+            arguments = listOf(
+                navArgument("mealId") {
+                    type = NavType.LongType
+                }
+            )
+        ) {
+            AddEditMealScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onMealSaved = {
+                    navController.popBackStack()
+                }
+            )
         }
         
         // Future navigation destinations will be added here:
-        // - Meal list screen
-        // - Meal detail screen with arguments
-        // - Add/Edit meal screen
         // - Meal planner screen
         // - Shopping list screen
     }

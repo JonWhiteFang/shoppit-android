@@ -162,14 +162,14 @@
     - Display current ingredient list with remove buttons
     - _Requirements: 6.1, 6.2, 6.3, 6.4_
 
-- [ ] 10. Set up navigation routes
+- [x] 10. Set up navigation routes
   - Define Screen sealed class with MealList, MealDetail, AddMeal, and EditMeal routes
   - Implement route creation functions with parameters
   - Add composable destinations to NavHost
   - Wire up navigation callbacks in screens
   - _Requirements: 2.5, 3.3, 3.4_
 
-- [ ] 11. Configure dependency injection
+- [x] 11. Configure dependency injection
   - Create MealModule providing MealValidator
   - Create MealRepositoryModule binding MealRepository to MealRepositoryImpl
   - Update DatabaseModule to provide MealDao from AppDatabase
