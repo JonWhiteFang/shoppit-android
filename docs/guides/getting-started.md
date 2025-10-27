@@ -8,14 +8,16 @@ This guide will help you set up the Shoppit Android project and start developing
 
 - **JDK 17** or higher
 - **Android Studio** Hedgehog (2023.1.1) or newer
-- **Android SDK** with API level 34
+- **Android SDK** with:
+  - Min SDK 24 (Android 7.0)
+  - Target SDK 34
 - **Git** for version control
 
 ### Recommended Tools
 
 - **Gradle 8.9** (included via wrapper)
-- **KSP** (configured in project)
-- **Android Emulator** or physical device for testing
+- **KSP 2.0.21-1.0.28** (configured in project for Room and Hilt)
+- **Android Emulator** or physical device running Android 7.0+
 
 ## Project Setup
 
@@ -79,64 +81,122 @@ shoppit-android/
 │   │   ├── main/
 │   │   │   ├── java/com/shoppit/app/
 │   │   │   │   ├── data/           # Data layer
-│   │   │   │   ├── domain/         # Business logic
-│   │   │   │   ├── presentation/   # UI layer
-│   │   │   │   ├── di/             # Dependency injection
-│   │   │   │   └── util/           # Utilities
+│   │   │   │   │   ├── local/      # Room database, DAOs, entities
+│   │   │   │   │   ├── remote/     # Retrofit APIs, DTOs (future)
+│   │   │   │   │   ├── repository/ # Repository implementations
+│   │   │   │   │   └── mapper/     # Entity/DTO/model conversions
+│   │   │   │   ├── domain/         # Business logic (pure Kotlin)
+│   │   │   │   │   ├── model/      # Domain entities
+│   │   │   │   │   ├── repository/ # Repository interfaces
+│   │   │   │   │   ├── usecase/    # Single-responsibility use cases
+│   │   │   │   │   └── validator/  # Input validation logic
+│   │   │   │   ├── ui/             # Presentation layer
+│   │   │   │   │   ├── meal/       # Meal management feature
+│   │   │   │   │   ├── planner/    # Meal planner feature
+│   │   │   │   │   ├── shopping/   # Shopping list feature
+│   │   │   │   │   ├── common/     # Reusable composables
+│   │   │   │   │   ├── navigation/ # NavHost setup
+│   │   │   │   │   └── theme/      # Material3 theme
+│   │   │   │   └── di/             # Hilt dependency injection modules
 │   │   │   └── res/                # Resources
 │   │   ├── test/                   # Unit tests
 │   │   └── androidTest/            # Instrumented tests
 │   └── build.gradle.kts
 ├── docs/                           # Documentation
-├── gradle/                         # Gradle wrapper
+├── gradle/                         # Gradle wrapper & version catalog
+│   ├── libs.versions.toml          # Centralized dependency versions
+│   └── wrapper/
 └── build.gradle.kts               # Root build file
 ```
 
 ## Architecture Overview
 
-Shoppit follows **Clean Architecture** with three main layers:
+Shoppit follows **Clean Architecture** with three main layers organized in a single-module structure:
 
-### 1. Presentation Layer (`presentation/`)
-- **UI**: Jetpack Compose screens
-- **ViewModels**: State management with StateFlow
-- **Navigation**: Compose Navigation
+### 1. UI Layer (`ui/`)
+- **Screens**: Jetpack Compose screens organized by feature
+- **ViewModels**: State management with `StateFlow<UiState>` (never expose `MutableStateFlow`)
+- **Navigation**: Compose Navigation with type-safe routes
+- **Theme**: Material3 theme configuration
+
+**Key Patterns**:
+- ViewModels expose immutable `StateFlow<UiState>`
+- Use sealed classes for UI states: `Loading`, `Success(data)`, `Error(message)`
+- State hoisting: Keep composables stateless, hoist state to ViewModels
+- Collect state with `collectAsState()` in composables
 
 ### 2. Domain Layer (`domain/`)
-- **Entities**: Core business models
-- **Use Cases**: Business logic operations
-- **Repository Interfaces**: Data access contracts
-- **Error Handling**: Result types and error classes
+- **Models**: Pure Kotlin domain entities (Meal, Ingredient, MealPlan, ShoppingListItem)
+- **Use Cases**: Single-responsibility business logic operations
+- **Repository Interfaces**: Data access contracts (no implementations)
+- **Validators**: Input validation logic
+- **No Android dependencies** - Pure Kotlin only
+
+**Key Patterns**:
+- Use cases have one public `operator fun invoke()` function
+- Return `Flow<T>` for reactive data or `suspend` for one-shot operations
+- Use `Result<T>` for operations that can fail
 
 ### 3. Data Layer (`data/`)
-- **Local**: Room database, DAOs, entities
-- **Remote**: Retrofit services, DTOs (future)
-- **Repositories**: Implementation of domain interfaces
-- **Mappers**: Data transformation utilities
+- **Local**: Room database, DAOs (return `Flow<T>` for queries, `suspend` for mutations), entities
+- **Remote**: Retrofit services, DTOs (future implementation)
+- **Repositories**: Implementation of domain repository interfaces
+- **Mappers**: Extension functions for entity/DTO/model conversions
+
+**Key Patterns**:
+- Repositories catch exceptions at boundaries and map to domain errors
+- DAOs return `Flow<T>` for observed queries, `suspend` for mutations
+- Apply `flowOn(Dispatchers.IO)` for database/network operations
 
 ### Dependency Injection (`di/`)
-- **DatabaseModule**: Database and DAO providers
-- **RepositoryModule**: Repository bindings
-- **UseCaseModule**: Use case providers
+- **DatabaseModule**: Provides Room database and DAOs
+- **NetworkModule**: Provides Retrofit, OkHttp, interceptors (future)
+- **RepositoryModule**: Binds repository interfaces to implementations
+- **UseCaseModule**: Provides use case instances (if needed)
+
+**Key Patterns**:
+- Use constructor injection with `@Inject constructor()`
+- ViewModels require `@HiltViewModel` annotation
+- Modules use `@Module` + `@InstallIn(SingletonComponent::class)`
+- Bind interfaces with `@Binds` in abstract modules
+
+### Dependency Direction
+- UI depends on Domain
+- Data depends on Domain
+- Domain depends on nothing (pure Kotlin)
+- **Never**: Domain → UI or Domain → Data
 
 See [Architecture Overview](../architecture/overview.md) for detailed information.
 
 ## Key Technologies
 
 ### Core Stack
-- **Kotlin 1.9.20** - Programming language
-- **Jetpack Compose** - Modern UI toolkit
-- **Material3** - Design system
-- **Hilt** - Dependency injection
-- **Room** - Local database
-- **Coroutines & Flow** - Asynchronous programming
+- **Kotlin 2.0.21** - Programming language with Java 17
+- **Jetpack Compose (BOM 2023.10.01)** - Modern declarative UI toolkit
+- **Material3** - Material Design 3 system
+- **Hilt 2.48** - Dependency injection with KSP
+- **Room 2.6.0** - Local SQLite database with type-safe queries
+- **Coroutines 1.7.3 & Flow** - Asynchronous programming and reactive streams
+- **Navigation Compose 2.7.4** - Type-safe navigation
+- **Retrofit 2.9.0 + OkHttp 4.12.0** - Network layer (future)
+- **Timber 5.0.1** - Logging
+
+### Build System
+- **Gradle with Kotlin DSL** - Build configuration
+- **AGP 8.7.3** - Android Gradle Plugin
+- **KSP 2.0.21-1.0.28** - Kotlin Symbol Processing for Room and Hilt
+- **Version Catalogs** - Centralized dependency management in `gradle/libs.versions.toml`
 
 ### Testing
-- **JUnit 4** - Unit testing framework
-- **MockK** - Mocking library
-- **Compose Testing** - UI testing
+- **JUnit 4.13.2** - Unit testing framework
+- **MockK 1.13.8** - Mocking library for Kotlin
+- **kotlinx-coroutines-test** - Coroutine testing utilities
+- **Compose UI Testing** - Declarative UI testing
+- **Espresso 3.5.1** - Instrumented UI testing
 - **Hilt Testing** - DI testing support
+- **Room Testing** - In-memory database testing
 
-See [Build Configuration](../setup/build-configuration.md) for complete dependency list.
+See [Gradle Commands Reference](../reference/gradle-commands.md) for build commands and [Tech Stack Details](../../.kiro/steering/tech.md) for complete information.
 
 ## Development Workflow
 
@@ -152,22 +212,48 @@ git checkout -b feature/123-meal-list-ui
 
 Follow the Clean Architecture pattern:
 
-1. **Define domain model** in `domain/entity/`
-2. **Create repository interface** in `domain/repository/`
-3. **Implement use case** in `domain/usecase/`
-4. **Create Room entity and DAO** in `data/local/`
-5. **Implement repository** in `data/repository/`
-6. **Create ViewModel** in `presentation/viewmodel/`
-7. **Build UI** in `presentation/ui/`
-8. **Wire up DI** in `di/` modules
+1. **Define domain model** in `domain/model/` (e.g., `Meal.kt`)
+2. **Create repository interface** in `domain/repository/` (e.g., `MealRepository.kt`)
+3. **Implement use case** in `domain/usecase/` (e.g., `AddMealUseCase.kt`)
+4. **Create Room entity and DAO** in `data/local/entity/` and `data/local/dao/`
+5. **Implement repository** in `data/repository/` (e.g., `MealRepositoryImpl.kt`)
+6. **Create ViewModel with UiState** in `ui/[feature]/` (e.g., `ui/meal/MealViewModel.kt`, `MealUiState.kt`)
+7. **Build Compose screen** in `ui/[feature]/` (e.g., `ui/meal/MealListScreen.kt`)
+8. **Add navigation route** in `ui/navigation/`
+9. **Wire up DI** in appropriate `di/` modules
+
+**File Naming Conventions**:
+- Screens: `[Feature]Screen.kt` → `MealListScreen.kt`
+- ViewModels: `[Feature]ViewModel.kt` → `MealViewModel.kt`
+- UI State: `[Feature]UiState.kt` → `MealUiState.kt`
+- Use Cases: `[Action][Entity]UseCase.kt` → `AddMealUseCase.kt`
+- Repositories: `[Entity]Repository.kt` + `[Entity]RepositoryImpl.kt`
+- DAOs: `[Entity]Dao.kt` → `MealDao.kt`
+- Entities: `[Entity]Entity.kt` → `MealEntity.kt`
+
+See [Project Structure Guide](../../.kiro/steering/structure.md) for detailed conventions.
 
 ### 3. Write Tests
 
-- **Unit tests** for use cases and ViewModels
-- **Integration tests** for repositories and DAOs
-- **UI tests** for critical user flows
+Follow the test pyramid approach:
 
-See [Testing Guide](testing.md) for detailed patterns.
+- **Unit tests** (`test/`) for:
+  - Use cases (80%+ coverage) - Test business logic with fake repositories
+  - ViewModels (40%+ coverage) - Test state transitions and user actions
+  - Validators - Test validation rules
+  - Repositories (60%+ coverage) - Test with fake DAOs
+
+- **Instrumented tests** (`androidTest/`) for:
+  - Room DAOs - Test with in-memory database
+  - Compose UI - Test critical user flows only
+
+**Testing Guidelines**:
+- Test behavior, not implementation
+- Use MockK for mocking external dependencies
+- Use `runTest` and `MainDispatcherRule` for coroutine testing
+- Name tests descriptively: `` `loads meals successfully when repository returns data` ``
+
+See [Testing Guide](testing.md) for comprehensive patterns and examples.
 
 ### 4. Commit Changes
 
@@ -177,6 +263,16 @@ Follow conventional commit format:
 git add .
 git commit -m "feat(meal): add meal list screen with filtering"
 ```
+
+**Commit Types**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `refactor`: Code refactoring
+- `test`: Adding or updating tests
+- `chore`: Other changes (tooling, etc.)
+
+See [Git Workflow Guide](git-workflow.md) for detailed commit conventions and branching strategy.
 
 ### 5. Push and Create PR
 
@@ -298,11 +394,30 @@ android {
 
 Now that you have the project set up:
 
-1. **Explore the codebase** - Start with `ShoppitApplication.kt`
-2. **Read the architecture docs** - [Architecture Overview](../architecture/overview.md)
-3. **Learn about DI** - [Dependency Injection Guide](dependency-injection.md)
-4. **Write your first test** - [Testing Guide](testing.md)
-5. **Check coding standards** - [Code Style Guide](code-style.md)
+1. **Explore the codebase** - Start with `ShoppitApplication.kt` and understand the app initialization
+2. **Read the architecture docs** - [Architecture Overview](../architecture/overview.md) for Clean Architecture implementation
+3. **Understand data flow** - [Data Flow Guide](../architecture/data-flow.md) for how data moves through layers
+4. **Learn about DI** - [Dependency Injection Guide](dependency-injection.md) for Hilt patterns
+5. **Master state management** - [State Management Guide](../architecture/state-management.md) for ViewModel and Compose state
+6. **Write your first test** - [Testing Guide](testing.md) for testing patterns and examples
+7. **Learn Compose patterns** - [Compose Patterns Guide](compose-patterns.md) for reusable components
+8. **Check coding standards** - [Code Style Guide](code-style.md) for conventions and best practices
+
+## First Feature Implementation
+
+Ready to implement your first feature? Here's a quick walkthrough:
+
+### Example: Adding a "Mark Meal as Favorite" Feature
+
+1. **Domain Model** - Add `isFavorite: Boolean` to `Meal` model
+2. **Use Case** - Create `ToggleMealFavoriteUseCase.kt`
+3. **Repository** - Add `toggleFavorite(mealId: Long)` to `MealRepository`
+4. **DAO** - Add `@Query("UPDATE meals SET is_favorite = NOT is_favorite WHERE id = :mealId")` to `MealDao`
+5. **ViewModel** - Add `fun toggleFavorite(meal: Meal)` to `MealViewModel`
+6. **UI** - Add favorite icon button to `MealCard` composable
+7. **Test** - Write unit tests for use case and ViewModel
+
+This follows the dependency flow: UI → ViewModel → UseCase → Repository → DAO → Database
 
 ## Getting Help
 

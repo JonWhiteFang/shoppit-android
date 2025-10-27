@@ -4,11 +4,20 @@ This guide covers how dependency injection is configured and used in the Shoppit
 
 ## Overview
 
-Shoppit uses [Hilt](https://dagger.dev/hilt/) for dependency injection, which provides:
-- Compile-time dependency validation
-- Automatic lifecycle management
-- Simplified testing with module replacement
-- Integration with Android components
+Shoppit uses [Hilt 2.48](https://dagger.dev/hilt/) for dependency injection, which provides:
+- **Compile-time dependency validation** - Catches errors at build time
+- **Automatic lifecycle management** - Dependencies scoped to Android components
+- **Simplified testing** - Easy module replacement with `@TestInstallIn`
+- **Integration with Android components** - Works seamlessly with Activities, Fragments, ViewModels
+- **KSP annotation processing** - Faster builds compared to KAPT
+
+### Why Hilt?
+
+- **Reduces boilerplate** - No manual factory classes or service locators
+- **Type safety** - Compile-time verification of dependency graph
+- **Testability** - Easy to swap implementations for testing
+- **Standard solution** - Official Android recommendation for DI
+- **ViewModel integration** - Built-in support for `@HiltViewModel`
 
 ## Architecture
 
@@ -20,19 +29,32 @@ The application uses three main Hilt modules:
 di/
 ├── DatabaseModule.kt      # Database and DAO dependencies
 ├── RepositoryModule.kt    # Repository implementations
-└── UseCaseModule.kt       # Use case dependencies
+└── UseCaseModule.kt       # Use case dependencies (optional)
 ```
 
 ### Component Hierarchy
 
+Hilt provides predefined Android components with automatic lifecycle management:
+
 ```
 SingletonComponent (Application scope)
-├── DatabaseModule
-└── RepositoryModule
+├── ActivityComponent (Activity scope)
+│   └── FragmentComponent (Fragment scope)
+│       └── ViewComponent (View scope)
+└── ViewModelComponent (ViewModel scope)
+    └── ViewWithFragmentComponent
 
-ViewModelComponent (ViewModel scope)
-└── UseCaseModule
+ServiceComponent (Service scope)
 ```
+
+**Shoppit uses**:
+- `SingletonComponent` - Database, repositories (app-wide singletons)
+- `ViewModelComponent` - Use cases (ViewModel-scoped)
+
+**Scoping Rules**:
+- `@Singleton` in `SingletonComponent` - One instance for entire app
+- No scope in `ViewModelComponent` - New instance per ViewModel
+- Unscoped dependencies - New instance every injection
 
 ## Core Modules
 
@@ -63,18 +85,31 @@ object DatabaseModule {
             .build()
     }
     
-    // Future DAO providers will be added here
-    // Example:
-    // @Provides
-    // fun provideMealDao(database: AppDatabase): MealDao = 
-    //     database.mealDao()
+    @Provides
+    fun provideMealDao(database: AppDatabase): MealDao = 
+        database.mealDao()
+    
+    @Provides
+    fun provideMealPlanDao(database: AppDatabase): MealPlanDao = 
+        database.mealPlanDao()
+    
+    @Provides
+    fun provideShoppingListDao(database: AppDatabase): ShoppingListDao = 
+        database.shoppingListDao()
 }
 ```
 
 **Key Points:**
 - Uses `@Singleton` to ensure single database instance
-- Configured with fallback to destructive migration for development
-- DAOs will be provided as needed when features are implemented
+- Configured with `fallbackToDestructiveMigration()` for development (remove for production)
+- DAOs are provided as functions that call database accessor methods
+- All database-related dependencies are singletons
+
+**Production Configuration**:
+For production, replace `fallbackToDestructiveMigration()` with proper migrations:
+```kotlin
+.addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+```
 
 ### RepositoryModule
 
@@ -86,24 +121,37 @@ Binds repository interfaces to their implementations.
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
-    // Repository bindings will be added in future tasks
     
-    // Example:
-    // @Binds
-    // abstract fun bindMealRepository(
-    //     impl: MealRepositoryImpl
-    // ): MealRepository
+    @Binds
+    abstract fun bindMealRepository(
+        impl: MealRepositoryImpl
+    ): MealRepository
+    
+    @Binds
+    abstract fun bindMealPlanRepository(
+        impl: MealPlanRepositoryImpl
+    ): MealPlanRepository
+    
+    @Binds
+    abstract fun bindShoppingListRepository(
+        impl: ShoppingListRepositoryImpl
+    ): ShoppingListRepository
 }
 ```
 
 **Key Points:**
 - Abstract class allows use of `@Binds` for interface binding
-- More efficient than `@Provides` for simple interface implementations
-- Repositories are singletons by default in SingletonComponent
+- `@Binds` is more efficient than `@Provides` (no implementation code generated)
+- Repositories are singletons by default in `SingletonComponent`
+- Implementation classes must have `@Inject constructor()`
+
+**When to use `@Binds` vs `@Provides`**:
+- Use `@Binds` when binding interface to implementation (preferred)
+- Use `@Provides` when you need custom instantiation logic
 
 ### UseCaseModule
 
-Provides use case instances for ViewModels.
+Provides use case instances for ViewModels (optional - use cases can use constructor injection directly).
 
 **Location:** `app/src/main/java/com/shoppit/app/di/UseCaseModule.kt`
 
@@ -111,9 +159,10 @@ Provides use case instances for ViewModels.
 @Module
 @InstallIn(ViewModelComponent::class)
 object UseCaseModule {
-    // Use case providers will be added in future tasks
+    // Usually not needed - use cases can use constructor injection
+    // Only add providers if you need custom instantiation logic
     
-    // Example:
+    // Example if needed:
     // @Provides
     // fun provideAddMealUseCase(
     //     repository: MealRepository
@@ -123,8 +172,9 @@ object UseCaseModule {
 
 **Key Points:**
 - Installed in `ViewModelComponent` for ViewModel-scoped dependencies
-- Use cases are created per ViewModel instance
+- Use cases are created per ViewModel instance (not singletons)
 - Automatically cleaned up when ViewModel is cleared
+- **Often not needed** - use cases with `@Inject constructor()` work without module
 
 ## Application Setup
 
@@ -140,9 +190,17 @@ class ShoppitApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         // Timber initialization and other setup
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
     }
 }
 ```
+
+**Key Points:**
+- `@HiltAndroidApp` triggers Hilt code generation
+- Must be declared in `AndroidManifest.xml`
+- Initializes Hilt's dependency graph
 
 ### Android Components
 
@@ -152,13 +210,22 @@ Activities and ViewModels must be annotated to use Hilt:
 // Activity
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    // Hilt will inject dependencies
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            ShoppitTheme {
+                ShoppitNavHost()
+            }
+        }
+    }
 }
 
 // ViewModel
 @HiltViewModel
 class MealViewModel @Inject constructor(
-    private val getMealsUseCase: GetMealsUseCase
+    private val getMealsUseCase: GetMealsUseCase,
+    private val addMealUseCase: AddMealUseCase,
+    private val deleteMealUseCase: DeleteMealUseCase
 ) : ViewModel() {
     // ViewModel implementation
 }
@@ -166,22 +233,47 @@ class MealViewModel @Inject constructor(
 
 ## Usage Patterns
 
-### Constructor Injection
+### Constructor Injection (Preferred)
 
 The preferred method for dependency injection:
 
 ```kotlin
+// Repository implementation
 class MealRepositoryImpl @Inject constructor(
-    private val mealDao: MealDao,
-    private val apiService: MealApiService
+    private val mealDao: MealDao
 ) : MealRepository {
-    // Implementation
+    override fun getMeals(): Flow<Result<List<Meal>>> = flow {
+        mealDao.getAllMeals()
+            .catch { e -> emit(Result.failure(AppError.DatabaseError(e.message))) }
+            .collect { entities ->
+                emit(Result.success(entities.map { it.toDomainModel() }))
+            }
+    }.flowOn(Dispatchers.IO)
+}
+
+// Use case
+class AddMealUseCase @Inject constructor(
+    private val repository: MealRepository
+) {
+    suspend operator fun invoke(meal: Meal): Result<Long> {
+        return repository.addMeal(meal)
+    }
+}
+
+// ViewModel
+@HiltViewModel
+class MealViewModel @Inject constructor(
+    private val getMealsUseCase: GetMealsUseCase,
+    private val addMealUseCase: AddMealUseCase
+) : ViewModel() {
+    private val _uiState = MutableStateFlow<MealUiState>(MealUiState.Loading)
+    val uiState: StateFlow<MealUiState> = _uiState.asStateFlow()
 }
 ```
 
-### Field Injection
+### Field Injection (Avoid if Possible)
 
-Use only when constructor injection is not possible:
+Use only when constructor injection is not possible (e.g., Android framework classes without Hilt support):
 
 ```kotlin
 @AndroidEntryPoint
@@ -197,7 +289,9 @@ class MealFragment : Fragment() {
 }
 ```
 
-### ViewModel Injection
+**Note**: With Compose, fragments are rarely needed. Use ViewModels instead.
+
+### ViewModel Injection in Compose
 
 ViewModels use constructor injection with `@HiltViewModel`:
 
@@ -210,12 +304,64 @@ class MealViewModel @Inject constructor(
     // ViewModel implementation
 }
 
-// In Composable
+// In Composable - stateful screen
 @Composable
-fun MealScreen(
-    viewModel: MealViewModel = hiltViewModel()
+fun MealListScreen(
+    viewModel: MealViewModel = hiltViewModel(),
+    onMealClick: (Meal) -> Unit
 ) {
-    // Use viewModel
+    val uiState by viewModel.uiState.collectAsState()
+    
+    MealListContent(
+        uiState = uiState,
+        onMealClick = onMealClick,
+        onAddMeal = viewModel::addMeal
+    )
+}
+
+// Stateless content composable
+@Composable
+fun MealListContent(
+    uiState: MealUiState,
+    onMealClick: (Meal) -> Unit,
+    onAddMeal: (Meal) -> Unit
+) {
+    // UI implementation
+}
+```
+
+### Injection Scopes
+
+```kotlin
+// Singleton - one instance for entire app
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+        // ...
+    }
+}
+
+// ViewModel-scoped - new instance per ViewModel
+@Module
+@InstallIn(ViewModelComponent::class)
+object UseCaseModule {
+    @Provides
+    fun provideUseCase(repository: MealRepository): GetMealsUseCase {
+        return GetMealsUseCase(repository)
+    }
+}
+
+// Unscoped - new instance every injection
+@Module
+@InstallIn(SingletonComponent::class)
+object UtilityModule {
+    @Provides
+    fun provideJsonParser(): JsonParser {
+        return JsonParser() // New instance each time
+    }
 }
 ```
 
@@ -254,6 +400,11 @@ android {
         testInstrumentationRunner = "com.shoppit.app.HiltTestRunner"
     }
 }
+
+dependencies {
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+}
 ```
 
 #### TestDatabaseModule
@@ -282,6 +433,10 @@ object TestDatabaseModule {
             .allowMainThreadQueries()
             .build()
     }
+    
+    @Provides
+    fun provideMealDao(database: AppDatabase): MealDao = 
+        database.mealDao()
 }
 ```
 
@@ -289,28 +444,34 @@ object TestDatabaseModule {
 - Uses `@TestInstallIn` to replace production module
 - In-memory database doesn't persist between tests
 - `allowMainThreadQueries()` simplifies test code
+- Each test gets a fresh database
 
 ### Writing Tests
 
-#### Unit Tests
+#### Unit Tests (No Hilt)
 
-For unit tests, use MockK to mock dependencies:
+For unit tests, use MockK to mock dependencies - no Hilt needed:
 
 ```kotlin
 @ExperimentalCoroutinesApi
-class MealViewModelTest : ViewModelTest() {
+class MealViewModelTest {
+    
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
     
     private lateinit var viewModel: MealViewModel
     private lateinit var getMealsUseCase: GetMealsUseCase
+    private lateinit var addMealUseCase: AddMealUseCase
     
     @Before
     fun setUp() {
         getMealsUseCase = mockk()
-        viewModel = MealViewModel(getMealsUseCase)
+        addMealUseCase = mockk()
+        viewModel = MealViewModel(getMealsUseCase, addMealUseCase)
     }
     
     @Test
-    fun `loads meals successfully`() = runTest {
+    fun `loads meals successfully when repository returns data`() = runTest {
         // Given
         val meals = listOf(Meal(id = 1, name = "Pasta"))
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
@@ -322,17 +483,38 @@ class MealViewModelTest : ViewModelTest() {
         // Then
         val state = viewModel.uiState.value
         assertTrue(state is MealUiState.Success)
+        assertEquals(meals, (state as MealUiState.Success).meals)
     }
 }
 ```
 
-#### Instrumented Tests
+#### Instrumented Tests with Hilt
 
-For instrumented tests with Hilt:
+For instrumented tests that need real dependencies:
 
 ```kotlin
 @HiltAndroidTest
-class MealDaoTest : DatabaseTest() {
+@RunWith(AndroidJUnit4::class)
+class MealDaoTest {
+    
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+    
+    @Inject
+    lateinit var database: AppDatabase
+    
+    private lateinit var mealDao: MealDao
+    
+    @Before
+    fun setUp() {
+        hiltRule.inject()
+        mealDao = database.mealDao()
+    }
+    
+    @After
+    fun tearDown() {
+        database.close()
+    }
     
     @Test
     fun insertAndRetrieveMeal() = runTest {
@@ -344,8 +526,8 @@ class MealDaoTest : DatabaseTest() {
         )
         
         // When
-        database.mealDao().insertMeal(meal)
-        val meals = database.mealDao().getAllMeals().first()
+        mealDao.insertMeal(meal)
+        val meals = mealDao.getAllMeals().first()
         
         // Then
         assertEquals(1, meals.size)
@@ -354,10 +536,39 @@ class MealDaoTest : DatabaseTest() {
 }
 ```
 
-**Base Test Classes:**
-- `ViewModelTest` - For ViewModel unit tests with coroutine support
-- `RepositoryTest` - For repository unit tests with coroutine support
-- `DatabaseTest` - For DAO instrumented tests with Hilt injection
+#### Compose UI Tests with Hilt
+
+```kotlin
+@HiltAndroidTest
+@RunWith(AndroidJUnit4::class)
+class MealListScreenTest {
+    
+    @get:Rule(order = 0)
+    val hiltRule = HiltAndroidRule(this)
+    
+    @get:Rule(order = 1)
+    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    
+    @Test
+    fun displaysMealList() {
+        val meals = listOf(
+            Meal(id = 1, name = "Pasta"),
+            Meal(id = 2, name = "Salad")
+        )
+        
+        composeTestRule.setContent {
+            MealListScreen(
+                uiState = MealUiState.Success(meals),
+                onMealClick = {},
+                onAddMealClick = {}
+            )
+        }
+        
+        composeTestRule.onNodeWithText("Pasta").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Salad").assertIsDisplayed()
+    }
+}
+```
 
 ### Custom Test Modules
 
@@ -381,11 +592,11 @@ abstract class FakeRepositoryModule {
 @UninstallModules(RepositoryModule::class)
 class MealIntegrationTest {
     
-    @Inject
-    lateinit var repository: MealRepository // Will be FakeMealRepository
-    
     @get:Rule
     val hiltRule = HiltAndroidRule(this)
+    
+    @Inject
+    lateinit var repository: MealRepository // Will be FakeMealRepository
     
     @Before
     fun setUp() {
@@ -395,6 +606,108 @@ class MealIntegrationTest {
     @Test
     fun testWithFakeRepository() {
         // Test using fake repository
+        assertTrue(repository is FakeMealRepository)
+    }
+}
+```
+
+## Common Patterns
+
+### Providing Context
+
+```kotlin
+// Application context (preferred)
+class MyRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    // Use context
+}
+
+// Activity context (rarely needed)
+@Module
+@InstallIn(ActivityComponent::class)
+object ActivityModule {
+    @Provides
+    fun provideActivityContext(
+        activity: Activity
+    ): Context = activity
+}
+```
+
+### Qualifiers for Multiple Implementations
+
+```kotlin
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class LocalDataSource
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class RemoteDataSource
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class DataSourceModule {
+    
+    @Binds
+    @LocalDataSource
+    abstract fun bindLocalDataSource(
+        impl: LocalDataSourceImpl
+    ): DataSource
+    
+    @Binds
+    @RemoteDataSource
+    abstract fun bindRemoteDataSource(
+        impl: RemoteDataSourceImpl
+    ): DataSource
+}
+
+// Usage
+class MyRepository @Inject constructor(
+    @LocalDataSource private val localDataSource: DataSource,
+    @RemoteDataSource private val remoteDataSource: DataSource
+) {
+    // Use both data sources
+}
+```
+
+### Providing Third-Party Libraries
+
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+    
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+            })
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://api.shoppit.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    
+    @Provides
+    @Singleton
+    fun provideMealApiService(retrofit: Retrofit): MealApiService {
+        return retrofit.create(MealApiService::class.java)
     }
 }
 ```
@@ -424,7 +737,20 @@ class MyViewModel @Inject constructor(
 
 ✅ **Keep modules focused**
 - One module per concern (database, network, repositories)
-- Clear naming conventions
+- Clear naming conventions (`DatabaseModule`, `NetworkModule`)
+
+✅ **Use `@Binds` over `@Provides` when possible**
+```kotlin
+@Binds
+abstract fun bindRepository(impl: MealRepositoryImpl): MealRepository
+```
+
+✅ **Inject `@ApplicationContext` when you need Context**
+```kotlin
+class MyRepository @Inject constructor(
+    @ApplicationContext private val context: Context
+)
+```
 
 ### Don'ts
 
@@ -448,17 +774,44 @@ class A @Inject constructor(private val b: B)
 class B @Inject constructor(private val a: A)
 ```
 
-❌ **Don't inject Android Context directly**
+❌ **Don't inject Android Context directly without qualifier**
 ```kotlin
 // Bad
 class MyRepository @Inject constructor(
-    private val context: Context
+    private val context: Context // Which context?
 )
 
 // Good
 class MyRepository @Inject constructor(
     @ApplicationContext private val context: Context
 )
+```
+
+❌ **Don't make everything a singleton**
+```kotlin
+// Bad - use case doesn't need to be singleton
+@Provides
+@Singleton
+fun provideUseCase(repo: Repository): UseCase
+
+// Good - new instance per ViewModel
+@Provides
+fun provideUseCase(repo: Repository): UseCase
+```
+
+❌ **Don't use Hilt in unit tests**
+```kotlin
+// Bad - unnecessary complexity
+@HiltAndroidTest
+class ViewModelTest {
+    @Inject lateinit var useCase: UseCase
+}
+
+// Good - use MockK
+class ViewModelTest {
+    private val useCase: UseCase = mockk()
+    private val viewModel = MyViewModel(useCase)
+}
 ```
 
 ## Troubleshooting
@@ -470,30 +823,67 @@ class MyRepository @Inject constructor(
 **Problem:** Hilt annotation processor not running
 
 **Solution:** 
-1. Clean and rebuild: `./gradlew clean build`
-2. Verify KSP is configured in `build.gradle.kts`
-3. Check that `@HiltAndroidApp` is on Application class
+```bash
+./gradlew clean
+./gradlew kspDebugKotlin
+./gradlew assembleDebug
+```
+
+**Verify KSP configuration in `build.gradle.kts`:**
+```kotlin
+plugins {
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
+}
+
+dependencies {
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+}
+```
 
 #### "Dagger does not support injection into private fields"
 
 **Problem:** Trying to inject into private field
 
-**Solution:** Make field internal or use constructor injection
+**Solution:** Make field internal or use constructor injection (preferred)
 
 #### Test fails with "No instrumentation registered"
 
 **Problem:** Test runner not configured
 
-**Solution:** Verify `testInstrumentationRunner` in `build.gradle.kts`:
+**Solution:** Verify `testInstrumentationRunner` in `app/build.gradle.kts`:
 ```kotlin
-testInstrumentationRunner = "com.shoppit.app.HiltTestRunner"
+android {
+    defaultConfig {
+        testInstrumentationRunner = "com.shoppit.app.HiltTestRunner"
+    }
+}
 ```
 
 #### "Cannot process test roots and app roots in same compilation"
 
-**Problem:** Custom test application with `@HiltAndroidApp` annotation
+**Problem:** Trying to use `@HiltAndroidApp` in test code
 
 **Solution:** Use Hilt's built-in `HiltTestApplication` via `HiltTestRunner`
+
+#### "MissingBinding" error
+
+**Problem:** Hilt can't find a provider for a dependency
+
+**Solution:**
+1. Check that the dependency has `@Inject constructor()`
+2. Or add a `@Provides` function in a module
+3. Verify the module is installed in the correct component
+
+#### Build is slow after adding Hilt
+
+**Problem:** Annotation processing takes time
+
+**Solution:**
+- Use KSP instead of KAPT (already configured in Shoppit)
+- Enable Gradle build cache
+- Use incremental compilation
 
 ## Adding New Dependencies
 
@@ -512,7 +902,7 @@ fun provideMealDao(database: AppDatabase): MealDao =
 ### Adding a Repository
 
 1. Create interface in `domain/repository/`
-2. Create implementation in `data/repository/`
+2. Create implementation in `data/repository/` with `@Inject constructor()`
 3. Add binding to `RepositoryModule`:
 
 ```kotlin
@@ -524,15 +914,46 @@ abstract fun bindMealRepository(
 
 ### Adding a Use Case
 
-1. Create use case in `domain/usecase/`
-2. Add provider to `UseCaseModule`:
+1. Create use case in `domain/usecase/` with `@Inject constructor()`
+2. No module needed - constructor injection works automatically
+3. (Optional) Add provider to `UseCaseModule` if custom logic needed
+
+### Adding a Network Service
+
+1. Create Retrofit interface in `data/remote/api/`
+2. Add provider to `NetworkModule`:
 
 ```kotlin
 @Provides
-fun provideAddMealUseCase(
-    repository: MealRepository
-): AddMealUseCase = AddMealUseCase(repository)
+@Singleton
+fun provideMealApiService(retrofit: Retrofit): MealApiService {
+    return retrofit.create(MealApiService::class.java)
+}
 ```
+
+## Migration Guide
+
+### From Manual DI to Hilt
+
+If you have manual dependency injection:
+
+1. **Add Hilt dependencies** to `build.gradle.kts`
+2. **Annotate Application class** with `@HiltAndroidApp`
+3. **Create modules** for existing factories
+4. **Replace manual injection** with `@Inject constructor()`
+5. **Annotate Activities** with `@AndroidEntryPoint`
+6. **Annotate ViewModels** with `@HiltViewModel`
+7. **Update tests** to use `@HiltAndroidTest`
+
+### From KAPT to KSP
+
+Shoppit already uses KSP, but if migrating:
+
+1. Replace `kapt` with `ksp` in dependencies
+2. Replace `kaptAndroidTest` with `kspAndroidTest`
+3. Remove KAPT plugin
+4. Add KSP plugin
+5. Clean and rebuild
 
 ## Further Reading
 
@@ -540,3 +961,5 @@ fun provideAddMealUseCase(
 - [Hilt Testing Guide](https://developer.android.com/training/dependency-injection/hilt-testing)
 - [Dependency Injection Best Practices](https://developer.android.com/training/dependency-injection)
 - [Testing Guide](testing.md) - Project-specific testing patterns
+- [Hilt Quick Reference](../reference/hilt-quick-reference.md) - Quick lookup for common patterns
+- [Architecture Overview](../architecture/overview.md) - How DI fits into Clean Architecture
