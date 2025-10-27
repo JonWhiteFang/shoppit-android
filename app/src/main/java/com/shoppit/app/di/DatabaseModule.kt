@@ -2,13 +2,20 @@ package com.shoppit.app.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.shoppit.app.data.local.dao.MealDao
 import com.shoppit.app.data.local.database.AppDatabase
+import com.shoppit.app.data.local.database.migration.MigrationHandler
+import com.shoppit.app.data.local.database.migration.MigrationHandlerImpl
+import com.shoppit.app.data.transaction.TransactionManager
+import com.shoppit.app.data.transaction.TransactionManagerImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import timber.log.Timber
 import javax.inject.Singleton
 
 /**
@@ -16,8 +23,9 @@ import javax.inject.Singleton
  * 
  * This module provides the Room database instance as a singleton.
  * The database is configured with:
- * - Fallback to destructive migration for development (will be replaced with proper migrations in production)
- * - Type converters for LocalDateTime and LocalDate
+ * - Proper migration strategy using MigrationHandler
+ * - Write-Ahead Logging (WAL) for better concurrency
+ * - Type converters for complex data types
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -27,20 +35,46 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideMigrationHandler(): MigrationHandler {
+        return MigrationHandlerImpl()
+    }
+
+    @Provides
+    @Singleton
     fun provideAppDatabase(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        migrationHandler: MigrationHandler
     ): AppDatabase {
         return Room.databaseBuilder(
             context,
             AppDatabase::class.java,
             DATABASE_NAME
         )
-            // For development: fallback to destructive migration
-            // TODO: Replace with proper migration strategy before production release
-            .fallbackToDestructiveMigration()
+            .addMigrations(*migrationHandler.getMigrations().toTypedArray())
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+                    Timber.i("Database created: version ${db.version}")
+                }
+
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    super.onOpen(db)
+                    // Enable foreign key constraints
+                    db.execSQL("PRAGMA foreign_keys=ON")
+                    Timber.d("Database opened: version ${db.version}")
+                }
+            })
+            .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
+            .fallbackToDestructiveMigration() // Fallback for development
             .build()
     }
     
     @Provides
     fun provideMealDao(database: AppDatabase) = database.mealDao()
+    
+    @Provides
+    @Singleton
+    fun provideTransactionManager(database: AppDatabase): TransactionManager {
+        return TransactionManagerImpl(database)
+    }
 }
