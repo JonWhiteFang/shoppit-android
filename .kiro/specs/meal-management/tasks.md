@@ -121,21 +121,21 @@
     - Show delete confirmation dialog
     - _Requirements: 2.3, 2.5, 5.1, 5.4_
 
-- [ ] 8. Implement meal detail screen
-  - [ ] 8.1 Create MealDetailScreen stateful composable
+- [x] 8. Implement meal detail screen
+  - [x] 8.1 Create MealDetailScreen stateful composable
     - Inject MealDetailViewModel with hiltViewModel()
     - Collect uiState as State
     - Pass state and callbacks to MealDetailContent
     - _Requirements: 3.1, 3.5_
   
-  - [ ] 8.2 Create MealDetailContent stateless composable
+  - [x] 8.2 Create MealDetailContent stateless composable
     - Implement Scaffold with TopAppBar and action buttons
     - Handle Loading, Success, and Error states
     - Display meal name, notes, and ingredient list
     - Add edit and delete action buttons
     - _Requirements: 3.2, 3.3, 3.4_
   
-  - [ ] 8.3 Create IngredientList composable
+  - [x] 8.3 Create IngredientList composable
     - Display ingredients with quantity and unit
     - Format ingredient display (e.g., "2 cups flour")
     - _Requirements: 3.2_
