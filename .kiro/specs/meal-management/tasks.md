@@ -36,27 +36,27 @@
     - Implement deleteMeal() with error handling
     - _Requirements: 1.3, 2.1, 3.1, 4.3, 5.2, 7.2, 8.2_
 
-- [ ] 3. Implement domain use cases
-  - [ ] 3.1 Create GetMealsUseCase
+- [x] 3. Implement domain use cases
+  - [x] 3.1 Create GetMealsUseCase
     - Implement operator invoke returning Flow from repository
     - _Requirements: 2.1_
   
-  - [ ] 3.2 Create GetMealByIdUseCase
+  - [x] 3.2 Create GetMealByIdUseCase
     - Implement operator invoke with mealId parameter returning Flow
     - _Requirements: 3.1_
   
-  - [ ] 3.3 Create AddMealUseCase
+  - [x] 3.3 Create AddMealUseCase
     - Inject MealRepository and MealValidator
     - Implement operator invoke with validation before repository call
     - Return validation errors or repository result
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
   
-  - [ ] 3.4 Create UpdateMealUseCase
+  - [x] 3.4 Create UpdateMealUseCase
     - Inject MealRepository and MealValidator
     - Implement operator invoke with validation before repository call
     - _Requirements: 4.2, 4.3, 4.4_
   
-  - [ ] 3.5 Create DeleteMealUseCase
+  - [x] 3.5 Create DeleteMealUseCase
     - Implement operator invoke calling repository deleteMeal
     - _Requirements: 5.2_
 
