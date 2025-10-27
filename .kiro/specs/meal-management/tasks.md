@@ -191,20 +191,20 @@
     - Test DeleteMealUseCase calls repository
     - _Requirements: 1.1, 1.3, 4.3, 5.2_
 
-- [ ] 13. Write unit tests for ViewModels
-  - [ ] 13.1 Test MealViewModel
+- [x] 13. Write unit tests for ViewModels
+  - [x] 13.1 Test MealViewModel
     - Test initial state is Loading
     - Test loads meals successfully and updates to Success state
     - Test handles error and updates to Error state
     - Test deleteMeal calls use case
     - _Requirements: 2.1, 5.2, 8.2_
   
-  - [ ] 13.2 Test MealDetailViewModel
+  - [x] 13.2 Test MealDetailViewModel
     - Test loads meal successfully
     - Test handles meal not found error
     - _Requirements: 3.1, 3.5_
   
-  - [ ] 13.3 Test AddEditMealViewModel
+  - [x] 13.3 Test AddEditMealViewModel
     - Test loads existing meal in edit mode
     - Test updateMealName updates state
     - Test addIngredient adds to list
