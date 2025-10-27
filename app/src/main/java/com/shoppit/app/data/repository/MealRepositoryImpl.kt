@@ -7,17 +7,17 @@ import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
 import com.shoppit.app.di.MealDetailCache
 import com.shoppit.app.di.MealListCache
-import com.shoppit.app.domain.error.DatabaseException
-import com.shoppit.app.domain.error.NotFoundException
+import android.database.sqlite.SQLiteConstraintException
+import com.shoppit.app.data.error.PersistenceError
+import com.shoppit.app.data.error.PersistenceLogger
+import com.shoppit.app.data.error.ValidationError
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.repository.MealRepository
 import com.shoppit.app.domain.validator.MealValidator
-import com.shoppit.app.domain.validator.ValidationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
-import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -48,27 +48,27 @@ class MealRepositoryImpl @Inject constructor(
      * Retrieves all meals from cache or database as a reactive Flow.
      * Implements cache-aside pattern with cache warming.
      *
-     * @return Flow emitting Result with list of meals or DatabaseException
+     * @return Flow emitting Result with list of meals or PersistenceError.QueryFailed
      */
     override fun getMeals(): Flow<Result<List<Meal>>> {
         return mealDao.getAllMeals()
             .onStart {
                 // Try to emit cached data first for immediate UI update
                 mealListCache.get(MEAL_LIST_CACHE_KEY)?.let { cachedMeals ->
-                    Timber.d("Emitting cached meals: ${cachedMeals.size} items")
+                    PersistenceLogger.logCacheHit(MEAL_LIST_CACHE_KEY)
                     emit(Result.success(cachedMeals))
-                }
+                } ?: PersistenceLogger.logCacheMiss(MEAL_LIST_CACHE_KEY)
             }
             .map { entities -> 
                 val meals = entities.map { it.toDomainModel() }
                 // Update cache with fresh data
                 mealListCache.put(MEAL_LIST_CACHE_KEY, meals)
-                Timber.d("Loaded ${meals.size} meals from database and updated cache")
+                PersistenceLogger.logOperationSuccess("getMeals", 0)
                 Result.success(meals)
             }
             .catch { e -> 
-                Timber.e(e, "Failed to load meals from database")
-                emit(Result.failure(DatabaseException("Failed to load meals", e)))
+                PersistenceLogger.logQueryFailure("getAllMeals", e)
+                emit(Result.failure(PersistenceError.QueryFailed("getAllMeals", e)))
             }
     }
     
@@ -77,32 +77,32 @@ class MealRepositoryImpl @Inject constructor(
      * Checks cache first, then falls back to database.
      *
      * @param id The unique identifier of the meal
-     * @return Flow emitting Result with meal or NotFoundException/DatabaseException
+     * @return Flow emitting Result with meal or PersistenceError.QueryFailed
      */
     override fun getMealById(id: Long): Flow<Result<Meal>> {
         return mealDao.getMealById(id)
             .onStart {
                 // Try to emit cached data first
                 mealDetailCache.get(id)?.let { cachedMeal ->
-                    Timber.d("Emitting cached meal: id=$id")
+                    PersistenceLogger.logCacheHit("meal_$id")
                     emit(Result.success(cachedMeal))
-                }
+                } ?: PersistenceLogger.logCacheMiss("meal_$id")
             }
             .map { entity ->
                 if (entity != null) {
                     val meal = entity.toDomainModel()
                     // Update cache with fresh data
                     mealDetailCache.put(id, meal)
-                    Timber.d("Loaded meal from database and updated cache: id=$id")
+                    PersistenceLogger.logOperationSuccess("getMealById", 0)
                     Result.success(meal)
                 } else {
-                    Timber.w("Meal not found: id=$id")
-                    Result.failure(NotFoundException("Meal not found"))
+                    PersistenceLogger.logQueryFailure("getMealById", Exception("Meal not found: id=$id"))
+                    Result.failure(PersistenceError.QueryFailed("getMealById", Exception("Meal not found: id=$id")))
                 }
             }
             .catch { e ->
-                Timber.e(e, "Failed to load meal: id=$id")
-                emit(Result.failure(DatabaseException("Failed to load meal", e)))
+                PersistenceLogger.logQueryFailure("getMealById", e)
+                emit(Result.failure(PersistenceError.QueryFailed("getMealById", e)))
             }
     }
     
@@ -112,27 +112,37 @@ class MealRepositoryImpl @Inject constructor(
      * Converts domain model to entity and handles database errors.
      *
      * @param meal The meal to add
-     * @return Result with the ID of the newly created meal or ValidationException/DatabaseException
+     * @return Result with the ID of the newly created meal or PersistenceError
      */
     override suspend fun addMeal(meal: Meal): Result<Long> {
+        PersistenceLogger.logValidationStart("Meal")
+        
         // Validate meal data first
         val validationResult = mealValidator.validate(meal)
         if (validationResult.isInvalid()) {
-            val errors = validationResult.getErrors()
-            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
-            Timber.w("Meal validation failed: $message")
-            return Result.failure(ValidationException(message))
+            val errors = validationResult.getErrors().map { 
+                ValidationError(it.field, it.message, it.code) 
+            }
+            PersistenceLogger.logValidationFailure("Meal", errors)
+            return Result.failure(PersistenceError.ValidationFailed(errors))
         }
+        
+        PersistenceLogger.logValidationSuccess("Meal")
+        PersistenceLogger.logOperationStart("addMeal")
         
         return try {
             val id = mealDao.insertMeal(meal.toEntity())
             // Invalidate meal list cache since we added a new meal
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
-            Timber.d("Added meal and invalidated cache: id=$id")
+            PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
+            PersistenceLogger.logOperationSuccess("addMeal", 0)
             Result.success(id)
+        } catch (e: SQLiteConstraintException) {
+            PersistenceLogger.logOperationFailure("addMeal", e)
+            Result.failure(PersistenceError.ConstraintViolation("meal_insert", e.message ?: "Unknown constraint violation"))
         } catch (e: Exception) {
-            Timber.e(e, "Failed to add meal")
-            Result.failure(DatabaseException("Failed to add meal", e))
+            PersistenceLogger.logOperationFailure("addMeal", e)
+            Result.failure(PersistenceError.WriteFailed("addMeal", e))
         }
     }
     
@@ -142,28 +152,39 @@ class MealRepositoryImpl @Inject constructor(
      * Converts domain model to entity and handles database errors.
      *
      * @param meal The meal with updated data
-     * @return Result indicating success or ValidationException/DatabaseException
+     * @return Result indicating success or PersistenceError
      */
     override suspend fun updateMeal(meal: Meal): Result<Unit> {
+        PersistenceLogger.logValidationStart("Meal")
+        
         // Validate meal data first
         val validationResult = mealValidator.validate(meal)
         if (validationResult.isInvalid()) {
-            val errors = validationResult.getErrors()
-            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
-            Timber.w("Meal validation failed: $message")
-            return Result.failure(ValidationException(message))
+            val errors = validationResult.getErrors().map { 
+                ValidationError(it.field, it.message, it.code) 
+            }
+            PersistenceLogger.logValidationFailure("Meal", errors)
+            return Result.failure(PersistenceError.ValidationFailed(errors))
         }
+        
+        PersistenceLogger.logValidationSuccess("Meal")
+        PersistenceLogger.logOperationStart("updateMeal", "id=${meal.id}")
         
         return try {
             mealDao.updateMeal(meal.toEntity())
             // Invalidate both list and detail caches
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
             mealDetailCache.invalidate(meal.id)
-            Timber.d("Updated meal and invalidated cache: id=${meal.id}")
+            PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
+            PersistenceLogger.logCacheInvalidation("meal_${meal.id}")
+            PersistenceLogger.logOperationSuccess("updateMeal", 0)
             Result.success(Unit)
+        } catch (e: SQLiteConstraintException) {
+            PersistenceLogger.logOperationFailure("updateMeal", e)
+            Result.failure(PersistenceError.ConstraintViolation("meal_update", e.message ?: "Unknown constraint violation"))
         } catch (e: Exception) {
-            Timber.e(e, "Failed to update meal: id=${meal.id}")
-            Result.failure(DatabaseException("Failed to update meal", e))
+            PersistenceLogger.logOperationFailure("updateMeal", e)
+            Result.failure(PersistenceError.WriteFailed("updateMeal", e))
         }
     }
     
@@ -172,19 +193,23 @@ class MealRepositoryImpl @Inject constructor(
      * Handles database errors during deletion.
      *
      * @param mealId The ID of the meal to delete
-     * @return Result indicating success or DatabaseException
+     * @return Result indicating success or PersistenceError
      */
     override suspend fun deleteMeal(mealId: Long): Result<Unit> {
+        PersistenceLogger.logOperationStart("deleteMeal", "id=$mealId")
+        
         return try {
             mealDao.deleteMealById(mealId)
             // Invalidate both list and detail caches
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
             mealDetailCache.invalidate(mealId)
-            Timber.d("Deleted meal and invalidated cache: id=$mealId")
+            PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
+            PersistenceLogger.logCacheInvalidation("meal_$mealId")
+            PersistenceLogger.logOperationSuccess("deleteMeal", 0)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to delete meal: id=$mealId")
-            Result.failure(DatabaseException("Failed to delete meal", e))
+            PersistenceLogger.logOperationFailure("deleteMeal", e)
+            Result.failure(PersistenceError.WriteFailed("deleteMeal", e))
         }
     }
     
@@ -194,36 +219,46 @@ class MealRepositoryImpl @Inject constructor(
      * More efficient than adding meals one by one.
      *
      * @param meals The list of meals to add
-     * @return Result with list of IDs of newly created meals or ValidationException/DatabaseException
+     * @return Result with list of IDs of newly created meals or PersistenceError
      */
     override suspend fun addMeals(meals: List<Meal>): Result<List<Long>> {
+        PersistenceLogger.logValidationStart("Meal batch (${meals.size} items)")
+        
         // Validate all meals first
-        val validationErrors = mutableListOf<String>()
+        val validationErrors = mutableListOf<ValidationError>()
         meals.forEachIndexed { index, meal ->
             val validationResult = mealValidator.validate(meal)
             if (validationResult.isInvalid()) {
-                val errors = validationResult.getErrors()
-                val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
-                validationErrors.add("Meal $index: $message")
+                validationResult.getErrors().forEach { error ->
+                    validationErrors.add(
+                        ValidationError("meal[$index].${error.field}", error.message, error.code)
+                    )
+                }
             }
         }
         
         if (validationErrors.isNotEmpty()) {
-            val message = validationErrors.joinToString("; ")
-            Timber.w("Batch meal validation failed: $message")
-            return Result.failure(ValidationException(message))
+            PersistenceLogger.logValidationFailure("Meal batch", validationErrors)
+            return Result.failure(PersistenceError.ValidationFailed(validationErrors))
         }
+        
+        PersistenceLogger.logValidationSuccess("Meal batch")
+        PersistenceLogger.logOperationStart("addMeals", "count=${meals.size}")
         
         return try {
             val entities = meals.map { it.toEntity() }
             val ids = mealDao.insertMeals(entities)
             // Invalidate meal list cache since we added new meals
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
-            Timber.d("Added ${ids.size} meals in batch and invalidated cache")
+            PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
+            PersistenceLogger.logOperationSuccess("addMeals", 0)
             Result.success(ids)
+        } catch (e: SQLiteConstraintException) {
+            PersistenceLogger.logOperationFailure("addMeals", e)
+            Result.failure(PersistenceError.ConstraintViolation("meal_batch_insert", e.message ?: "Unknown constraint violation"))
         } catch (e: Exception) {
-            Timber.e(e, "Failed to add meals in batch")
-            Result.failure(DatabaseException("Failed to add meals in batch", e))
+            PersistenceLogger.logOperationFailure("addMeals", e)
+            Result.failure(PersistenceError.WriteFailed("addMeals", e))
         }
     }
     
@@ -234,18 +269,18 @@ class MealRepositoryImpl @Inject constructor(
      *
      * @param limit Maximum number of meals to retrieve (default: 50)
      * @param offset Number of meals to skip (default: 0)
-     * @return Flow emitting Result with paginated list of meals or DatabaseException
+     * @return Flow emitting Result with paginated list of meals or PersistenceError.QueryFailed
      */
     override fun getMealsPaginated(limit: Int, offset: Int): Flow<Result<List<Meal>>> {
         return mealDao.getMealsPaginated(limit, offset)
             .map { entities ->
                 val meals = entities.map { it.toDomainModel() }
-                Timber.d("Loaded ${meals.size} meals (paginated: limit=$limit, offset=$offset)")
+                PersistenceLogger.logOperationSuccess("getMealsPaginated", 0)
                 Result.success(meals)
             }
             .catch { e ->
-                Timber.e(e, "Failed to load paginated meals")
-                emit(Result.failure(DatabaseException("Failed to load paginated meals", e)))
+                PersistenceLogger.logQueryFailure("getMealsPaginated", e)
+                emit(Result.failure(PersistenceError.QueryFailed("getMealsPaginated", e)))
             }
     }
 }

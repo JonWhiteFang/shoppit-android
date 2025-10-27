@@ -2,147 +2,269 @@ package com.shoppit.app.domain.validator
 
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 
-/**
- * Unit tests for MealValidator.
- * Tests validation logic for meal business rules.
- */
 class MealValidatorTest {
-
+    
     private lateinit var validator: MealValidator
-
+    
     @Before
-    fun setUp() {
+    fun setup() {
         validator = MealValidator()
     }
-
+    
     @Test
-    fun `validation passes for valid meal`() {
+    fun `validate returns Valid for valid meal`() {
         // Given
         val meal = Meal(
-            name = "Pasta Carbonara",
+            id = 1,
+            name = "Spaghetti Carbonara",
             ingredients = listOf(
-                Ingredient(name = "Pasta", quantity = "400", unit = "g"),
-                Ingredient(name = "Eggs", quantity = "4", unit = "pcs")
+                Ingredient("Pasta", "400", "g"),
+                Ingredient("Eggs", "4", "pcs")
             )
         )
-
+        
         // When
         val result = validator.validate(meal)
-
+        
         // Then
-        assertTrue(result.isSuccess)
+        assertTrue(result.isValid())
+        assertTrue(result is ValidationResult.Valid)
     }
-
+    
     @Test
-    fun `validation fails for empty meal name`() {
+    fun `validate returns Invalid when meal name is empty`() {
         // Given
         val meal = Meal(
+            id = 1,
             name = "",
-            ingredients = listOf(Ingredient(name = "Pasta"))
+            ingredients = listOf(Ingredient("Pasta", "400", "g"))
         )
-
+        
         // When
         val result = validator.validate(meal)
-
+        
         // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Meal name cannot be empty", result.exceptionOrNull()?.message)
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("name", errors[0].field)
+        assertEquals("Meal name cannot be empty", errors[0].message)
+        assertEquals(ValidationError.CODE_REQUIRED, errors[0].code)
     }
-
+    
     @Test
-    fun `validation fails for blank meal name with whitespace`() {
+    fun `validate returns Invalid when meal name is blank`() {
         // Given
         val meal = Meal(
+            id = 1,
             name = "   ",
-            ingredients = listOf(Ingredient(name = "Pasta"))
+            ingredients = listOf(Ingredient("Pasta", "400", "g"))
         )
-
+        
         // When
         val result = validator.validate(meal)
-
+        
         // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Meal name cannot be empty", result.exceptionOrNull()?.message)
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("name", errors[0].field)
+        assertEquals("Meal name cannot be empty", errors[0].message)
     }
-
+    
     @Test
-    fun `validation fails for empty ingredient list`() {
+    fun `validate returns Invalid when meal name exceeds 100 characters`() {
+        // Given
+        val longName = "a".repeat(101)
+        val meal = Meal(
+            id = 1,
+            name = longName,
+            ingredients = listOf(Ingredient("Pasta", "400", "g"))
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("name", errors[0].field)
+        assertEquals("Meal name cannot exceed 100 characters", errors[0].message)
+        assertEquals(ValidationError.CODE_TOO_LONG, errors[0].code)
+    }
+    
+    @Test
+    fun `validate returns Invalid when meal has no ingredients`() {
         // Given
         val meal = Meal(
-            name = "Pasta Carbonara",
+            id = 1,
+            name = "Empty Meal",
             ingredients = emptyList()
         )
-
+        
         // When
         val result = validator.validate(meal)
-
+        
         // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Meal must have at least one ingredient", result.exceptionOrNull()?.message)
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("ingredients", errors[0].field)
+        assertEquals("Meal must have at least one ingredient", errors[0].message)
+        assertEquals(ValidationError.CODE_REQUIRED, errors[0].code)
     }
-
+    
     @Test
-    fun `validation fails for ingredient with empty name`() {
+    fun `validate returns Invalid when ingredient name is empty`() {
         // Given
         val meal = Meal(
-            name = "Pasta Carbonara",
+            id = 1,
+            name = "Test Meal",
             ingredients = listOf(
-                Ingredient(name = "Pasta", quantity = "400", unit = "g"),
-                Ingredient(name = "", quantity = "4", unit = "pcs")
+                Ingredient("", "400", "g")
             )
         )
-
+        
         // When
         val result = validator.validate(meal)
-
+        
         // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Ingredient name cannot be empty", result.exceptionOrNull()?.message)
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("ingredients[0].name", errors[0].field)
+        assertEquals("Ingredient name cannot be empty", errors[0].message)
     }
-
+    
     @Test
-    fun `validation fails for ingredient with blank name`() {
+    fun `validate returns Invalid when ingredient quantity is empty`() {
         // Given
         val meal = Meal(
-            name = "Pasta Carbonara",
+            id = 1,
+            name = "Test Meal",
             ingredients = listOf(
-                Ingredient(name = "Pasta", quantity = "400", unit = "g"),
-                Ingredient(name = "  ", quantity = "4", unit = "pcs")
+                Ingredient("Pasta", "", "g")
             )
         )
-
+        
         // When
         val result = validator.validate(meal)
-
+        
         // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Ingredient name cannot be empty", result.exceptionOrNull()?.message)
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("ingredients[0].quantity", errors[0].field)
+        assertEquals("Ingredient quantity cannot be empty", errors[0].message)
     }
-
+    
     @Test
-    fun `validation passes for ingredient with empty quantity and unit`() {
+    fun `validate returns Invalid when ingredient unit is empty`() {
         // Given
         val meal = Meal(
-            name = "Pasta Carbonara",
+            id = 1,
+            name = "Test Meal",
             ingredients = listOf(
-                Ingredient(name = "Pasta") // quantity and unit are optional
+                Ingredient("Pasta", "400", "")
             )
         )
-
+        
         // When
         val result = validator.validate(meal)
-
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("ingredients[0].unit", errors[0].field)
+        assertEquals("Ingredient unit cannot be empty", errors[0].message)
+    }
+    
+    @Test
+    fun `validate returns all errors for multiple invalid fields`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "",
+            ingredients = listOf(
+                Ingredient("", "", ""),
+                Ingredient("Eggs", "4", "pcs")
+            )
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(4, errors.size) // name + 3 ingredient fields
+        
+        val errorFields = errors.map { it.field }
+        assertTrue(errorFields.contains("name"))
+        assertTrue(errorFields.contains("ingredients[0].name"))
+        assertTrue(errorFields.contains("ingredients[0].quantity"))
+        assertTrue(errorFields.contains("ingredients[0].unit"))
+    }
+    
+    @Test
+    fun `validate handles multiple ingredients with mixed validity`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "Test Meal",
+            ingredients = listOf(
+                Ingredient("Pasta", "400", "g"),
+                Ingredient("", "4", "pcs"),
+                Ingredient("Salt", "", "tsp")
+            )
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(2, errors.size)
+        assertEquals("ingredients[1].name", errors[0].field)
+        assertEquals("ingredients[2].quantity", errors[1].field)
+    }
+    
+    @Test
+    fun `validateLegacy returns success for valid meal`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "Test Meal",
+            ingredients = listOf(Ingredient("Pasta", "400", "g"))
+        )
+        
+        // When
+        val result = validator.validateLegacy(meal)
+        
         // Then
         assertTrue(result.isSuccess)
+    }
+    
+    @Test
+    fun `validateLegacy returns failure for invalid meal`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "",
+            ingredients = listOf(Ingredient("Pasta", "400", "g"))
+        )
+        
+        // When
+        val result = validator.validateLegacy(meal)
+        
+        // Then
+        assertTrue(result.isFailure)
     }
 }
