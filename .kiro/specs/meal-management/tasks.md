@@ -66,21 +66,21 @@
   - Define AddEditMealUiState data class with meal, loading flags, and error fields
   - _Requirements: 2.3, 3.2, 8.1, 8.5_
 
-- [ ] 5. Implement ViewModels with state management
-  - [ ] 5.1 Create MealViewModel for meal list
+- [x] 5. Implement ViewModels with state management
+  - [x] 5.1 Create MealViewModel for meal list
     - Inject GetMealsUseCase and DeleteMealUseCase
     - Initialize with Loading state and load meals in init block
     - Collect Flow from use case and update StateFlow with Success or Error
     - Implement deleteMeal function with error handling
     - _Requirements: 2.1, 2.2, 2.4, 5.2, 5.3, 8.2_
   
-  - [ ] 5.2 Create MealDetailViewModel for meal details
+  - [x] 5.2 Create MealDetailViewModel for meal details
     - Inject GetMealByIdUseCase and extract mealId from SavedStateHandle
     - Load meal in init block and update StateFlow
     - Handle meal not found scenario
     - _Requirements: 3.1, 3.2, 3.5, 8.2_
   
-  - [ ] 5.3 Create AddEditMealViewModel for add/edit form
+  - [x] 5.3 Create AddEditMealViewModel for add/edit form
     - Inject AddMealUseCase, UpdateMealUseCase, GetMealByIdUseCase
     - Extract optional mealId from SavedStateHandle for edit mode
     - Load existing meal if mealId present

@@ -1,11 +1,20 @@
 package com.shoppit.app.di
 
+import com.shoppit.app.data.repository.MealRepositoryImpl
+import com.shoppit.app.domain.repository.MealRepository
+import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
-    // Repository bindings will be added in future tasks
+    
+    @Binds
+    @Singleton
+    abstract fun bindMealRepository(
+        impl: MealRepositoryImpl
+    ): MealRepository
 }
