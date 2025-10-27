@@ -95,26 +95,26 @@
   - Implement EmptyState composable with message and action button
   - _Requirements: 2.4, 8.4_
 
-- [ ] 7. Implement meal list screen
-  - [ ] 7.1 Create MealListScreen stateful composable
+- [x] 7. Implement meal list screen
+  - [x] 7.1 Create MealListScreen stateful composable
     - Inject MealViewModel with hiltViewModel()
     - Collect uiState as State
     - Pass state and callbacks to MealListContent
     - _Requirements: 2.1, 2.5_
   
-  - [ ] 7.2 Create MealListContent stateless composable
+  - [x] 7.2 Create MealListContent stateless composable
     - Implement Scaffold with FloatingActionButton for add meal
     - Handle Loading, Success, and Error states
     - Show EmptyState when meal list is empty
     - Render MealList for Success state with meals
     - _Requirements: 2.2, 2.3, 2.4_
   
-  - [ ] 7.3 Create MealList composable with LazyColumn
+  - [x] 7.3 Create MealList composable with LazyColumn
     - Use items with stable keys (meal.id)
     - Render MealCard for each meal
     - _Requirements: 2.2, 2.5_
   
-  - [ ] 7.4 Create MealCard composable
+  - [x] 7.4 Create MealCard composable
     - Display meal name and ingredient count
     - Implement click handler for navigation
     - Add swipe-to-delete functionality
