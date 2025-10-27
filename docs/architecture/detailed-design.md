@@ -1,292 +1,355 @@
-# 🛒 Shoppit - Android Architecture Design
+# Detailed Architecture Design
 
-## 1. High-Level Overview
+Comprehensive architecture specification for the Shoppit Android application.
 
-Shoppit should let users:
-- Save **meals** (with their ingredients)
-- Plan **weekly meals**
-- Automatically generate a **shopping list** of ingredients
+## Overview
 
-This involves three domains:
-- **Meal management**
-- **Meal planning**
-- **Shopping list generation**
-
-Recommended architecture: **Clean Architecture + MVVM + Offline-First**
+Shoppit is an offline-first Android meal planning application that follows Clean Architecture principles with MVVM pattern. The app enables users to manage meals, plan weekly menus, and generate smart shopping lists from planned meals.
 
 ### Core Principles
-- **Offline-first**: App works without internet, syncs when available
-- **Reactive**: UI updates automatically when data changes
-- **Testable**: Clear separation of concerns for easy testing
-- **Scalable**: Modular design for future enhancements
 
----
+- **Clean Architecture**: Clear separation of concerns across three layers
+- **Offline-First**: Full functionality without network, sync when available
+- **Reactive**: UI updates automatically with Flow-based data streams
+- **Testable**: Layer boundaries enable comprehensive testing
+- **Scalable**: Modular design supports future enhancements
 
-## 2. Architecture Layers
+## Architecture Layers
 
-### 1. Presentation Layer (UI + ViewModel)
-**Responsibility:** Display data and handle user interaction.
+### Presentation Layer (UI)
 
-**Tech stack:**
-- Jetpack Compose (UI)
-- ViewModel (Android Jetpack)
-- StateFlow (reactive state management)
-- Compose Navigation
+**Location:** `app/src/main/java/com/shoppit/app/ui/`
 
-**Structure:**
+**Responsibility:** Display data to users, handle user interactions, manage UI state, and navigate between screens.
+
+**Technology Stack:**
+- Jetpack Compose (BOM 2023.10.01) - Declarative UI
+- Material3 - Design system
+- ViewModel - State management
+- StateFlow - Reactive state
+- Navigation Compose 2.7.4 - Type-safe navigation
+
+**Package Structure:**
 ```
 ui/
- ├─ meal/
- │   ├─ MealListScreen.kt
- │   ├─ MealDetailScreen.kt
- │   ├─ MealViewModel.kt
- │   └─ MealUiState.kt
- ├─ planner/
- │   ├─ PlannerScreen.kt
- │   ├─ PlannerViewModel.kt
- │   └─ PlannerUiState.kt
- ├─ shopping/
- │   ├─ ShoppingListScreen.kt
- │   ├─ ShoppingListViewModel.kt
- │   └─ ShoppingUiState.kt
- └─ common/
-     ├─ ErrorScreen.kt
-     ├─ LoadingScreen.kt
-     └─ SyncStatusIndicator.kt
+├── meal/                      # Meal management feature
+│   ├── MealListScreen.kt      # Meal list composable
+│   ├── MealDetailScreen.kt    # Meal detail/edit composable
+│   ├── MealViewModel.kt       # State management
+│   └── MealUiState.kt         # UI state definition
+├── planner/                   # Meal planning feature
+│   ├── PlannerScreen.kt
+│   ├── PlannerViewModel.kt
+│   └── PlannerUiState.kt
+├── shopping/                  # Shopping list feature
+│   ├── ShoppingListScreen.kt
+│   ├── ShoppingListViewModel.kt
+│   └── ShoppingUiState.kt
+├── common/                    # Reusable UI components
+│   ├── ErrorScreen.kt
+│   ├── LoadingScreen.kt
+│   └── EmptyState.kt
+├── navigation/                # Navigation setup
+│   ├── NavHost.kt
+│   └── Screen.kt              # Route definitions
+└── theme/                     # Material3 theme
+    ├── Color.kt
+    ├── Type.kt
+    └── Theme.kt
 ```
 
-**UI State Management:**
+**File Naming Conventions:**
+- Screens: `[Feature]Screen.kt` (e.g., `MealListScreen.kt`)
+- ViewModels: `[Feature]ViewModel.kt` (e.g., `MealViewModel.kt`)
+- UI State: `[Feature]UiState.kt` (e.g., `MealUiState.kt`)
+
+**UI State Pattern:**
 ```kotlin
-data class MealUiState(
-    val meals: List<Meal> = emptyList(),
+// Sealed interface for mutually exclusive states
+sealed interface MealUiState {
+    data object Loading : MealUiState
+    data class Success(val meals: List<Meal>) : MealUiState
+    data class Error(val message: String) : MealUiState
+}
+
+// Data class for multiple independent states
+data class MealDetailUiState(
+    val meal: Meal? = null,
     val isLoading: Boolean = false,
-    val error: String? = null,
-    val syncStatus: SyncStatus = SyncStatus.SYNCED
+    val isSaving: Boolean = false,
+    val error: String? = null
 )
-
-enum class SyncStatus { SYNCING, SYNCED, ERROR, OFFLINE }
 ```
 
----
-
-### 2. Domain Layer
-**Responsibility:** Business logic and rules (pure Kotlin).
-
-**Components:**
-- Entities (data classes): `Meal`, `Ingredient`, `ShoppingItem`, `MealPlan`
-- Use Cases (Interactors): Business operations with validation
-- Repository Interfaces: Data access contracts
-- Error Handling: Result pattern for operations
-
-**Enhanced Entities:**
+**ViewModel Pattern:**
 ```kotlin
-data class Ingredient(
-    val name: String, 
-    val quantity: Double, 
-    val unit: String,
-    val category: IngredientCategory = IngredientCategory.OTHER
-)
+@HiltViewModel
+class MealViewModel @Inject constructor(
+    private val getMealsUseCase: GetMealsUseCase,
+    private val addMealUseCase: AddMealUseCase
+) : ViewModel() {
+    
+    // Private mutable state
+    private val _uiState = MutableStateFlow<MealUiState>(MealUiState.Loading)
+    
+    // Public immutable state
+    val uiState: StateFlow<MealUiState> = _uiState.asStateFlow()
+    
+    // Update state with .update { }
+    fun loadMeals() {
+        viewModelScope.launch {
+            getMealsUseCase()
+                .catch { error ->
+                    _uiState.update { MealUiState.Error(error.message ?: "Unknown error") }
+                }
+                .collect { result ->
+                    _uiState.update { 
+                        result.fold(
+                            onSuccess = { MealUiState.Success(it) },
+                            onFailure = { MealUiState.Error(it.message ?: "Unknown error") }
+                        )
+                    }
+                }
+        }
+    }
+    
+    fun addMeal(meal: Meal) {
+        viewModelScope.launch {
+            addMealUseCase(meal).fold(
+                onSuccess = { loadMeals() },
+                onFailure = { _uiState.update { MealUiState.Error(it.message ?: "Failed to add meal") } }
+            )
+        }
+    }
+}
+```
 
+**Screen Pattern:**
+```kotlin
+// Stateful screen composable
+@Composable
+fun MealListScreen(
+    viewModel: MealViewModel = hiltViewModel(),
+    onMealClick: (Meal) -> Unit,
+    onAddMealClick: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    
+    MealListContent(
+        uiState = uiState,
+        onMealClick = onMealClick,
+        onAddMealClick = onAddMealClick,
+        onDeleteMeal = viewModel::deleteMeal
+    )
+}
+
+// Stateless content composable
+@Composable
+fun MealListContent(
+    uiState: MealUiState,
+    onMealClick: (Meal) -> Unit,
+    onAddMealClick: () -> Unit,
+    onDeleteMeal: (Meal) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (uiState) {
+        is MealUiState.Loading -> LoadingScreen()
+        is MealUiState.Success -> MealList(
+            meals = uiState.meals,
+            onMealClick = onMealClick,
+            onDeleteMeal = onDeleteMeal
+        )
+        is MealUiState.Error -> ErrorScreen(message = uiState.message)
+    }
+}
+```
+
+### Domain Layer
+
+**Location:** `app/src/main/java/com/shoppit/app/domain/`
+
+**Responsibility:** Define business entities, implement business logic, define repository contracts, and handle domain errors. This layer has no Android dependencies (pure Kotlin).
+
+**Technology Stack:**
+- Pure Kotlin - No Android dependencies
+- Kotlin Coroutines 1.7.3 - Asynchronous operations
+- Result type - Error handling
+
+**Package Structure:**
+```
+domain/
+├── model/                     # Domain entities (pure Kotlin)
+│   ├── Meal.kt
+│   ├── Ingredient.kt
+│   ├── MealPlan.kt
+│   ├── ShoppingListItem.kt
+│   └── MealType.kt            # Enums
+├── repository/                # Repository interfaces
+│   ├── MealRepository.kt
+│   ├── PlannerRepository.kt
+│   └── ShoppingRepository.kt
+├── usecase/                   # Single-responsibility use cases
+│   ├── AddMealUseCase.kt
+│   ├── GetMealsUseCase.kt
+│   ├── PlanWeekUseCase.kt
+│   └── GenerateShoppingListUseCase.kt
+└── validator/                 # Input validation logic
+    ├── MealValidator.kt
+    └── IngredientValidator.kt
+```
+
+**File Naming Conventions:**
+- Models: Plain names (e.g., `Meal.kt`, `Ingredient.kt`)
+- Use Cases: `[Action][Entity]UseCase.kt` (e.g., `AddMealUseCase.kt`)
+- Repositories: `[Entity]Repository.kt` (e.g., `MealRepository.kt`)
+- Validators: `[Entity]Validator.kt` (e.g., `MealValidator.kt`)
+
+**Domain Models:**
+```kotlin
 data class Meal(
-    val id: Int, 
-    val name: String, 
+    val id: Long = 0,
+    val name: String,
     val ingredients: List<Ingredient>,
-    val mealType: MealType = MealType.DINNER,
-    val imageUrl: String? = null,
+    val notes: String = "",
     val createdAt: LocalDateTime = LocalDateTime.now()
 )
 
+data class Ingredient(
+    val name: String,
+    val quantity: String,
+    val unit: String
+)
+
 data class MealPlan(
-    val id: Int,
-    val mealId: Int,
+    val id: Long = 0,
+    val mealId: Long,
     val date: LocalDate,
     val mealType: MealType
 )
 
-data class ShoppingItem(
-    val name: String, 
-    val totalQuantity: Double, 
+data class ShoppingListItem(
+    val name: String,
+    val totalQuantity: String,
     val unit: String,
-    val category: IngredientCategory,
-    val isCompleted: Boolean = false
+    val isChecked: Boolean = false
 )
 
-enum class MealType { BREAKFAST, LUNCH, DINNER, SNACK }
-enum class IngredientCategory { PRODUCE, DAIRY, MEAT, PANTRY, FROZEN, OTHER }
+enum class MealType {
+    BREAKFAST, LUNCH, DINNER, SNACK
+}
 ```
 
 **Error Handling:**
 ```kotlin
-sealed class AppError {
-    object NetworkError : AppError()
-    object DatabaseError : AppError()
-    data class ValidationError(val message: String) : AppError()
-    data class UnknownError(val throwable: Throwable) : AppError()
+sealed class AppError : Exception() {
+    data class NetworkError(override val message: String) : AppError()
+    data class DatabaseError(override val message: String) : AppError()
+    data class ValidationError(override val message: String) : AppError()
+    data class UnknownError(val throwable: Throwable) : AppError() {
+        override val message: String get() = throwable.message ?: "Unknown error"
+    }
 }
 
 typealias AppResult<T> = Result<T>
 ```
 
----
-
-### 3. Data Layer
-**Responsibility:** Handle local and remote data with offline-first approach.
-
-**Tech stack:**
-- Room (local storage with full-text search)
-- Retrofit + OkHttp (network layer)
-- DataStore (preferences and settings)
-- WorkManager (background sync)
-
-**Structure:**
-```
-data/
- ├─ local/
- │   ├─ dao/
- │   │   ├─ MealDao.kt
- │   │   ├─ IngredientDao.kt
- │   │   ├─ MealPlanDao.kt
- │   │   └─ ShoppingListDao.kt
- │   ├─ database/
- │   │   ├─ AppDatabase.kt
- │   │   └─ DatabaseMigrations.kt
- │   └─ entity/
- │       ├─ MealEntity.kt
- │       ├─ IngredientEntity.kt
- │       ├─ MealPlanEntity.kt
- │       └─ ShoppingListEntity.kt
- ├─ remote/
- │   ├─ api/
- │   │   ├─ MealApiService.kt
- │   │   └─ SyncApiService.kt
- │   ├─ dto/
- │   │   ├─ MealDto.kt
- │   │   └─ SyncResponseDto.kt
- │   └─ interceptor/
- │       ├─ AuthInterceptor.kt
- │       └─ NetworkInterceptor.kt
- ├─ repository/
- │   ├─ MealRepositoryImpl.kt
- │   ├─ PlannerRepositoryImpl.kt
- │   ├─ ShoppingRepositoryImpl.kt
- │   └─ SyncRepositoryImpl.kt
- ├─ sync/
- │   ├─ SyncWorker.kt
- │   └─ ConflictResolver.kt
- └─ mapper/
-     ├─ MealMapper.kt
-     ├─ IngredientMapper.kt
-     └─ DtoMapper.kt
-```
-
-**Enhanced Repository Interface:**
-```kotlin
-interface MealRepository {
-    fun getMealsFlow(): Flow<AppResult<List<Meal>>>
-    suspend fun getMealById(id: Int): AppResult<Meal?>
-    suspend fun addMeal(meal: Meal): AppResult<Unit>
-    suspend fun updateMeal(meal: Meal): AppResult<Unit>
-    suspend fun deleteMeal(id: Int): AppResult<Unit>
-    suspend fun searchMeals(query: String): AppResult<List<Meal>>
-    suspend fun syncWithRemote(): AppResult<Unit>
-    suspend fun clearCache(): AppResult<Unit>
-}
-```
-
-**Caching Strategy:**
-```kotlin
-class MealRepositoryImpl @Inject constructor(
-    private val localDataSource: MealDao,
-    private val remoteDataSource: MealApiService,
-    private val syncManager: SyncManager
-) : MealRepository {
-    
-    override fun getMealsFlow(): Flow<AppResult<List<Meal>>> = 
-        localDataSource.getAllMealsFlow()
-            .map { entities -> entities.map { it.toDomain() } }
-            .map { AppResult.success(it) }
-            .catch { emit(AppResult.failure(it)) }
-}
-```
-
----
-
-## 3. Data Flow Example
-
-Example: Generating the shopping list
-
-1. `PlannerViewModel` calls `GenerateShoppingListUseCase`
-2. Use case fetches planned meals from `PlannerRepository`
-3. Aggregates all ingredients (e.g., sums "Tomato" quantities)
-4. Returns list of `ShoppingItem` to ViewModel
-5. ViewModel exposes the list via `StateFlow`
-6. `ShoppingListScreen` displays items in UI
-
----
-
-## 4. Key Use Cases
-
-**Use Case Implementation Pattern:**
-```kotlin
-abstract class UseCase<in P, R> {
-    suspend operator fun invoke(parameters: P): AppResult<R> {
-        return try {
-            execute(parameters)
-        } catch (e: Exception) {
-            AppResult.failure(e)
-        }
-    }
-    
-    @Throws(RuntimeException::class)
-    protected abstract suspend fun execute(parameters: P): AppResult<R>
-}
-```
-
-| Use Case | Description | Validation Rules |
-|-----------|--------------|------------------|
-| `AddMealUseCase` | Add or edit a saved meal and its ingredients | Name not empty, at least one ingredient |
-| `PlanWeekUseCase` | Assign meals to days of the week | Date not in past, meal exists |
-| `GenerateShoppingListUseCase` | Merge ingredients from all planned meals | At least one planned meal |
-| `MarkItemAsBoughtUseCase` | Mark items as completed in the shopping list | Item exists in current list |
-| `GetMealSuggestionsUseCase` | Suggest meals based on past selections | Return max 10 suggestions |
-| `SyncDataUseCase` | Synchronize local data with remote server | Network available, user authenticated |
-| `SearchMealsUseCase` | Search meals by name or ingredient | Query length >= 2 characters |
-| `ValidateIngredientUseCase` | Validate ingredient data before saving | Quantity > 0, valid unit |
-
-**Example Use Case Implementation:**
+**Use Case Pattern:**
 ```kotlin
 class AddMealUseCase @Inject constructor(
-    private val mealRepository: MealRepository,
+    private val repository: MealRepository,
     private val validator: MealValidator
-) : UseCase<AddMealUseCase.Params, Unit>() {
-    
-    override suspend fun execute(parameters: Params): AppResult<Unit> {
-        val validationResult = validator.validate(parameters.meal)
-        if (validationResult.isFailure) {
-            return AppResult.failure(ValidationError(validationResult.message))
+) {
+    suspend operator fun invoke(meal: Meal): Result<Long> {
+        return try {
+            // Validate input
+            validator.validate(meal).getOrThrow()
+            
+            // Execute business logic
+            repository.addMeal(meal)
+        } catch (e: Exception) {
+            Result.failure(AppError.ValidationError(e.message ?: "Validation failed"))
         }
-        
-        return mealRepository.addMeal(parameters.meal)
     }
-    
-    data class Params(val meal: Meal)
+}
+
+class GetMealsUseCase @Inject constructor(
+    private val repository: MealRepository
+) {
+    operator fun invoke(): Flow<Result<List<Meal>>> {
+        return repository.getMeals()
+    }
 }
 ```
 
----
+**Repository Interface:**
+```kotlin
+interface MealRepository {
+    fun getMeals(): Flow<Result<List<Meal>>>
+    suspend fun getMealById(id: Long): Result<Meal?>
+    suspend fun addMeal(meal: Meal): Result<Long>
+    suspend fun updateMeal(meal: Meal): Result<Unit>
+    suspend fun deleteMeal(id: Long): Result<Unit>
+}
+```
 
-## 5. Database Model (Room)
+### Data Layer
 
-### Enhanced Database Schema
+**Location:** `app/src/main/java/com/shoppit/app/data/`
 
+**Responsibility:** Persist data locally, implement repository interfaces, map between data and domain models, and handle data errors.
+
+**Technology Stack:**
+- Room 2.6.0 - Local database
+- SQLite - Database engine
+- Retrofit 2.9.0 + OkHttp 4.12.0 - Network layer (future)
+- KSP - Annotation processing
+
+**Package Structure:**
+```
+data/
+├── local/                     # Local data sources
+│   ├── dao/                   # Room DAOs
+│   │   ├── MealDao.kt
+│   │   ├── IngredientDao.kt
+│   │   ├── MealPlanDao.kt
+│   │   └── ShoppingListDao.kt
+│   ├── entity/                # Database entities
+│   │   ├── MealEntity.kt
+│   │   ├── IngredientEntity.kt
+│   │   ├── MealPlanEntity.kt
+│   │   └── ShoppingListItemEntity.kt
+│   └── database/              # Database configuration
+│       ├── AppDatabase.kt
+│       └── Converters.kt      # Type converters
+├── remote/                    # Network data sources (future)
+│   ├── api/                   # Retrofit service interfaces
+│   │   └── MealApiService.kt
+│   └── dto/                   # Network data transfer objects
+│       └── MealDto.kt
+├── repository/                # Repository implementations
+│   ├── MealRepositoryImpl.kt
+│   ├── PlannerRepositoryImpl.kt
+│   └── ShoppingRepositoryImpl.kt
+└── mapper/                    # Entity/DTO/model conversions
+    ├── MealMapper.kt
+    └── IngredientMapper.kt
+```
+
+**File Naming Conventions:**
+- DAOs: `[Entity]Dao.kt` (e.g., `MealDao.kt`)
+- Entities: `[Entity]Entity.kt` (e.g., `MealEntity.kt`)
+- Repositories: `[Entity]RepositoryImpl.kt` (e.g., `MealRepositoryImpl.kt`)
+- DTOs: `[Entity]Dto.kt` (e.g., `MealDto.kt`)
+- Mappers: `[Entity]Mapper.kt` (e.g., `MealMapper.kt`)
+
+**Database Schema:**
 ```kotlin
 @Database(
     entities = [
         MealEntity::class,
         IngredientEntity::class,
         MealPlanEntity::class,
-        ShoppingListEntity::class,
-        ShoppingItemEntity::class
+        ShoppingListItemEntity::class
     ],
     version = 1,
     exportSchema = false
@@ -300,338 +363,503 @@ abstract class AppDatabase : RoomDatabase() {
 }
 ```
 
-### MealEntity
+**Entity Example:**
 ```kotlin
 @Entity(
     tableName = "meals",
-    indices = [Index(value = ["name"], unique = true)]
+    indices = [Index(value = ["name"])]
 )
 data class MealEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    
     val name: String,
-    @ColumnInfo(name = "meal_type") val mealType: String,
-    @ColumnInfo(name = "image_url") val imageUrl: String?,
-    @ColumnInfo(name = "created_at") val createdAt: Long,
-    @ColumnInfo(name = "updated_at") val updatedAt: Long,
-    @ColumnInfo(name = "sync_status") val syncStatus: String = "SYNCED"
+    val notes: String,
+    
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long
 )
-```
 
-### IngredientEntity
-```kotlin
 @Entity(
     tableName = "ingredients",
-    foreignKeys = [ForeignKey(
-        entity = MealEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["mealId"],
-        onDelete = ForeignKey.CASCADE
-    )],
-    indices = [Index(value = ["mealId"]), Index(value = ["name"])]
+    foreignKeys = [
+        ForeignKey(
+            entity = MealEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["meal_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["meal_id"])]
 )
 data class IngredientEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    @ColumnInfo(name = "meal_id") val mealId: Int,
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    
+    @ColumnInfo(name = "meal_id")
+    val mealId: Long,
+    
     val name: String,
-    val quantity: Double,
-    val unit: String,
-    val category: String
+    val quantity: String,
+    val unit: String
 )
 ```
 
-### MealPlanEntity
-```kotlin
-@Entity(
-    tableName = "meal_plans",
-    foreignKeys = [ForeignKey(
-        entity = MealEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["mealId"],
-        onDelete = ForeignKey.CASCADE
-    )],
-    indices = [Index(value = ["date", "mealType"], unique = true)]
-)
-data class MealPlanEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    @ColumnInfo(name = "meal_id") val mealId: Int,
-    val date: Long, // LocalDate as timestamp
-    @ColumnInfo(name = "meal_type") val mealType: String
-)
-```
-
-### ShoppingListEntity
-```kotlin
-@Entity(tableName = "shopping_lists")
-data class ShoppingListEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    @ColumnInfo(name = "week_start_date") val weekStartDate: Long,
-    @ColumnInfo(name = "is_completed") val isCompleted: Boolean = false,
-    @ColumnInfo(name = "created_at") val createdAt: Long
-)
-```
-
-### ShoppingItemEntity
-```kotlin
-@Entity(
-    tableName = "shopping_items",
-    foreignKeys = [ForeignKey(
-        entity = ShoppingListEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["shoppingListId"],
-        onDelete = ForeignKey.CASCADE
-    )],
-    indices = [Index(value = ["shoppingListId"]), Index(value = ["category"])]
-)
-data class ShoppingItemEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    @ColumnInfo(name = "shopping_list_id") val shoppingListId: Int,
-    val name: String,
-    @ColumnInfo(name = "total_quantity") val totalQuantity: Double,
-    val unit: String,
-    val category: String,
-    @ColumnInfo(name = "is_completed") val isCompleted: Boolean = false
-)
-```
-
-### Enhanced DAO with Full-Text Search
+**DAO Example:**
 ```kotlin
 @Dao
 interface MealDao {
     @Query("SELECT * FROM meals ORDER BY name ASC")
-    fun getAllMealsFlow(): Flow<List<MealEntity>>
+    fun getAllMeals(): Flow<List<MealEntity>>
     
-    @Query("SELECT * FROM meals WHERE name LIKE '%' || :query || '%'")
-    suspend fun searchMeals(query: String): List<MealEntity>
+    @Query("SELECT * FROM meals WHERE id = :id")
+    suspend fun getMealById(id: Long): MealEntity?
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMeal(meal: MealEntity): Long
-    
-    @Transaction
-    @Query("SELECT * FROM meals WHERE id = :id")
-    suspend fun getMealWithIngredients(id: Int): MealWithIngredients?
     
     @Update
     suspend fun updateMeal(meal: MealEntity)
     
     @Delete
     suspend fun deleteMeal(meal: MealEntity)
-}
-```
-
----
-
-## 6. UI Design Concept (Jetpack Compose)
-
-- **HomeScreen:** Tabs for “Meals”, “Planner”, “Shopping List”
-- **MealScreen:** Add/edit meals and ingredients
-- **PlannerScreen:** Drag meals into weekly grid
-- **ShoppingListScreen:** Grouped list with checkboxes for bought items
-
-Use **Material 3 Components** for consistent theming.
-
----
-
-## 7. Dependency Injection (Hilt)
-
-### Module Structure
-```kotlin
-@Module
-@InstallIn(SingletonComponent::class)
-object DatabaseModule {
-    @Provides
-    @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.databaseBuilder(context, AppDatabase::class.java, "shoppit_database")
-            .addMigrations(MIGRATION_1_2)
-            .build()
-    }
+    
+    @Transaction
+    @Query("SELECT * FROM meals WHERE id = :id")
+    suspend fun getMealWithIngredients(id: Long): MealWithIngredients?
 }
 
-@Module
-@InstallIn(SingletonComponent::class)
-object RepositoryModule {
-    @Provides
-    @Singleton
-    fun provideMealRepository(
-        mealDao: MealDao,
-        apiService: MealApiService,
-        syncManager: SyncManager
-    ): MealRepository = MealRepositoryImpl(mealDao, apiService, syncManager)
-}
-
-@Module
-@InstallIn(ViewModelComponent::class)
-object UseCaseModule {
-    @Provides
-    fun provideAddMealUseCase(
-        repository: MealRepository,
-        validator: MealValidator
-    ): AddMealUseCase = AddMealUseCase(repository, validator)
-}
-```
-
-## 8. Recommended Libraries
-
-| Purpose | Library | Version |
-|----------|----------|---------|
-| UI | Jetpack Compose + Material3 | Latest stable |
-| Architecture | ViewModel + Kotlin Coroutines + Flow | Latest stable |
-| Database | Room + SQLite FTS | 2.5.0+ |
-| Dependency Injection | Hilt | 2.48+ |
-| Navigation | Jetpack Navigation (Compose) | Latest stable |
-| Network | Retrofit + OkHttp + Moshi | Latest stable |
-| Image Loading | Coil (Compose) | 2.4.0+ |
-| Background Work | WorkManager | 2.8.0+ |
-| Preferences | DataStore | 1.0.0+ |
-| Testing | JUnit + MockK + Turbine (Flow testing) | Latest stable |
-| UI Testing | Compose Testing + Espresso | Latest stable |
-| Cloud Sync | Firebase Firestore / Supabase | Latest stable |
-| Security | EncryptedSharedPreferences | Latest stable |
-
----
-
-## 9. Testing Strategy
-
-### Testing Pyramid
-```
-ui/
- ├─ MealViewModelTest.kt (Unit)
- ├─ MealScreenTest.kt (UI/Integration)
- └─ MealE2ETest.kt (End-to-End)
-
-domain/
- ├─ AddMealUseCaseTest.kt (Unit)
- ├─ MealValidatorTest.kt (Unit)
- └─ GenerateShoppingListUseCaseTest.kt (Unit)
-
-data/
- ├─ MealRepositoryTest.kt (Integration)
- ├─ MealDaoTest.kt (Integration)
- └─ FakeMealRepository.kt (Test Double)
-```
-
-### Test Configuration
-```kotlin
-// Test Application
-@HiltAndroidApp
-class ShoppitTestApplication : Application()
-
-// Test Database
-@Module
-@TestInstallIn(
-    components = [SingletonComponent::class],
-    replaces = [DatabaseModule::class]
+data class MealWithIngredients(
+    @Embedded val meal: MealEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "meal_id"
+    )
+    val ingredients: List<IngredientEntity>
 )
-object TestDatabaseModule {
-    @Provides
-    @Singleton
-    fun provideTestDatabase(@ApplicationContext context: Context): AppDatabase {
-        return Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
-            .allowMainThreadQueries()
-            .build()
+```
+
+**Repository Implementation:**
+```kotlin
+class MealRepositoryImpl @Inject constructor(
+    private val mealDao: MealDao,
+    private val ingredientDao: IngredientDao
+) : MealRepository {
+    
+    override fun getMeals(): Flow<Result<List<Meal>>> {
+        return mealDao.getAllMeals()
+            .map { entities -> entities.map { it.toDomainModel() } }
+            .map { Result.success(it) }
+            .catch { emit(Result.failure(AppError.DatabaseError(it.message ?: "Database error"))) }
+            .flowOn(Dispatchers.IO)
+    }
+    
+    override suspend fun addMeal(meal: Meal): Result<Long> = withContext(Dispatchers.IO) {
+        try {
+            val mealId = mealDao.insertMeal(meal.toEntity())
+            meal.ingredients.forEach { ingredient ->
+                ingredientDao.insertIngredient(ingredient.toEntity(mealId))
+            }
+            Result.success(mealId)
+        } catch (e: Exception) {
+            Result.failure(AppError.DatabaseError(e.message ?: "Failed to add meal"))
+        }
     }
 }
 ```
 
-## 10. Security Considerations
+**Mapper Extensions:**
+```kotlin
+// Entity to Domain
+fun MealEntity.toDomainModel(): Meal = Meal(
+    id = id,
+    name = name,
+    ingredients = emptyList(), // Loaded separately
+    notes = notes,
+    createdAt = LocalDateTime.ofEpochSecond(createdAt, 0, ZoneOffset.UTC)
+)
 
-### Data Protection
-- **Local Storage**: Use Room with SQLCipher for database encryption
-- **Network**: Implement certificate pinning and request/response encryption
-- **Authentication**: OAuth 2.0 with PKCE for secure cloud sync
-- **API Keys**: Store in BuildConfig, never in source code
+// Domain to Entity
+fun Meal.toEntity(): MealEntity = MealEntity(
+    id = id,
+    name = name,
+    notes = notes,
+    createdAt = createdAt.toEpochSecond(ZoneOffset.UTC)
+)
 
-### Privacy Compliance
-- **Data Minimization**: Only collect necessary user data
-- **Consent Management**: Clear opt-in for cloud sync and analytics
-- **Data Retention**: Implement automatic data cleanup policies
-- **Export/Delete**: Provide user data export and account deletion
+fun Ingredient.toEntity(mealId: Long): IngredientEntity = IngredientEntity(
+    mealId = mealId,
+    name = name,
+    quantity = quantity,
+    unit = unit
+)
+```
+
+## State Management Patterns
+
+### ViewModel State Exposure
+
+Always expose immutable state from ViewModels:
 
 ```kotlin
-@Module
-@InstallIn(SingletonComponent::class)
-object SecurityModule {
-    @Provides
-    @Singleton
-    fun provideEncryptedPreferences(@ApplicationContext context: Context): SharedPreferences {
-        return EncryptedSharedPreferences.create(
-            "shoppit_secure_prefs",
-            MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+class MealViewModel @Inject constructor(
+    private val getMealsUseCase: GetMealsUseCase
+) : ViewModel() {
+    
+    // Private mutable state
+    private val _uiState = MutableStateFlow<MealUiState>(MealUiState.Loading)
+    
+    // Public immutable state
+    val uiState: StateFlow<MealUiState> = _uiState.asStateFlow()
+    
+    // Update state with .update { }
+    fun loadMeals() {
+        viewModelScope.launch {
+            getMealsUseCase()
+                .catch { error ->
+                    _uiState.update { MealUiState.Error(error.message ?: "Unknown error") }
+                }
+                .collect { result ->
+                    _uiState.update { 
+                        result.fold(
+                            onSuccess = { MealUiState.Success(it) },
+                            onFailure = { MealUiState.Error(it.message ?: "Unknown error") }
+                        )
+                    }
+                }
+        }
+    }
+}
+```
+
+### Coroutines and Flow Usage
+
+- Use `viewModelScope` for ViewModel coroutines
+- Repository functions return `Flow<T>` for reactive data or `suspend` for one-shot operations
+- Apply `flowOn(Dispatchers.IO)` for database/network operations
+- DAOs return `Flow<T>` for observed queries, `suspend` for mutations
+
+```kotlin
+// Repository with Flow for reactive data
+override fun getMeals(): Flow<Result<List<Meal>>> {
+    return mealDao.getAllMeals()
+        .map { entities -> entities.map { it.toDomainModel() } }
+        .map { Result.success(it) }
+        .catch { emit(Result.failure(it)) }
+        .flowOn(Dispatchers.IO)
+}
+
+// Repository with suspend for one-shot operations
+override suspend fun addMeal(meal: Meal): Result<Unit> = withContext(Dispatchers.IO) {
+    try {
+        mealDao.insertMeal(meal.toEntity())
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+}
+```
+
+## Error Handling Strategy
+
+### Error Flow
+
+1. **Data Layer**: Catches exceptions, maps to domain errors
+2. **Domain Layer**: Validates input, returns Result types
+3. **Presentation Layer**: Displays user-friendly error messages
+
+```kotlin
+// Data Layer - Catch and map exceptions
+override suspend fun addMeal(meal: Meal): Result<Unit> = withContext(Dispatchers.IO) {
+    try {
+        mealDao.insertMeal(meal.toEntity())
+        Result.success(Unit)
+    } catch (e: SQLiteException) {
+        Result.failure(AppError.DatabaseError("Failed to save meal"))
+    } catch (e: Exception) {
+        Result.failure(AppError.UnknownError(e))
+    }
+}
+
+// Domain Layer - Validate and return Result
+class AddMealUseCase @Inject constructor(
+    private val repository: MealRepository,
+    private val validator: MealValidator
+) {
+    suspend operator fun invoke(meal: Meal): Result<Unit> {
+        return try {
+            validator.validate(meal).getOrThrow()
+            repository.addMeal(meal)
+        } catch (e: Exception) {
+            Result.failure(AppError.ValidationError(e.message ?: "Validation failed"))
+        }
+    }
+}
+
+// Presentation Layer - Display error
+fun addMeal(meal: Meal) {
+    viewModelScope.launch {
+        addMealUseCase(meal).fold(
+            onSuccess = { _uiState.update { MealUiState.Success(meals) } },
+            onFailure = { error ->
+                _uiState.update { 
+                    MealUiState.Error(
+                        when (error) {
+                            is AppError.ValidationError -> error.message
+                            is AppError.DatabaseError -> "Failed to save meal"
+                            else -> "An unexpected error occurred"
+                        }
+                    )
+                }
+            }
         )
     }
 }
 ```
 
-## 11. Implementation Timeline
+## Dependency Injection (Hilt)
 
-### Phase 1: Core Foundation (Weeks 1-3)
-- Set up project structure and dependencies
-- Implement basic entities and database schema
-- Create meal management (CRUD operations)
-- Basic UI with Compose and Material3
+**Location:** `app/src/main/java/com/shoppit/app/di/`
 
-### Phase 2: Planning & Shopping (Weeks 4-6)
-- Implement meal planning functionality
-- Shopping list generation and management
-- Enhanced UI with navigation
-- Local data persistence
+**File Naming:** `[Purpose]Module.kt` (e.g., `DatabaseModule.kt`, `NetworkModule.kt`)
 
-### Phase 3: Polish & Testing (Weeks 7-8)
-- Comprehensive testing suite
-- Error handling and edge cases
-- Performance optimization
-- UI/UX improvements
+### Module Structure
 
-### Phase 4: Cloud Sync (Weeks 9-10)
-- User authentication
-- Remote API integration
-- Conflict resolution
-- Background synchronization
+```kotlin
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+    
+    @Provides
+    @Singleton
+    fun provideAppDatabase(
+        @ApplicationContext context: Context
+    ): AppDatabase {
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "shoppit_database"
+        ).build()
+    }
+    
+    @Provides
+    fun provideMealDao(database: AppDatabase): MealDao {
+        return database.mealDao()
+    }
+    
+    @Provides
+    fun provideIngredientDao(database: AppDatabase): IngredientDao {
+        return database.ingredientDao()
+    }
+}
 
-### Phase 5: Advanced Features (Weeks 11-12)
-- Search and filtering
-- Data export/import
-- Accessibility improvements
-- Analytics and crash reporting
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+    
+    @Binds
+    @Singleton
+    abstract fun bindMealRepository(
+        impl: MealRepositoryImpl
+    ): MealRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindPlannerRepository(
+        impl: PlannerRepositoryImpl
+    ): PlannerRepository
+}
 
-## 12. Performance Optimization
+@Module
+@InstallIn(ViewModelComponent::class)
+object UseCaseModule {
+    
+    @Provides
+    fun provideGetMealsUseCase(
+        repository: MealRepository
+    ): GetMealsUseCase {
+        return GetMealsUseCase(repository)
+    }
+    
+    @Provides
+    fun provideAddMealUseCase(
+        repository: MealRepository,
+        validator: MealValidator
+    ): AddMealUseCase {
+        return AddMealUseCase(repository, validator)
+    }
+}
+```
+
+### Injection Patterns
+
+```kotlin
+// Constructor injection in ViewModel
+@HiltViewModel
+class MealViewModel @Inject constructor(
+    private val getMealsUseCase: GetMealsUseCase,
+    private val addMealUseCase: AddMealUseCase
+) : ViewModel()
+
+// Constructor injection in Repository
+class MealRepositoryImpl @Inject constructor(
+    private val mealDao: MealDao,
+    private val ingredientDao: IngredientDao
+) : MealRepository
+
+// Constructor injection in Use Case
+class AddMealUseCase @Inject constructor(
+    private val repository: MealRepository,
+    private val validator: MealValidator
+)
+```
+
+## Testing Architecture
+
+### Test Organization
+
+```
+test/                          # Unit tests
+├── domain/
+│   ├── usecase/
+│   │   ├── AddMealUseCaseTest.kt
+│   │   └── GetMealsUseCaseTest.kt
+│   └── validator/
+│       └── MealValidatorTest.kt
+├── data/
+│   └── repository/
+│       └── MealRepositoryImplTest.kt
+└── ui/
+    └── meal/
+        └── MealViewModelTest.kt
+
+androidTest/                   # Instrumented tests
+├── data/
+│   └── local/
+│       └── dao/
+│           └── MealDaoTest.kt
+└── ui/
+    └── meal/
+        └── MealListScreenTest.kt
+```
+
+### Testing Patterns
+
+**ViewModel Testing:**
+```kotlin
+@ExperimentalCoroutinesApi
+class MealViewModelTest {
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+    
+    private lateinit var getMealsUseCase: GetMealsUseCase
+    private lateinit var viewModel: MealViewModel
+    
+    @Before
+    fun setup() {
+        getMealsUseCase = mockk()
+        viewModel = MealViewModel(getMealsUseCase)
+    }
+    
+    @Test
+    fun `loads meals successfully`() = runTest {
+        // Given
+        val meals = listOf(Meal(id = 1, name = "Pasta", ingredients = emptyList()))
+        coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
+        
+        // When
+        viewModel.loadMeals()
+        advanceUntilIdle()
+        
+        // Then
+        val state = viewModel.uiState.value
+        assertTrue(state is MealUiState.Success)
+        assertEquals(meals, (state as MealUiState.Success).meals)
+    }
+}
+```
+
+**Repository Testing:**
+```kotlin
+class MealRepositoryImplTest {
+    private lateinit var mealDao: MealDao
+    private lateinit var repository: MealRepositoryImpl
+    
+    @Before
+    fun setup() {
+        mealDao = mockk()
+        repository = MealRepositoryImpl(mealDao)
+    }
+    
+    @Test
+    fun `getMeals returns flow of meals`() = runTest {
+        // Given
+        val entities = listOf(MealEntity(id = 1, name = "Pasta", notes = "", createdAt = 0L))
+        every { mealDao.getAllMeals() } returns flowOf(entities)
+        
+        // When
+        val result = repository.getMeals().first()
+        
+        // Then
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrNull()?.size)
+    }
+}
+```
+
+## Performance Optimization
 
 ### Database Optimization
+
 - **Indexing**: Add indexes on frequently queried columns
-- **Pagination**: Implement paging for large datasets
-- **Lazy Loading**: Load ingredients only when needed
-- **Query Optimization**: Use @Transaction for complex queries
+- **Foreign Keys**: Use CASCADE for automatic cleanup
+- **Transactions**: Use `@Transaction` for complex operations
+- **Flow**: Use Flow for reactive queries to minimize memory usage
 
 ### UI Performance
-- **Compose**: Use `remember` and `derivedStateOf` appropriately
-- **Image Loading**: Implement proper caching with Coil
-- **List Performance**: Use `LazyColumn` with proper keys
-- **State Management**: Minimize recomposition with stable classes
+
+- **Compose**: Use `remember` for expensive computations
+- **State**: Use `derivedStateOf` for computed values
+- **Lists**: Use `LazyColumn` with stable keys
+- **Recomposition**: Mark data classes as `@Immutable` or `@Stable`
 
 ### Memory Management
-- **Leak Prevention**: Use lifecycle-aware components
-- **Cache Management**: Implement LRU cache for images
-- **Background Processing**: Use WorkManager for heavy operations
 
-## 13. Future Enhancements
+- **Lifecycle**: Use `viewModelScope` for automatic cleanup
+- **Coroutines**: Cancel coroutines when no longer needed
+- **Database**: Close database connections properly
 
-### Short-term (Next 6 months)
-- **Barcode Scanning**: ML Kit for ingredient recognition
-- **Recipe Import**: Parse recipes from URLs
-- **Nutritional Info**: Integration with nutrition APIs
-- **Smart Suggestions**: ML-based meal recommendations
+## Key Architectural Decisions
 
-### Medium-term (6-12 months)
-- **Pantry Tracking**: Track what you already have at home
-- **Price Tracking**: Monitor grocery prices and suggest savings
-- **Social Features**: Share meal plans with family/friends
+### Why Clean Architecture?
+- **Testability**: Each layer can be tested independently
+- **Maintainability**: Clear boundaries make changes easier
+- **Flexibility**: Easy to swap implementations
+- **Scalability**: Well-organized structure supports growth
 
-### Long-term (12+ months)
-- **AI Meal Planning**: Generate meal plans based on preferences
-- **Dietary Restrictions**: Advanced filtering for allergies/diets
-- **Sustainability Tracking**: Carbon footprint of meals
+### Why Offline-First?
+- **User Experience**: App works without internet
+- **Performance**: No network latency for common operations
+- **Reliability**: Not dependent on network availability
+- **Data Ownership**: User data stored locally
 
----
+### Why StateFlow over LiveData?
+- **Kotlin-first**: Better integration with coroutines
+- **Type-safe**: Compile-time safety
+- **Composable-friendly**: Natural integration with Compose
+- **Testability**: Easier to test with coroutines-test
+
+### Why Hilt over Manual DI?
+- **Compile-time safety**: Errors caught at compile time
+- **Android integration**: Built for Android lifecycle
+- **Scoping**: Automatic lifecycle management
+- **Testing support**: Easy to swap implementations in tests
+
+## Further Reading
+
+- **[Architecture Overview](overview.md)** - High-level architecture and principles
+- **[Data Flow](data-flow.md)** - Detailed data flow patterns
+- **[State Management](state-management.md)** - ViewModel and Compose state patterns
+- **[Dependency Injection Guide](../guides/dependency-injection.md)** - Hilt configuration
+- **[Testing Guide](../guides/testing.md)** - Testing strategies for each layer
+- **[Code Style Guide](../guides/code-style.md)** - Coding conventions and standards

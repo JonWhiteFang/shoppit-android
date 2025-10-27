@@ -31,6 +31,16 @@ Thank you for your interest in contributing to Shoppit! This document provides g
 
 ## Development Workflow
 
+### Branch Strategy
+
+We use a Git Flow-inspired workflow:
+
+- **main**: Production-ready code, always deployable
+- **develop**: Integration branch for features, next release candidate
+- **feature/**: New features and enhancements
+- **bugfix/**: Bug fixes for develop branch
+- **hotfix/**: Urgent fixes for production
+
 ### Branch Naming
 
 Follow this naming convention:
@@ -45,9 +55,12 @@ Follow this naming convention:
 ```bash
 feature/123-meal-list-ui
 bugfix/456-fix-ingredient-duplication
+hotfix/1.2.1-critical-data-loss
 refactor/repository-error-handling
 docs/update-testing-guide
 ```
+
+For complete workflow details, see [Git Workflow Guide](docs/guides/git-workflow.md).
 
 ### Commit Messages
 
@@ -322,6 +335,17 @@ When adding features, update relevant documentation:
 3. ✅ Documentation is updated
 4. ✅ Commit messages follow conventions
 5. ✅ Branch is up to date with `develop`
+
+### PR Title Format
+
+```
+[Type] Short description (#issue-number)
+
+feat: Add meal planner calendar view (#123)
+fix: Prevent duplicate ingredients in shopping list (#456)
+refactor: Extract repository mappers to separate files
+docs: Update testing guide with ViewModel examples
+```
 
 ### PR Template
 

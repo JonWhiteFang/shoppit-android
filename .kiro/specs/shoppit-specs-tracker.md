@@ -26,9 +26,9 @@
 
 ## Completion Status
 - **Total Specs**: 12
-- **Completed**: 1
-- **In Progress**: 1
-- **Remaining**: 11
+- **Completed**: 2
+- **In Progress**: 0
+- **Remaining**: 10
 
 ## Notes
 - Each spec should be completed in order within its phase

@@ -4,30 +4,19 @@ Shoppit follows **Clean Architecture** principles with a clear separation of con
 
 ## High-Level Architecture
 
+```mermaid
+graph TD
+    A[Presentation Layer<br/>Compose UI, ViewModels, Navigation] -->|depends on| B[Domain Layer<br/>Entities, Use Cases, Repository Interfaces]
+    C[Data Layer<br/>Room, DAOs, Repository Implementations] -->|depends on| B
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#e8f5e9
 ```
-┌─────────────────────────────────────────────────────┐
-│              Presentation Layer                      │
-│  (Compose UI, ViewModels, Navigation)               │
-│                                                      │
-│  Dependencies: Domain                                │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│               Domain Layer                           │
-│  (Entities, Use Cases, Repository Interfaces)       │
-│                                                      │
-│  Dependencies: None (Pure Kotlin)                   │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────┐
-│                Data Layer                            │
-│  (Room, DAOs, Repository Implementations)           │
-│                                                      │
-│  Dependencies: Domain                                │
-└─────────────────────────────────────────────────────┘
-```
+
+**Dependency Direction:** Presentation → Domain ← Data
+
+The domain layer is at the center with no dependencies, making it the most stable and testable part of the application.
 
 ## Core Principles
 
@@ -53,9 +42,9 @@ Shoppit follows **Clean Architecture** principles with a clear separation of con
 
 ## Layer Responsibilities
 
-### Presentation Layer
+### Presentation Layer (UI)
 
-**Location:** `app/src/main/java/com/shoppit/app/presentation/`
+**Location:** `app/src/main/java/com/shoppit/app/ui/`
 
 **Responsibilities:**
 - Display data to users
@@ -174,56 +163,57 @@ class MealRepositoryImpl @Inject constructor(
 
 ### Reading Data (Query Flow)
 
-```
-User Action
-    ↓
-Composable
-    ↓
-ViewModel.loadMeals()
-    ↓
-GetMealsUseCase()
-    ↓
-MealRepository.getMealsFlow()
-    ↓
-MealDao.getAllMealsFlow()
-    ↓
-Room Database
-    ↓
-Flow<List<MealEntity>>
-    ↓
-Map to Domain Models
-    ↓
-Flow<Result<List<Meal>>>
-    ↓
-ViewModel updates StateFlow
-    ↓
-Composable recomposes with new data
+```mermaid
+sequenceDiagram
+    participant UI as Composable
+    participant VM as ViewModel
+    participant UC as GetMealsUseCase
+    participant Repo as MealRepository
+    participant DAO as MealDao
+    participant DB as Room Database
+    
+    UI->>VM: User Action (load meals)
+    VM->>UC: invoke()
+    UC->>Repo: getMealsFlow()
+    Repo->>DAO: getAllMealsFlow()
+    DAO->>DB: Query
+    DB-->>DAO: Flow<List<MealEntity>>
+    DAO-->>Repo: Flow<List<MealEntity>>
+    Repo->>Repo: Map to Domain Models
+    Repo-->>UC: Flow<Result<List<Meal>>>
+    UC-->>VM: Flow<Result<List<Meal>>>
+    VM->>VM: Update StateFlow
+    VM-->>UI: StateFlow emits new state
+    UI->>UI: Recompose with new data
 ```
 
 ### Writing Data (Command Flow)
 
-```
-User Action (e.g., Save Button)
-    ↓
-ViewModel.saveMeal(meal)
-    ↓
-AddMealUseCase(meal)
-    ↓
-Validate meal
-    ↓
-MealRepository.addMeal(meal)
-    ↓
-Map to Entity
-    ↓
-MealDao.insertMeal(entity)
-    ↓
-Room Database
-    ↓
-Result<Unit>
-    ↓
-ViewModel updates UI state
-    ↓
-Show success/error message
+```mermaid
+sequenceDiagram
+    participant UI as Composable
+    participant VM as ViewModel
+    participant UC as AddMealUseCase
+    participant Val as MealValidator
+    participant Repo as MealRepository
+    participant DAO as MealDao
+    participant DB as Room Database
+    
+    UI->>VM: User Action (save meal)
+    VM->>UC: invoke(meal)
+    UC->>Val: validate(meal)
+    Val-->>UC: Valid
+    UC->>Repo: addMeal(meal)
+    Repo->>Repo: Map to Entity
+    Repo->>DAO: insertMeal(entity)
+    DAO->>DB: Insert
+    DB-->>DAO: Success
+    DAO-->>Repo: Success
+    Repo-->>UC: Result.success(Unit)
+    UC-->>VM: Result.success(Unit)
+    VM->>VM: Update UI State
+    VM-->>UI: Show success message
+    UI->>UI: Recompose
 ```
 
 ## Dependency Injection
@@ -308,41 +298,57 @@ See [Testing Guide](../guides/testing.md) for detailed patterns.
 
 ```
 com.shoppit.app/
-├── data/
+├── data/                     # Data Layer
 │   ├── local/
 │   │   ├── dao/              # Room DAOs
 │   │   ├── entity/           # Database entities
 │   │   └── database/         # Database configuration
+│   ├── remote/               # (Future) Network APIs
+│   │   ├── api/              # Retrofit service interfaces
+│   │   └── dto/              # Network data transfer objects
 │   ├── repository/           # Repository implementations
-│   └── mapper/               # Data mappers
-├── domain/
-│   ├── entity/               # Domain models
+│   └── mapper/               # Entity/DTO/model conversions
+├── domain/                   # Domain Layer (Pure Kotlin)
+│   ├── model/                # Domain entities (Meal, Ingredient, etc.)
 │   ├── repository/           # Repository interfaces
-│   ├── usecase/              # Business logic
-│   └── error/                # Error types
-├── presentation/
-│   ├── ui/
-│   │   ├── meal/             # Meal feature screens
-│   │   ├── planner/          # Planner feature screens
-│   │   ├── shopping/         # Shopping feature screens
-│   │   ├── common/           # Shared UI components
-│   │   ├── navigation/       # Navigation setup
-│   │   └── theme/            # Material3 theme
-│   └── viewmodel/            # ViewModels (if shared)
-├── di/                       # Hilt modules
-└── util/                     # Utilities
+│   ├── usecase/              # Single-responsibility use cases
+│   └── validator/            # Input validation logic
+├── ui/                       # Presentation Layer
+│   ├── meal/                 # Meal management feature
+│   │   ├── MealListScreen.kt
+│   │   ├── MealViewModel.kt
+│   │   └── MealUiState.kt
+│   ├── planner/              # Meal planner feature
+│   ├── shopping/             # Shopping list feature
+│   ├── common/               # Reusable composables
+│   ├── navigation/           # NavHost setup and routes
+│   └── theme/                # Material3 theme configuration
+├── di/                       # Dependency Injection
+│   ├── DatabaseModule.kt
+│   ├── NetworkModule.kt
+│   ├── RepositoryModule.kt
+│   └── UseCaseModule.kt
+└── util/                     # Utilities and helpers
 ```
+
+See [Detailed Design](detailed-design.md) for complete package structure and file naming conventions.
 
 ## Key Technologies
 
-- **Kotlin 1.9.20** - Language
-- **Jetpack Compose** - UI framework
+- **Kotlin 2.0.21** - Programming language
+- **Java 17** - JVM target
+- **Gradle 8.7.3** - Build system with Kotlin DSL
+- **Jetpack Compose (BOM 2023.10.01)** - Declarative UI framework
 - **Material3** - Design system
-- **Hilt** - Dependency injection
-- **Room** - Local database
-- **Coroutines + Flow** - Async programming
-- **ViewModel** - State management
-- **Navigation Compose** - Navigation
+- **Hilt 2.48** - Dependency injection with KSP
+- **Room 2.6.0** - Local database with SQLite
+- **Retrofit 2.9.0 + OkHttp 4.12.0** - Network layer (future)
+- **Coroutines 1.7.3 + Flow** - Asynchronous programming
+- **ViewModel** - State management and lifecycle awareness
+- **Navigation Compose 2.7.4** - Type-safe navigation
+- **Timber 5.0.1** - Logging
+
+See [Tech Stack](../../README.md#tech-stack) for complete version information.
 
 ## Best Practices
 
@@ -360,10 +366,37 @@ com.shoppit.app/
 ❌ Don't create circular dependencies
 ❌ Don't skip error handling
 
+## Key Architectural Decisions
+
+### Why Clean Architecture?
+- **Testability**: Each layer can be tested independently
+- **Maintainability**: Clear boundaries make changes easier
+- **Flexibility**: Easy to swap implementations (e.g., change database)
+- **Scalability**: Well-organized structure supports growth
+
+### Why Offline-First?
+- **User Experience**: App works without internet
+- **Performance**: No network latency for common operations
+- **Reliability**: Not dependent on network availability
+- **Data Ownership**: User data stored locally
+
+### Why StateFlow over LiveData?
+- **Kotlin-first**: Better integration with coroutines
+- **Type-safe**: Compile-time safety
+- **Composable-friendly**: Natural integration with Compose
+- **Testability**: Easier to test with coroutines-test
+
+### Why Hilt over Manual DI?
+- **Compile-time safety**: Errors caught at compile time
+- **Android integration**: Built for Android lifecycle
+- **Scoping**: Automatic lifecycle management
+- **Testing support**: Easy to swap implementations in tests
+
 ## Further Reading
 
-- [Detailed Design Document](detailed-design.md) - Comprehensive architecture details
-- [Clean Architecture Guide](clean-architecture.md) - Layer-by-layer breakdown
-- [Data Flow](data-flow.md) - Detailed data flow examples
-- [Getting Started](../guides/getting-started.md) - Setup instructions
-- [Dependency Injection](../guides/dependency-injection.md) - Hilt configuration
+- **[Detailed Design Document](detailed-design.md)** - Comprehensive architecture specification with package structure
+- **[Data Flow](data-flow.md)** - Detailed data flow patterns and repository implementation
+- **[State Management](state-management.md)** - ViewModel state patterns and Compose state
+- **[Getting Started](../guides/getting-started.md)** - Setup instructions and first feature
+- **[Dependency Injection](../guides/dependency-injection.md)** - Hilt configuration and patterns
+- **[Testing Guide](../guides/testing.md)** - Testing strategies for each layer
