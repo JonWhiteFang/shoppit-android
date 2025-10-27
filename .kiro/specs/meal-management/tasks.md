@@ -176,15 +176,15 @@
   - Verify Hilt generates all necessary components
   - _Requirements: 1.3, 2.1, 7.1_
 
-- [ ] 12. Write unit tests for domain layer
-  - [ ] 12.1 Test MealValidator
+- [x] 12. Write unit tests for domain layer
+  - [x] 12.1 Test MealValidator
     - Test validation passes for valid meal
     - Test validation fails for empty meal name
     - Test validation fails for empty ingredient list
     - Test validation fails for ingredient with empty name
     - _Requirements: 1.1, 1.2, 6.2_
   
-  - [ ] 12.2 Test use cases with fake repository
+  - [x] 12.2 Test use cases with fake repository
     - Test GetMealsUseCase returns meals from repository
     - Test AddMealUseCase validates before adding
     - Test UpdateMealUseCase validates before updating
