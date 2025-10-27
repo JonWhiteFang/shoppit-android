@@ -5,7 +5,7 @@
 Shoppit uses Room Persistence Library for local data storage with an offline-first architecture. The database is implemented using SQLite and provides reactive data access through Kotlin Flow.
 
 **Database Name**: `shoppit_database`  
-**Current Version**: 2  
+**Current Version**: 3  
 **Package**: `com.shoppit.app.data.local`
 
 ## Entities
@@ -100,6 +100,70 @@ data class IngredientEntity(
 ]
 ```
 
+### MealPlanEntity
+
+Represents a meal assignment to a specific date and meal type in the weekly planner.
+
+**Table Name**: `meal_plans`
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INTEGER | PRIMARY KEY, AUTO INCREMENT | Unique identifier for the meal plan |
+| `meal_id` | INTEGER | NOT NULL, FOREIGN KEY → meals(id) | Reference to the meal being planned |
+| `date` | INTEGER | NOT NULL | Date as epoch day (days since 1970-01-01) |
+| `meal_type` | TEXT | NOT NULL | Type of meal: "BREAKFAST", "LUNCH", "DINNER", "SNACK" |
+
+**Kotlin Definition**:
+```kotlin
+@Entity(
+    tableName = "meal_plans",
+    foreignKeys = [
+        ForeignKey(
+            entity = MealEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["meal_id"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["date"]),
+        Index(value = ["meal_id"]),
+        Index(value = ["date", "meal_type"], unique = true)
+    ]
+)
+data class MealPlanEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    
+    @ColumnInfo(name = "meal_id")
+    val mealId: Long,
+    
+    @ColumnInfo(name = "date")
+    val date: Long, // LocalDate stored as epoch day
+    
+    @ColumnInfo(name = "meal_type")
+    val mealType: String // MealType enum stored as string
+)
+```
+
+**Indexes**:
+- `date`: For querying plans by date range
+- `meal_id`: For finding all plans using a specific meal
+- `(date, meal_type)`: Unique constraint preventing double-booking same slot
+
+**Foreign Keys**:
+- `meal_id` → `meals.id` with CASCADE delete (deleting a meal removes its plans)
+
+**Example Data**:
+```json
+{
+  "id": 1,
+  "meal_id": 5,
+  "date": 19700,
+  "meal_type": "DINNER"
+}
+```
+
 ### PlaceholderEntity
 
 Legacy entity from initial database setup. Currently unused but maintained for migration compatibility.
@@ -108,16 +172,19 @@ Legacy entity from initial database setup. Currently unused but maintained for m
 
 ## Relationships
 
-### Current Schema (v2)
+### Current Schema (v3)
 - **MealEntity** has embedded **IngredientEntity** list (one-to-many, embedded)
-- No foreign key relationships (single entity design)
-
-### Future Schema Considerations
-When implementing meal planning and shopping list features:
+- **MealPlanEntity** references **MealEntity** (many-to-one with foreign key)
+- **MealEntity** can have multiple **MealPlanEntity** records (one-to-many)
 
 ```
 MealEntity (1) ──< (N) MealPlanEntity
-MealPlanEntity (N) >── (1) MealEntity
+```
+
+### Future Schema Considerations
+When implementing shopping list feature:
+
+```
 ShoppingListItemEntity (derived from MealPlanEntity meals)
 ```
 
@@ -178,7 +245,93 @@ suspend fun deleteMealById(mealId: Long)
 ```
 - **Parameters**: `mealId` - ID of meal to delete
 - **Use Case**: Remove meal from database
-- **Note**: Silently succeeds if meal doesn't exist
+- **Note**: Silently succeeds if meal doesn't exist. Cascades to delete associated meal plans.
+
+### MealPlanDao
+
+Provides CRUD operations for meal plans with reactive Flow-based queries.
+
+**Package**: `com.shoppit.app.data.local.dao`
+
+#### Query Methods
+
+##### getMealPlansForWeek()
+```kotlin
+@Query("SELECT * FROM meal_plans WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC, meal_type ASC")
+fun getMealPlansForWeek(startDate: Long, endDate: Long): Flow<List<MealPlanEntity>>
+```
+- **Parameters**: `startDate`, `endDate` - Date range as epoch days
+- **Returns**: Flow emitting all meal plans in the date range
+- **Use Case**: Display weekly meal planner
+- **Reactive**: Emits new list whenever meal_plans table changes
+
+##### getMealPlansForDate()
+```kotlin
+@Query("SELECT * FROM meal_plans WHERE date = :date ORDER BY meal_type ASC")
+fun getMealPlansForDate(date: Long): Flow<List<MealPlanEntity>>
+```
+- **Parameters**: `date` - Date as epoch day
+- **Returns**: Flow emitting all meal plans for the specific date
+- **Use Case**: Display single day's meal plans
+- **Reactive**: Emits updated plans when they change
+
+##### getMealPlanById()
+```kotlin
+@Query("SELECT * FROM meal_plans WHERE id = :planId")
+fun getMealPlanById(planId: Long): Flow<MealPlanEntity?>
+```
+- **Parameters**: `planId` - Unique identifier of the meal plan
+- **Returns**: Flow emitting the meal plan or null if not found
+- **Use Case**: Get specific meal plan details
+- **Reactive**: Emits updated plan when it changes
+
+#### Mutation Methods
+
+##### insertMealPlan()
+```kotlin
+@Insert(onConflict = OnConflictStrategy.REPLACE)
+suspend fun insertMealPlan(mealPlan: MealPlanEntity): Long
+```
+- **Parameters**: `mealPlan` - MealPlanEntity to insert
+- **Returns**: Row ID of inserted meal plan
+- **Conflict Strategy**: REPLACE - Updates existing plan if (date, meal_type) matches
+- **Use Case**: Assign meal to a time slot
+
+##### insertMealPlans()
+```kotlin
+@Insert(onConflict = OnConflictStrategy.REPLACE)
+suspend fun insertMealPlans(mealPlans: List<MealPlanEntity>)
+```
+- **Parameters**: `mealPlans` - List of MealPlanEntity to insert
+- **Conflict Strategy**: REPLACE - Updates existing plans if conflicts
+- **Use Case**: Batch insert for copying day plans
+
+##### updateMealPlan()
+```kotlin
+@Update
+suspend fun updateMealPlan(mealPlan: MealPlanEntity)
+```
+- **Parameters**: `mealPlan` - MealPlanEntity with updated values
+- **Use Case**: Replace meal in existing plan
+- **Note**: Plan must exist (ID must match existing record)
+
+##### deleteMealPlanById()
+```kotlin
+@Query("DELETE FROM meal_plans WHERE id = :planId")
+suspend fun deleteMealPlanById(planId: Long)
+```
+- **Parameters**: `planId` - ID of meal plan to delete
+- **Use Case**: Remove meal from planner
+- **Note**: Silently succeeds if plan doesn't exist
+
+##### deleteMealPlansForDate()
+```kotlin
+@Query("DELETE FROM meal_plans WHERE date = :date")
+suspend fun deleteMealPlansForDate(date: Long)
+```
+- **Parameters**: `date` - Date as epoch day
+- **Use Case**: Clear all meals for a specific day
+- **Note**: Removes all meal plans for the given date
 
 ## Type Converters
 
@@ -244,22 +397,44 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
 }
 ```
 
+### Version 2 → Version 3
+
+Added `MealPlanEntity` table and `MealPlanDao` for meal planning feature.
+
+**Migration Code**:
+```kotlin
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(database: SupportSQLiteDatabase) {
+        database.execSQL("""
+            CREATE TABLE IF NOT EXISTS meal_plans (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                meal_id INTEGER NOT NULL,
+                date INTEGER NOT NULL,
+                meal_type TEXT NOT NULL,
+                FOREIGN KEY(meal_id) REFERENCES meals(id) ON DELETE CASCADE
+            )
+        """)
+        
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_meal_plans_date ON meal_plans(date)"
+        )
+        
+        database.execSQL(
+            "CREATE INDEX IF NOT EXISTS index_meal_plans_meal_id ON meal_plans(meal_id)"
+        )
+        
+        database.execSQL(
+            "CREATE UNIQUE INDEX IF NOT EXISTS index_meal_plans_date_meal_type ON meal_plans(date, meal_type)"
+        )
+    }
+}
+```
+
 **Note**: Current implementation uses `fallbackToDestructiveMigration()` which drops and recreates tables on version changes. This is acceptable during development but should be replaced with proper migrations before production release.
 
 ### Future Migrations
 
-When adding meal planning and shopping list features:
-
-**Version 2 → 3**: Add `meal_plans` table
-```sql
-CREATE TABLE meal_plans (
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    meal_id INTEGER NOT NULL,
-    date INTEGER NOT NULL,
-    meal_type TEXT NOT NULL,
-    FOREIGN KEY(meal_id) REFERENCES meals(id) ON DELETE CASCADE
-)
-```
+When adding shopping list feature:
 
 **Version 3 → 4**: Add `shopping_list_items` table
 ```sql
@@ -278,21 +453,12 @@ CREATE TABLE shopping_list_items (
 ### Current Indexes
 
 - **meals.id**: Automatic primary key index (B-tree)
+- **meal_plans.id**: Automatic primary key index (B-tree)
+- **meal_plans.date**: Index for date range queries
+- **meal_plans.meal_id**: Index for finding plans by meal
+- **meal_plans.(date, meal_type)**: Unique index preventing double-booking
 
 ### Recommended Future Indexes
-
-When implementing meal planning:
-
-```kotlin
-@Entity(
-    tableName = "meal_plans",
-    indices = [
-        Index(value = ["date"]),
-        Index(value = ["meal_id"]),
-        Index(value = ["date", "meal_type"], unique = true)
-    ]
-)
-```
 
 When implementing shopping lists:
 
@@ -332,13 +498,14 @@ fun provideAppDatabase(
 
 ```kotlin
 @Database(
-    entities = [PlaceholderEntity::class, MealEntity::class],
-    version = 2,
+    entities = [PlaceholderEntity::class, MealEntity::class, MealPlanEntity::class],
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class, MealConverters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun mealDao(): MealDao
+    abstract fun mealPlanDao(): MealPlanDao
 }
 ```
 

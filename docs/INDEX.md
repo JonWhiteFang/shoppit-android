@@ -73,11 +73,12 @@ Located in `docs/reference/`
 | [Hilt Quick Reference](reference/hilt-quick-reference.md) | Quick lookup for Hilt patterns | Daily development |
 | [Database Schema](reference/database-schema.md) | Room entities, DAOs, and queries | Database work |
 | [API Reference](reference/api-reference.md) | Use cases and repository interfaces | Domain layer work |
+| [Meal Planning API](reference/meal-planning-api.md) | Meal planning use cases and models | Meal planning feature |
 | [Gradle Commands](reference/gradle-commands.md) | Common Gradle commands | Build and test |
 
 **Topics Covered:**
 - Module annotations and dependency provision
-- Entity definitions and relationships
+- Entity definitions and relationships (including meal plans)
 - Use case catalog and domain models
 - Build, test, and code quality commands
 
@@ -134,6 +135,7 @@ Located in `docs/setup/`
 1. Check [Database Schema](reference/database-schema.md) for entities and DAOs
 2. Review [Data Flow](architecture/data-flow.md) for repository patterns
 3. Read [API Reference](reference/api-reference.md) for domain models
+4. See [Meal Planning API](reference/meal-planning-api.md) for meal planning models
 
 #### Understand the architecture
 1. Start with [Architecture Overview](architecture/overview.md)
@@ -192,6 +194,7 @@ Located in `docs/setup/`
 - [Hilt Quick Reference](reference/hilt-quick-reference.md)
 - [Database Schema](reference/database-schema.md)
 - [API Reference](reference/api-reference.md)
+- [Meal Planning API](reference/meal-planning-api.md)
 - [Gradle Commands](reference/gradle-commands.md)
 
 ### UI Developer
@@ -204,6 +207,7 @@ Located in `docs/setup/`
 **Quick References:**
 - [Hilt Quick Reference](reference/hilt-quick-reference.md)
 - [API Reference](reference/api-reference.md)
+- [Meal Planning API](reference/meal-planning-api.md)
 
 ### Architect/Tech Lead
 **Comprehensive Reading:**
@@ -217,6 +221,11 @@ Located in `docs/setup/`
 **All Guides:**
 - Review all guides for consistency
 - Ensure patterns are followed
+
+**All References:**
+- [Database Schema](reference/database-schema.md)
+- [API Reference](reference/api-reference.md)
+- [Meal Planning API](reference/meal-planning-api.md)
 
 ### Reviewer
 **Review Checklist:**
@@ -259,6 +268,7 @@ Located in `docs/setup/`
 - [Database Schema](reference/database-schema.md) - Room entities and DAOs
 - [Data Flow](architecture/data-flow.md) - Repository patterns
 - [API Reference](reference/api-reference.md) - Domain interfaces
+- [Meal Planning API](reference/meal-planning-api.md) - Meal planning models
 
 ### Development Workflow
 - [Getting Started Guide](guides/getting-started.md) - Setup and first steps
@@ -290,6 +300,7 @@ When making changes to the project:
 - Add examples to relevant guides
 - Update [README](../README.md) if adding major features
 - Update [API Reference](reference/api-reference.md) for new use cases
+- Update [Meal Planning API](reference/meal-planning-api.md) for meal planning features
 - Update [Database Schema](reference/database-schema.md) for new entities
 
 ### Changing Architecture
@@ -381,6 +392,7 @@ Our documentation aims to:
 | Hilt Quick Reference | ✅ Complete | 2024 |
 | Database Schema | ✅ Complete | 2024 |
 | API Reference | ✅ Complete | 2024 |
+| Meal Planning API | ✅ Complete | 2024 |
 | Gradle Commands | ✅ Complete | 2024 |
 | Contributing Guide | ✅ Complete | 2024 |
 

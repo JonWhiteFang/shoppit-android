@@ -4,11 +4,11 @@ An offline-first Android application for meal planning and automated shopping li
 
 ## Features
 
-- 📝 **Meal Management** - Save meals with ingredients
-- 📅 **Weekly Planning** - Plan meals for the week
-- 🛒 **Smart Shopping Lists** - Auto-generate shopping lists from meal plans
-- 📱 **Offline-First** - Works without internet, syncs when available
-- 🎨 **Material Design 3** - Modern, beautiful UI
+- 📝 **Meal Management** - Save meals with ingredients ✅ Implemented
+- 📅 **Weekly Planning** - Plan meals for the week 🚧 In Progress
+- 🛒 **Smart Shopping Lists** - Auto-generate shopping lists from meal plans 📋 Planned
+- 📱 **Offline-First** - Works without internet, syncs when available ✅ Implemented
+- 🎨 **Material Design 3** - Modern, beautiful UI ✅ Implemented
 
 ## Tech Stack
 

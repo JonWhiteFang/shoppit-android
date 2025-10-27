@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Meal planning feature documentation
+  - Database schema updated to version 3 with MealPlanEntity
+  - MealPlanDao with queries for weekly and daily meal plans
+  - Meal planning API reference with use cases and domain models
+  - Updated documentation index with meal planning references
 - Initial project setup with Clean Architecture structure
 - Hilt dependency injection configuration
   - DatabaseModule for Room database dependencies
