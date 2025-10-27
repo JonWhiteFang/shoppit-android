@@ -50,14 +50,14 @@
     - Create TestInstallIn modules for dependency replacement in tests
     - _Requirements: 5.3_
 
-- [ ] 5. Establish Material3 theme and UI foundation
-  - [ ] 5.1 Configure Material3 theme system
+- [x] 5. Establish Material3 theme and UI foundation
+  - [x] 5.1 Configure Material3 theme system
     - Create theme configuration with Material3 color schemes
     - Set up typography and shape definitions
     - Implement light and dark theme support
     - _Requirements: 1.5_
 
-  - [ ] 5.2 Create base UI components and navigation structure
+  - [x] 5.2 Create base UI components and navigation structure
     - Set up Compose navigation foundation
     - Create common UI components directory structure
     - _Requirements: 1.4_
