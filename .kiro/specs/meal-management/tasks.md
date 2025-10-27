@@ -60,7 +60,7 @@
     - Implement operator invoke calling repository deleteMeal
     - _Requirements: 5.2_
 
-- [ ] 4. Implement UI state models
+- [x] 4. Implement UI state models
   - Define MealListUiState sealed interface with Loading, Success, and Error states
   - Define MealDetailUiState sealed interface with Loading, Success, and Error states
   - Define AddEditMealUiState data class with meal, loading flags, and error fields
