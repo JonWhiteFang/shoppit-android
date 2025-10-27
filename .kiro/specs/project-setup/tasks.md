@@ -38,14 +38,14 @@
     - Set up base test classes for database testing
     - _Requirements: 3.5, 5.4_
 
-- [ ] 4. Configure Hilt dependency injection modules
-  - [ ] 4.1 Create core Hilt modules structure
+- [x] 4. Configure Hilt dependency injection modules
+  - [x] 4.1 Create core Hilt modules structure
     - Implement DatabaseModule for database dependencies
     - Create RepositoryModule abstract class for future repository bindings
     - Set up UseCaseModule for domain layer dependencies
     - _Requirements: 1.2, 2.4_
 
-  - [ ] 4.2 Configure Hilt testing infrastructure
+  - [x] 4.2 Configure Hilt testing infrastructure
     - Set up HiltAndroidApp test application
     - Create TestInstallIn modules for dependency replacement in tests
     - _Requirements: 5.3_
