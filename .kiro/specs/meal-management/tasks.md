@@ -7,28 +7,28 @@
   - Create custom exception classes (ValidationException, DatabaseException, NotFoundException)
   - _Requirements: 1.1, 1.2, 6.2, 6.3, 8.1_
 
-- [ ] 2. Implement data layer with Room database
-  - [ ] 2.1 Create Room entities and type converters
+- [x] 2. Implement data layer with Room database
+  - [x] 2.1 Create Room entities and type converters
     - Define MealEntity with Room annotations
     - Define IngredientEntity as embedded data class
     - Implement MealConverters for ingredient list serialization using Gson
     - Update AppDatabase to include MealEntity and MealConverters
     - _Requirements: 7.1, 7.3_
   
-  - [ ] 2.2 Implement MealDao with database operations
+  - [x] 2.2 Implement MealDao with database operations
     - Create getAllMeals() query returning Flow sorted by name
     - Create getMealById() query returning Flow
     - Implement insertMeal(), updateMeal(), and deleteMealById() suspend functions
     - _Requirements: 2.1, 2.2, 3.1, 5.2, 7.4_
   
-  - [ ] 2.3 Create mapper functions for entity/model conversion
+  - [x] 2.3 Create mapper functions for entity/model conversion
     - Implement MealEntity.toDomainModel() extension function
     - Implement Meal.toEntity() extension function
     - Implement IngredientEntity.toDomainModel() extension function
     - Implement Ingredient.toEntity() extension function
     - _Requirements: 2.1, 3.2_
   
-  - [ ] 2.4 Implement MealRepositoryImpl
+  - [x] 2.4 Implement MealRepositoryImpl
     - Implement getMeals() with Flow mapping and error handling
     - Implement getMealById() with null checking and error handling
     - Implement addMeal() with try-catch and Result wrapping
