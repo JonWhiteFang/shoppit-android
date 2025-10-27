@@ -15,6 +15,7 @@ espresso = "3.5.1"
 timber = "5.0.1"
 ksp = "2.0.21-1.0.28"
 android-gradle = "8.7.3"
+security-crypto = "1.1.0-alpha06"
 
 [libraries]
 # Compose
@@ -57,6 +58,9 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 androidx-core = { group = "androidx.core", name = "core-ktx", version = "1.12.0" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version = "1.6.1" }
 material = { group = "com.google.android.material", name = "material", version = "1.10.0" }
+
+# Security
+security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }
