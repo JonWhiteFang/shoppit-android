@@ -63,56 +63,56 @@
     - Update existing implementation with new methods
     - _Requirements: 2.1, 2.4, 3.1, 3.3, 6.1, 6.3, 7.1, 7.5, 8.1, 8.4, 9.1, 9.4, 12.1, 12.4_
 
-- [ ] 4. Implement management use cases
-  - [ ] 4.1 Create quick add and history use cases
+- [x] 4. Implement management use cases
+  - [x] 4.1 Create quick add and history use cases
     - Implement QuickAddItemUseCase with history lookup
     - Implement GetItemHistoryUseCase with sorting
     - Add logic to update history when items are checked
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 10.1, 10.2, 10.3, 10.4, 10.5_
   
-  - [ ] 4.2 Create quantity and ordering use cases
+  - [x] 4.2 Create quantity and ordering use cases
     - Implement AdjustQuantityUseCase with validation
     - Implement ReorderItemsUseCase for drag-and-drop
     - Add numeric quantity validation
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4, 3.5_
   
-  - [ ] 4.3 Create shopping mode use cases
+  - [x] 4.3 Create shopping mode use cases
     - Implement ToggleShoppingModeUseCase
     - Add preferences storage for shopping mode settings
     - Implement mode state retrieval
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
   
-  - [ ] 4.4 Create section management use cases
+  - [x] 4.4 Create section management use cases
     - Implement MoveItemToSectionUseCase with learning
     - Add section preference storage
     - Implement section learning logic
     - _Requirements: 5.1, 5.2, 6.1, 6.2, 6.3, 6.4, 6.5_
   
-  - [ ] 4.5 Create item enhancement use cases
+  - [x] 4.5 Create item enhancement use cases
     - Implement AddItemNoteUseCase
     - Implement TogglePriorityUseCase
     - Implement DuplicateItemUseCase
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5, 9.1, 9.2, 9.3, 9.4, 9.5_
   
-  - [ ] 4.6 Create template use cases
+  - [x] 4.6 Create template use cases
     - Implement SaveTemplateUseCase with validation
     - Implement LoadTemplateUseCase with merge logic
     - Add template last used tracking
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
   
-  - [ ] 4.7 Create budget tracking use cases
+  - [x] 4.7 Create budget tracking use cases
     - Implement UpdatePriceEstimateUseCase
     - Add budget summary calculation
     - Implement history price averaging
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
   
-  - [ ] 4.8 Create voice input use case
+  - [x] 4.8 Create voice input use case
     - Implement ProcessVoiceInputUseCase
     - Add voice text parsing logic
     - Handle quantity and unit extraction
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
   
-  - [ ] 4.9 Create suggestions use case
+  - [x] 4.9 Create suggestions use case
     - Implement GetSuggestedItemsUseCase
     - Add rule-based suggestion logic
     - Implement meal plan analysis
