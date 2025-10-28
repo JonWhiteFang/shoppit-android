@@ -22,14 +22,35 @@ class AdjustQuantityUseCase @Inject constructor(
         return try {
             repository.getShoppingListItem(itemId).first().fold(
                 onSuccess = { item ->
+                    // Check if quantity is numeric
                     val currentQuantity = item.quantity.toIntOrNull()
-                        ?: return Result.failure(
-                            AppError.ValidationError("Cannot adjust non-numeric quantity")
-                        )
                     
+                    if (currentQuantity == null) {
+                        return Result.failure(
+                            AppError.ValidationError(
+                                "Cannot adjust quantity '${item.quantity}'. Only numeric quantities can be adjusted."
+                            )
+                        )
+                    }
+                    
+                    // Validate current quantity is positive
+                    if (currentQuantity < 1) {
+                        return Result.failure(
+                            AppError.ValidationError("Invalid quantity value. Quantity must be at least 1.")
+                        )
+                    }
+                    
+                    // Calculate new quantity
                     val newQuantity = if (increment) {
+                        // Check for overflow
+                        if (currentQuantity >= Int.MAX_VALUE - 1) {
+                            return Result.failure(
+                                AppError.ValidationError("Quantity is too large to increment.")
+                            )
+                        }
                         currentQuantity + 1
                     } else {
+                        // Ensure minimum value of 1
                         maxOf(1, currentQuantity - 1)
                     }
                     
@@ -44,7 +65,9 @@ class AdjustQuantityUseCase @Inject constructor(
                 }
             )
         } catch (e: Exception) {
-            Result.failure(AppError.UnknownError("Failed to adjust quantity: ${e.message}"))
+            Result.failure(
+                AppError.UnknownError(e)
+            )
         }
     }
 }

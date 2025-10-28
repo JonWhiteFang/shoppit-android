@@ -314,7 +314,7 @@
     - Show rationale dialog
     - _Requirements: 13.1, 13.4_
 
-- [ ] 10. Add error handling and edge cases
+- [x] 10. Add error handling and edge cases
   - [ ] 10.1 Handle database errors
     - Add try-catch blocks in repositories
     - Map SQLite exceptions to domain errors

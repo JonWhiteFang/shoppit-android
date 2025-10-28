@@ -17,8 +17,30 @@ class ScanBarcodeUseCase @Inject constructor(
 ) : UseCase<ScanBarcodeUseCase.Params, Result<Long>> {
 
     override suspend fun invoke(params: Params): Result<Long> {
+        // Validate barcode
+        if (params.barcode.isBlank()) {
+            return Result.failure(
+                AppError.BarcodeScanError("Invalid barcode. Please try scanning again.")
+            )
+        }
+        
+        // Validate barcode format (basic check for numeric barcodes)
+        if (!params.barcode.matches(Regex("^[0-9]{8,13}$"))) {
+            return Result.failure(
+                AppError.BarcodeScanError(
+                    "Barcode format not recognized. Please enter item name manually."
+                )
+            )
+        }
+        
         // Mock product lookup - in production, this would call a product database API
-        val productInfo = lookupProduct(params.barcode)
+        val productInfo = try {
+            lookupProduct(params.barcode)
+        } catch (e: Exception) {
+            return Result.failure(
+                AppError.BarcodeScanError("Failed to lookup product: ${e.message}")
+            )
+        }
         
         return if (productInfo != null) {
             // Product found, add to shopping list
@@ -28,12 +50,27 @@ class ScanBarcodeUseCase @Inject constructor(
                 unit = productInfo.unit,
                 category = productInfo.category,
                 isManual = true,
-                estimatedPrice = productInfo.price
+                estimatedPrice = productInfo.price,
+                storeSection = productInfo.category.name
             )
-            shoppingListRepository.addShoppingListItem(item)
+            
+            shoppingListRepository.addShoppingListItem(item).fold(
+                onSuccess = { itemId ->
+                    Result.success(itemId)
+                },
+                onFailure = { error ->
+                    Result.failure(
+                        AppError.BarcodeScanError("Failed to add item: ${error.message}")
+                    )
+                }
+            )
         } else {
             // Product not found
-            Result.failure(AppError.ValidationError("Product not found. Please enter item name manually."))
+            Result.failure(
+                AppError.BarcodeScanError(
+                    "Product not found in database. Please enter item name manually."
+                )
+            )
         }
     }
 

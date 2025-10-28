@@ -18,7 +18,14 @@ class GetItemHistoryUseCase @Inject constructor(
      * @return Flow of Result containing list of ItemHistory
      */
     operator fun invoke(limit: Int = 100): Flow<Result<List<ItemHistory>>> {
-        return repository.getRecentHistory(limit)
+        // Validate limit parameter
+        val validatedLimit = when {
+            limit < 1 -> 1
+            limit > 100 -> 100 // Cap at 100 for performance
+            else -> limit
+        }
+        
+        return repository.getRecentHistory(validatedLimit)
     }
     
     /**
@@ -28,6 +35,13 @@ class GetItemHistoryUseCase @Inject constructor(
      * @return Flow of Result containing list of ItemHistory
      */
     fun getFrequentItems(limit: Int = 20): Flow<Result<List<ItemHistory>>> {
-        return repository.getFrequentItems(limit)
+        // Validate limit parameter
+        val validatedLimit = when {
+            limit < 1 -> 1
+            limit > 50 -> 50 // Cap at 50 for quick add performance
+            else -> limit
+        }
+        
+        return repository.getFrequentItems(validatedLimit)
     }
 }

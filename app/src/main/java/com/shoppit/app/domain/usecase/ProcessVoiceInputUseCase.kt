@@ -20,14 +20,41 @@ class ProcessVoiceInputUseCase @Inject constructor(
      * @return Result containing the new item ID
      */
     suspend operator fun invoke(voiceText: String): Result<Long> {
-        val parsed = parseVoiceInput(voiceText)
-        
-        if (parsed.itemName.isBlank()) {
-            return Result.failure(AppError.ValidationError("Could not understand item name"))
+        // Validate input
+        if (voiceText.isBlank()) {
+            return Result.failure(
+                AppError.VoiceParsingError("No speech detected. Please try again.")
+            )
         }
         
+        // Parse voice input
+        val parsed = try {
+            parseVoiceInput(voiceText)
+        } catch (e: Exception) {
+            return Result.failure(
+                AppError.VoiceParsingError("Failed to parse voice input: ${e.message}")
+            )
+        }
+        
+        // Validate parsed item name
+        if (parsed.itemName.isBlank()) {
+            return Result.failure(
+                AppError.VoiceParsingError(
+                    "Could not understand item name. Try saying 'add milk' or just 'milk'."
+                )
+            )
+        }
+        
+        // Validate item name length
+        if (parsed.itemName.length > 100) {
+            return Result.failure(
+                AppError.VoiceParsingError("Item name is too long. Please use a shorter name.")
+            )
+        }
+        
+        // Create shopping list item
         val item = ShoppingListItem(
-            name = parsed.itemName,
+            name = parsed.itemName.trim(),
             quantity = parsed.quantity,
             unit = parsed.unit,
             category = ItemCategory.OTHER,
@@ -35,7 +62,17 @@ class ProcessVoiceInputUseCase @Inject constructor(
             storeSection = ItemCategory.OTHER.name
         )
         
-        return shoppingListRepository.addShoppingListItem(item)
+        // Add to shopping list
+        return shoppingListRepository.addShoppingListItem(item).fold(
+            onSuccess = { itemId ->
+                Result.success(itemId)
+            },
+            onFailure = { error ->
+                Result.failure(
+                    AppError.VoiceParsingError("Failed to add item: ${error.message}")
+                )
+            }
+        )
     }
     
     /**
