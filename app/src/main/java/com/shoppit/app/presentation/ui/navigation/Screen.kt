@@ -47,7 +47,7 @@ sealed class Screen(val route: String) {
     data object MealPlanner : Screen("meal_planner")
     
     /**
-     * Future screens will be added here as features are implemented:
-     * - Shopping list screen
+     * Shopping list screen - displays aggregated shopping list from meal plans
      */
+    data object ShoppingList : Screen("shopping_list")
 }

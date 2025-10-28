@@ -33,12 +33,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.shoppit.app.domain.model.ItemCategory
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.ErrorScreen
 import com.shoppit.app.presentation.ui.common.LoadingScreen
+import android.content.Intent
 
 /**
  * Stateful composable for the shopping list screen.
@@ -56,6 +58,7 @@ fun ShoppingListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
     
     // Show error messages in snackbar
     LaunchedEffect(uiState.error) {
@@ -65,16 +68,31 @@ fun ShoppingListScreen(
         }
     }
     
+    // Handle share intent
+    LaunchedEffect(uiState.shareText) {
+        uiState.shareText?.let { text ->
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, text)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "Share Shopping List")
+            context.startActivity(shareIntent)
+            viewModel.clearShareText()
+        }
+    }
+    
     ShoppingListContent(
         uiState = uiState,
         onItemCheckedChange = viewModel::toggleItemChecked,
         onItemClick = viewModel::showItemDetail,
         onAddItemClick = viewModel::showAddItemDialog,
         onGenerateList = viewModel::generateShoppingList,
-        onClearChecked = viewModel::clearCheckedItems,
-        onUncheckAll = viewModel::uncheckAllItems,
+        onClearChecked = viewModel::showClearCheckedConfirmation,
+        onUncheckAll = viewModel::showUncheckAllConfirmation,
         onToggleFilter = viewModel::toggleFilter,
         onSearchQueryChange = viewModel::updateSearchQuery,
+        onShareList = viewModel::shareShoppingList,
         onMealDetailClick = onMealDetailClick,
         snackbarHostState = snackbarHostState,
         modifier = modifier
@@ -95,10 +113,44 @@ fun ShoppingListScreen(
             sources = uiState.itemSources,
             onDismiss = viewModel::dismissItemDetail,
             onDelete = if (item.isManual) {
-                { viewModel.deleteManualItem(item.id) }
+                { viewModel.showDeleteManualItemConfirmation(item.id) }
             } else null,
             onMealClick = onMealDetailClick
         )
+    }
+    
+    // Show confirmation dialogs
+    when (val action = uiState.confirmationAction) {
+        is ConfirmationAction.ClearChecked -> {
+            val checkedCount = uiState.shoppingListData?.checkedItems ?: 0
+            ConfirmationDialog(
+                title = "Clear Checked Items",
+                message = "Are you sure you want to remove $checkedCount checked item${if (checkedCount != 1) "s" else ""}?",
+                confirmText = "Clear",
+                onConfirm = viewModel::clearCheckedItems,
+                onDismiss = viewModel::dismissConfirmation
+            )
+        }
+        is ConfirmationAction.UncheckAll -> {
+            val totalCount = uiState.shoppingListData?.totalItems ?: 0
+            ConfirmationDialog(
+                title = "Uncheck All Items",
+                message = "Are you sure you want to uncheck all $totalCount item${if (totalCount != 1) "s" else ""}?",
+                confirmText = "Uncheck All",
+                onConfirm = viewModel::uncheckAllItems,
+                onDismiss = viewModel::dismissConfirmation
+            )
+        }
+        is ConfirmationAction.DeleteManualItem -> {
+            ConfirmationDialog(
+                title = "Delete Item",
+                message = "Are you sure you want to delete this item?",
+                confirmText = "Delete",
+                onConfirm = { viewModel.deleteManualItem(action.itemId) },
+                onDismiss = viewModel::dismissConfirmation
+            )
+        }
+        null -> { /* No confirmation needed */ }
     }
 }
 
@@ -131,6 +183,7 @@ fun ShoppingListContent(
     onUncheckAll: () -> Unit,
     onToggleFilter: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
+    onShareList: () -> Unit,
     onMealDetailClick: (Long) -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
@@ -162,7 +215,7 @@ fun ShoppingListContent(
                             }
                         )
                     }
-                    IconButton(onClick = { /* TODO: Implement share */ }) {
+                    IconButton(onClick = onShareList) {
                         Icon(
                             imageVector = Icons.Default.Share,
                             contentDescription = "Share shopping list"

@@ -7,6 +7,7 @@ import com.shoppit.app.domain.usecase.AssignMealToPlanUseCase
 import com.shoppit.app.domain.usecase.ClearDayPlansUseCase
 import com.shoppit.app.domain.usecase.CopyDayPlansUseCase
 import com.shoppit.app.domain.usecase.DeleteMealPlanUseCase
+import com.shoppit.app.domain.usecase.GenerateShoppingListUseCase
 import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.UpdateMealPlanUseCase
@@ -32,7 +33,8 @@ class MealPlannerViewModel @Inject constructor(
     private val updateMealPlanUseCase: UpdateMealPlanUseCase,
     private val deleteMealPlanUseCase: DeleteMealPlanUseCase,
     private val copyDayPlansUseCase: CopyDayPlansUseCase,
-    private val clearDayPlansUseCase: ClearDayPlansUseCase
+    private val clearDayPlansUseCase: ClearDayPlansUseCase,
+    private val generateShoppingListUseCase: GenerateShoppingListUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MealPlannerUiState())
@@ -167,6 +169,8 @@ class MealPlannerViewModel @Inject constructor(
                             selectedSlot = null
                         )
                     }
+                    // Trigger shopping list regeneration after meal plan change
+                    regenerateShoppingList()
                 },
                 onFailure = { error ->
                     _uiState.update {
@@ -195,7 +199,10 @@ class MealPlannerViewModel @Inject constructor(
     fun deleteMealPlan(mealPlanId: Long) {
         viewModelScope.launch {
             deleteMealPlanUseCase(mealPlanId).fold(
-                onSuccess = { /* List updates automatically via Flow */ },
+                onSuccess = { 
+                    // Trigger shopping list regeneration after deletion
+                    regenerateShoppingList()
+                },
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(error = error.message ?: "Failed to delete meal plan")
@@ -211,7 +218,10 @@ class MealPlannerViewModel @Inject constructor(
     fun copyDay(sourceDate: LocalDate, targetDate: LocalDate, replace: Boolean) {
         viewModelScope.launch {
             copyDayPlansUseCase(sourceDate, targetDate, replace).fold(
-                onSuccess = { /* List updates automatically via Flow */ },
+                onSuccess = { 
+                    // Trigger shopping list regeneration after copy
+                    regenerateShoppingList()
+                },
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(error = error.message ?: "Failed to copy day")
@@ -227,13 +237,27 @@ class MealPlannerViewModel @Inject constructor(
     fun clearDay(date: LocalDate) {
         viewModelScope.launch {
             clearDayPlansUseCase(date).fold(
-                onSuccess = { /* List updates automatically via Flow */ },
+                onSuccess = { 
+                    // Trigger shopping list regeneration after clear
+                    regenerateShoppingList()
+                },
                 onFailure = { error ->
                     _uiState.update {
                         it.copy(error = error.message ?: "Failed to clear day")
                     }
                 }
             )
+        }
+    }
+    
+    /**
+     * Regenerates the shopping list based on current meal plans.
+     * Called automatically when meal plans are modified.
+     */
+    private fun regenerateShoppingList() {
+        viewModelScope.launch {
+            generateShoppingListUseCase()
+            // Silently fail - shopping list errors shouldn't block meal planning
         }
     }
 }

@@ -114,26 +114,26 @@
     - Update item counts based on active filters
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 15.1, 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 6. Add navigation and integration
-  - [ ] 6.1 Register shopping list route
+- [x] 6. Add navigation and integration
+  - [x] 6.1 Register shopping list route
     - Add ShoppingList screen to navigation graph
     - Define route constants
     - _Requirements: 1.1_
   
-  - [ ] 6.2 Implement auto-generation trigger
+  - [x] 6.2 Implement auto-generation trigger
     - Add observer in meal planning screen to trigger regeneration
     - Call generateShoppingList when meal plans change
     - Ensure generation completes within 1 second
     - _Requirements: 4.1, 4.2, 4.3, 4.5_
   
-  - [ ] 6.3 Add share functionality
+  - [x] 6.3 Add share functionality
     - Implement share intent with formatted text
     - Include only unchecked items by default
     - Format with category headers
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
 
-- [ ] 7. Implement error handling and edge cases
-  - [ ] 7.1 Add comprehensive error handling
+- [x] 7. Implement error handling and edge cases
+  - [x] 7.1 Add comprehensive error handling
     - Display user-friendly error messages
     - Handle empty meal plan scenario
     - Log detailed errors for debugging
@@ -141,7 +141,7 @@
     - Clear errors on successful operations
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
   
-  - [ ] 7.2 Handle edge cases
+  - [x] 7.2 Handle edge cases
     - Test with empty ingredient lists
     - Handle meals with no ingredients
     - Test ingredient name case variations
@@ -149,7 +149,7 @@
     - Test with 100+ items for performance
     - _Requirements: 2.2, 4.4, 17.5_
 
-- [ ] 8. Add confirmation dialogs
+- [x] 8. Add confirmation dialogs
   - Create ConfirmationDialog for clear checked items
   - Create ConfirmationDialog for uncheck all items
   - Create ConfirmationDialog for delete manual item

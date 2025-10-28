@@ -28,7 +28,7 @@ sealed class BottomNavigationItem(
     )
     
     data object Shopping : BottomNavigationItem(
-        route = "shopping_list", // Placeholder for future implementation
+        route = Screen.ShoppingList.route,
         title = "Shopping",
         icon = Icons.Default.ShoppingCart
     )

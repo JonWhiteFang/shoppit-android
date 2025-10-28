@@ -11,6 +11,7 @@ import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
 import com.shoppit.app.presentation.ui.planner.MealPlannerScreen
+import com.shoppit.app.presentation.ui.shopping.ShoppingListScreen
 
 /**
  * Main navigation host for the Shoppit app.
@@ -109,7 +110,13 @@ fun ShoppitNavHost(
             )
         }
         
-        // Future navigation destinations will be added here:
-        // - Shopping list screen
+        // Shopping list screen
+        composable(Screen.ShoppingList.route) {
+            ShoppingListScreen(
+                onMealDetailClick = { mealId ->
+                    navController.navigate(Screen.MealDetail.createRoute(mealId))
+                }
+            )
+        }
     }
 }

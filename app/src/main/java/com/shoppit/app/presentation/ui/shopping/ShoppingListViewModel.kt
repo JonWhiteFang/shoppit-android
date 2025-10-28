@@ -201,17 +201,32 @@ class ShoppingListViewModel @Inject constructor(
     }
     
     /**
-     * Deletes a manual shopping list item.
+     * Shows confirmation dialog for deleting a manual item.
+     */
+    fun showDeleteManualItemConfirmation(itemId: Long) {
+        _uiState.update { it.copy(confirmationAction = ConfirmationAction.DeleteManualItem(itemId)) }
+    }
+    
+    /**
+     * Deletes a manual shopping list item after confirmation.
      */
     fun deleteManualItem(itemId: Long) {
         viewModelScope.launch {
             deleteManualItemUseCase(itemId).fold(
                 onSuccess = {
-                    _uiState.update { it.copy(showItemDetail = null) }
+                    _uiState.update { 
+                        it.copy(
+                            showItemDetail = null,
+                            confirmationAction = null
+                        )
+                    }
                 },
                 onFailure = { error ->
                     _uiState.update { 
-                        it.copy(error = error.message ?: "Failed to delete item")
+                        it.copy(
+                            error = error.message ?: "Failed to delete item",
+                            confirmationAction = null
+                        )
                     }
                 }
             )
@@ -219,15 +234,27 @@ class ShoppingListViewModel @Inject constructor(
     }
     
     /**
-     * Clears all checked items from the shopping list.
+     * Shows confirmation dialog for clearing checked items.
+     */
+    fun showClearCheckedConfirmation() {
+        _uiState.update { it.copy(confirmationAction = ConfirmationAction.ClearChecked) }
+    }
+    
+    /**
+     * Clears all checked items from the shopping list after confirmation.
      */
     fun clearCheckedItems() {
         viewModelScope.launch {
             clearCheckedItemsUseCase().fold(
-                onSuccess = { /* List updates automatically via Flow */ },
+                onSuccess = { 
+                    _uiState.update { it.copy(confirmationAction = null) }
+                },
                 onFailure = { error ->
                     _uiState.update { 
-                        it.copy(error = error.message ?: "Failed to clear checked items")
+                        it.copy(
+                            error = error.message ?: "Failed to clear checked items",
+                            confirmationAction = null
+                        )
                     }
                 }
             )
@@ -235,15 +262,27 @@ class ShoppingListViewModel @Inject constructor(
     }
     
     /**
-     * Unchecks all items in the shopping list.
+     * Shows confirmation dialog for unchecking all items.
+     */
+    fun showUncheckAllConfirmation() {
+        _uiState.update { it.copy(confirmationAction = ConfirmationAction.UncheckAll) }
+    }
+    
+    /**
+     * Unchecks all items in the shopping list after confirmation.
      */
     fun uncheckAllItems() {
         viewModelScope.launch {
             uncheckAllItemsUseCase().fold(
-                onSuccess = { /* List updates automatically via Flow */ },
+                onSuccess = { 
+                    _uiState.update { it.copy(confirmationAction = null) }
+                },
                 onFailure = { error ->
                     _uiState.update { 
-                        it.copy(error = error.message ?: "Failed to uncheck items")
+                        it.copy(
+                            error = error.message ?: "Failed to uncheck items",
+                            confirmationAction = null
+                        )
                     }
                 }
             )
@@ -265,9 +304,49 @@ class ShoppingListViewModel @Inject constructor(
     }
     
     /**
+     * Dismisses the confirmation dialog.
+     */
+    fun dismissConfirmation() {
+        _uiState.update { it.copy(confirmationAction = null) }
+    }
+    
+    /**
      * Clears the current error message.
      */
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+    
+    /**
+     * Generates formatted text for sharing the shopping list.
+     * Only includes unchecked items, grouped by category.
+     */
+    fun shareShoppingList() {
+        val data = uiState.value.shoppingListData ?: return
+        
+        val text = buildString {
+            appendLine("Shopping List")
+            appendLine()
+            
+            data.itemsByCategory.forEach { (category, items) ->
+                val uncheckedItems = items.filter { !it.isChecked }
+                if (uncheckedItems.isNotEmpty()) {
+                    appendLine(category.displayName())
+                    uncheckedItems.forEach { item ->
+                        appendLine("  - ${item.name} (${item.quantity} ${item.unit})")
+                    }
+                    appendLine()
+                }
+            }
+        }
+        
+        _uiState.update { it.copy(shareText = text) }
+    }
+    
+    /**
+     * Clears the share text after sharing is complete.
+     */
+    fun clearShareText() {
+        _uiState.update { it.copy(shareText = null) }
     }
 }
