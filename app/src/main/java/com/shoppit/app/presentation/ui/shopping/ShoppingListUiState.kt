@@ -41,6 +41,7 @@ data class ShoppingListUiState(
     // Quick add state (Task 5.2)
     val frequentItems: List<com.shoppit.app.domain.model.ItemHistory> = emptyList(),
     val showQuickAddSheet: Boolean = false,
+    val isLoadingHistory: Boolean = false,
     
     // Section management state (Task 5.5)
     val storeSections: List<com.shoppit.app.domain.model.StoreSection> = emptyList(),
@@ -52,6 +53,9 @@ data class ShoppingListUiState(
     val templates: List<com.shoppit.app.domain.model.ShoppingTemplate> = emptyList(),
     val showSaveTemplateDialog: Boolean = false,
     val showLoadTemplateDialog: Boolean = false,
+    val isLoadingTemplates: Boolean = false,
+    val isSavingTemplate: Boolean = false,
+    val isLoadingTemplate: Boolean = false,
     
     // Budget tracking state (Task 5.8)
     val budgetSummary: com.shoppit.app.domain.model.BudgetSummary? = null,

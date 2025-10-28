@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shoppit.app.domain.model.ItemHistory
+import com.shoppit.app.presentation.ui.common.QuickAddSkeleton
 
 /**
  * Bottom sheet composable for quick adding frequent items.
@@ -77,14 +78,10 @@ fun QuickAddSheet(
             // Content
             when {
                 isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    QuickAddSkeleton(
+                        itemCount = 6,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 
                 frequentItems.isEmpty() -> {

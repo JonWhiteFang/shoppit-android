@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.shoppit.app.domain.model.ShoppingTemplate
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.LoadingScreen
+import com.shoppit.app.presentation.ui.common.TemplateSkeleton
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -95,7 +96,8 @@ fun TemplateManagerScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             when {
                 isLoading -> {
-                    LoadingScreen(
+                    TemplateSkeleton(
+                        itemCount = 4,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues)

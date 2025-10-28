@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -31,10 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.shoppit.app.domain.model.ItemHistory
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.LoadingScreen
+import com.shoppit.app.presentation.ui.common.HistorySkeleton
+import com.shoppit.app.presentation.ui.common.shimmerEffect
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -90,11 +95,27 @@ fun ItemHistoryScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             when {
                 isLoading -> {
-                    LoadingScreen(
+                    Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues)
-                    )
+                    ) {
+                        // Search bar skeleton
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .shimmerEffect()
+                        )
+                        
+                        // History list skeleton
+                        HistorySkeleton(
+                            itemCount = 8,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
                 
                 historyItems.isEmpty() -> {

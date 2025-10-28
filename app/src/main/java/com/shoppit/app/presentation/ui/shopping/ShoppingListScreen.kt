@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.shopping
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,8 +9,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
@@ -45,6 +48,8 @@ import com.shoppit.app.domain.model.ItemCategory
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.ErrorScreen
 import com.shoppit.app.presentation.ui.common.LoadingScreen
+import com.shoppit.app.presentation.ui.common.AnimatedExpandIcon
+import com.shoppit.app.presentation.ui.common.AnimatedSectionContent
 import android.content.Intent
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -483,7 +488,7 @@ fun ShoppingListSummary(
 }
 
 /**
- * Collapsible category header with item count.
+ * Collapsible category header with item count and color coding.
  */
 @Composable
 fun CategoryHeader(
@@ -493,6 +498,17 @@ fun CategoryHeader(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Color coding for categories
+    val categoryColor = when (category) {
+        ItemCategory.PRODUCE -> MaterialTheme.colorScheme.tertiary
+        ItemCategory.DAIRY -> MaterialTheme.colorScheme.primary
+        ItemCategory.MEAT -> MaterialTheme.colorScheme.error
+        ItemCategory.BAKERY -> MaterialTheme.colorScheme.secondary
+        ItemCategory.FROZEN -> MaterialTheme.colorScheme.primaryContainer
+        ItemCategory.PANTRY -> MaterialTheme.colorScheme.tertiaryContainer
+        ItemCategory.OTHER -> MaterialTheme.colorScheme.surfaceVariant
+    }
+    
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -502,13 +518,21 @@ fun CategoryHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Color indicator
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(categoryColor, CircleShape)
+            )
+            
             Text(
                 text = category.displayName(),
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
             )
             if (uncheckedCount > 0) {
                 Text(
@@ -519,10 +543,12 @@ fun CategoryHeader(
             }
         }
         
-        Icon(
-            imageVector = if (isCollapsed) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-            contentDescription = if (isCollapsed) "Expand category" else "Collapse category",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        AnimatedExpandIcon(expanded = !isCollapsed) {
+            Icon(
+                imageVector = Icons.Default.ExpandMore,
+                contentDescription = if (isCollapsed) "Expand category" else "Collapse category",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }

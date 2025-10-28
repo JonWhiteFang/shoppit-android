@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import javax.inject.Inject
 
 /**
@@ -61,6 +63,15 @@ class ShoppingListViewModel @Inject constructor(
     
     private val _uiState = MutableStateFlow(ShoppingListUiState())
     val uiState: StateFlow<ShoppingListUiState> = _uiState.asStateFlow()
+    
+    // In-memory cache for frequent items (Task 11.2 - Performance optimization)
+    private var frequentItemsCache: List<com.shoppit.app.domain.model.ItemHistory>? = null
+    private var frequentItemsCacheTime: Long = 0
+    private val CACHE_DURATION_MS = 5 * 60 * 1000L // 5 minutes
+    
+    // Debouncing for voice input (Task 11.2 - Performance optimization)
+    private var voiceInputJob: Job? = null
+    private val VOICE_INPUT_DEBOUNCE_MS = 300L
     
     init {
         loadShoppingList()
@@ -486,23 +497,55 @@ class ShoppingListViewModel @Inject constructor(
     
     /**
      * Loads frequent items for quick add on initialization.
+     * Uses in-memory cache to reduce database queries (Task 11.2).
      */
     private fun loadFrequentItems() {
         viewModelScope.launch {
+            // Check cache first
+            val currentTime = System.currentTimeMillis()
+            if (frequentItemsCache != null && 
+                (currentTime - frequentItemsCacheTime) < CACHE_DURATION_MS) {
+                // Use cached data
+                _uiState.update { 
+                    it.copy(
+                        frequentItems = frequentItemsCache!!,
+                        isLoadingHistory = false
+                    )
+                }
+                return@launch
+            }
+            
+            _uiState.update { it.copy(isLoadingHistory = true) }
+            
             getItemHistoryUseCase.getFrequentItems(20)
                 .catch { e ->
                     _uiState.update { 
-                        it.copy(error = e.message ?: "Failed to load frequent items")
+                        it.copy(
+                            isLoadingHistory = false,
+                            error = e.message ?: "Failed to load frequent items"
+                        )
                     }
                 }
                 .collect { result ->
                     result.fold(
                         onSuccess = { items ->
-                            _uiState.update { it.copy(frequentItems = items) }
+                            // Update cache
+                            frequentItemsCache = items
+                            frequentItemsCacheTime = System.currentTimeMillis()
+                            
+                            _uiState.update { 
+                                it.copy(
+                                    frequentItems = items,
+                                    isLoadingHistory = false
+                                )
+                            }
                         },
                         onFailure = { error ->
                             _uiState.update { 
-                                it.copy(error = error.message ?: "Failed to load frequent items")
+                                it.copy(
+                                    isLoadingHistory = false,
+                                    error = error.message ?: "Failed to load frequent items"
+                                )
                             }
                         }
                     )
@@ -725,20 +768,33 @@ class ShoppingListViewModel @Inject constructor(
      */
     private fun loadTemplates() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingTemplates = true) }
+            
             templateRepository.getAllTemplates()
                 .catch { e ->
                     _uiState.update { 
-                        it.copy(error = e.message ?: "Failed to load templates")
+                        it.copy(
+                            isLoadingTemplates = false,
+                            error = e.message ?: "Failed to load templates"
+                        )
                     }
                 }
                 .collect { result ->
                     result.fold(
                         onSuccess = { templates ->
-                            _uiState.update { it.copy(templates = templates) }
+                            _uiState.update { 
+                                it.copy(
+                                    templates = templates,
+                                    isLoadingTemplates = false
+                                )
+                            }
                         },
                         onFailure = { error ->
                             _uiState.update { 
-                                it.copy(error = error.message ?: "Failed to load templates")
+                                it.copy(
+                                    isLoadingTemplates = false,
+                                    error = error.message ?: "Failed to load templates"
+                                )
                             }
                         }
                     )
@@ -765,13 +821,23 @@ class ShoppingListViewModel @Inject constructor(
      */
     fun saveTemplate(name: String, description: String) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isSavingTemplate = true) }
+            
             saveTemplateUseCase(name, description).fold(
                 onSuccess = { 
-                    _uiState.update { it.copy(showSaveTemplateDialog = false) }
+                    _uiState.update { 
+                        it.copy(
+                            showSaveTemplateDialog = false,
+                            isSavingTemplate = false
+                        )
+                    }
                 },
                 onFailure = { error ->
                     _uiState.update { 
-                        it.copy(error = error.message ?: "Failed to save template")
+                        it.copy(
+                            isSavingTemplate = false,
+                            error = error.message ?: "Failed to save template"
+                        )
                     }
                 }
             )
@@ -797,13 +863,23 @@ class ShoppingListViewModel @Inject constructor(
      */
     fun loadTemplate(templateId: Long) {
         viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingTemplate = true) }
+            
             loadTemplateUseCase(templateId).fold(
                 onSuccess = { 
-                    _uiState.update { it.copy(showLoadTemplateDialog = false) }
+                    _uiState.update { 
+                        it.copy(
+                            showLoadTemplateDialog = false,
+                            isLoadingTemplate = false
+                        )
+                    }
                 },
                 onFailure = { error ->
                     _uiState.update { 
-                        it.copy(error = error.message ?: "Failed to load template")
+                        it.copy(
+                            isLoadingTemplate = false,
+                            error = error.message ?: "Failed to load template"
+                        )
                     }
                 }
             )
@@ -890,9 +966,16 @@ class ShoppingListViewModel @Inject constructor(
     
     /**
      * Processes voice input and adds the item to the shopping list.
+     * Uses debouncing to prevent rapid successive calls (Task 11.2).
      */
     fun processVoiceInput(voiceText: String) {
-        viewModelScope.launch {
+        // Cancel any pending voice input processing
+        voiceInputJob?.cancel()
+        
+        voiceInputJob = viewModelScope.launch {
+            // Debounce the input
+            delay(VOICE_INPUT_DEBOUNCE_MS)
+            
             _uiState.update { it.copy(isProcessingVoice = true) }
             
             processVoiceInputUseCase(voiceText).fold(

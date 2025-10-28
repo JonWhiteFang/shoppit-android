@@ -37,6 +37,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.shoppit.app.domain.model.ShoppingListItem
+import com.shoppit.app.presentation.ui.common.AnimatedPriorityBadge
+import com.shoppit.app.presentation.ui.common.AnimatedQuantityChange
 
 /**
  * Enhanced composable for displaying a shopping list item card.
@@ -139,8 +141,8 @@ fun ShoppingListItemCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Priority indicator
-                    if (item.isPriority) {
+                    // Priority indicator with animation
+                    AnimatedPriorityBadge(visible = item.isPriority) {
                         Icon(
                             imageVector = Icons.Default.PriorityHigh,
                             contentDescription = "Priority item",
@@ -193,41 +195,43 @@ fun ShoppingListItemCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Quantity with increment/decrement buttons
+                    // Quantity with increment/decrement buttons and animation
                     if (item.quantity.isNotBlank() || item.unit.isNotBlank()) {
                         if (isNumericQuantity && onIncrementQuantity != null && onDecrementQuantity != null) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(
-                                    onClick = { onDecrementQuantity(item.id) },
-                                    modifier = Modifier.size(24.dp),
-                                    enabled = !item.isChecked
+                            AnimatedQuantityChange(targetScale = 1f) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Remove,
-                                        contentDescription = "Decrease quantity",
-                                        modifier = Modifier.size(16.dp)
+                                    IconButton(
+                                        onClick = { onDecrementQuantity(item.id) },
+                                        modifier = Modifier.size(24.dp),
+                                        enabled = !item.isChecked
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Remove,
+                                            contentDescription = "Decrease quantity",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    
+                                    Text(
+                                        text = "${item.quantity} ${item.unit}".trim(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = quantityAlpha)
                                     )
-                                }
-                                
-                                Text(
-                                    text = "${item.quantity} ${item.unit}".trim(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = quantityAlpha)
-                                )
-                                
-                                IconButton(
-                                    onClick = { onIncrementQuantity(item.id) },
-                                    modifier = Modifier.size(24.dp),
-                                    enabled = !item.isChecked
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "Increase quantity",
-                                        modifier = Modifier.size(16.dp)
-                                    )
+                                    
+                                    IconButton(
+                                        onClick = { onIncrementQuantity(item.id) },
+                                        modifier = Modifier.size(24.dp),
+                                        enabled = !item.isChecked
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Increase quantity",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 }
                             }
                         } else {
