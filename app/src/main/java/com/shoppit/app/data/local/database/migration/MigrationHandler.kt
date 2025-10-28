@@ -54,7 +54,8 @@ class MigrationHandlerImpl : MigrationHandler {
     override fun getMigrations(): List<Migration> {
         return listOf(
             MIGRATION_1_2,
-            MIGRATION_2_3
+            MIGRATION_2_3,
+            MIGRATION_3_4
         )
     }
     
@@ -122,6 +123,47 @@ class MigrationHandlerImpl : MigrationHandler {
                 """.trimIndent())
                 
                 Timber.d("Migration 2->3 completed: indices added to meals table")
+            }
+        }
+        
+        /**
+         * Migration from version 3 to 4: Add meal_plans table for meal planning feature
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Timber.d("Migrating database from version 3 to 4")
+                
+                // Create meal_plans table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS meal_plans (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        meal_id INTEGER NOT NULL,
+                        date INTEGER NOT NULL,
+                        meal_type TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        FOREIGN KEY(meal_id) REFERENCES meals(id) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+                
+                // Create index on date for efficient week queries
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_meal_plans_date 
+                    ON meal_plans(date)
+                """.trimIndent())
+                
+                // Create index on meal_id for cascade delete performance
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_meal_plans_meal_id 
+                    ON meal_plans(meal_id)
+                """.trimIndent())
+                
+                // Create unique index on (date, meal_type) to prevent double booking
+                database.execSQL("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS index_meal_plans_date_meal_type 
+                    ON meal_plans(date, meal_type)
+                """.trimIndent())
+                
+                Timber.d("Migration 3->4 completed: meal_plans table created with indices")
             }
         }
     }

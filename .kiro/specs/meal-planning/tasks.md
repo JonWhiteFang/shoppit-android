@@ -1,25 +1,28 @@
 # Implementation Plan
 
 - [x] 1. Set up domain layer foundation
-
-
-
-
-
   - Create domain models (MealPlan, MealType enum, WeekPlanData, MealPlanWithMeal) as pure Kotlin data classes
   - Define MealPlanRepository interface with Flow-based queries and suspend mutations
   - Create custom exception classes (ConflictException for duplicate slots)
   - _Requirements: 1.1, 2.1, 8.1_
 
-- [ ] 2. Implement data layer with Room database
-  - [ ] 2.1 Create Room entities and type converters
+- [x] 2. Implement data layer with Room database
+
+
+
+
+  - [x] 2.1 Create Room entities and type converters
+
+
     - Define MealPlanEntity with Room annotations and foreign key to MealEntity
     - Add type converters for LocalDate (toEpochDay/fromEpochDay)
     - Update AppDatabase to version 3 with MealPlanEntity
     - Create database migration from version 2 to 3
     - _Requirements: 2.3, 8.3, 8.4_
   
-  - [ ] 2.2 Implement MealPlanDao with database operations
+  - [x] 2.2 Implement MealPlanDao with database operations
+
+
     - Create getMealPlansForWeek() query with date range returning Flow
     - Create getMealPlansForDate() query returning Flow
     - Create getMealPlanById() query returning Flow
@@ -32,14 +35,18 @@
     - Add indexes on date and meal_id for query performance
     - _Requirements: 1.2, 2.1, 3.2, 4.3, 5.2, 7.1, 10.3_
   
-  - [ ] 2.3 Create mapper functions for entity/model conversion
+  - [x] 2.3 Create mapper functions for entity/model conversion
+
+
     - Implement MealPlanEntity.toDomainModel() extension function
     - Implement MealPlan.toEntity() extension function
     - Handle LocalDate to epoch day conversions
     - Handle MealType enum to string conversions
     - _Requirements: 1.4, 2.4_
   
-  - [ ] 2.4 Implement MealPlanRepositoryImpl
+  - [x] 2.4 Implement MealPlanRepositoryImpl
+
+
     - Implement getMealPlansForWeek() with Flow mapping and error handling
     - Implement getMealPlansForDate() with Flow mapping
     - Implement getMealPlanById() with null checking
