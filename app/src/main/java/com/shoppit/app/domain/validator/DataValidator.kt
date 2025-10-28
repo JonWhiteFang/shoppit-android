@@ -40,9 +40,9 @@ sealed class ValidationResult {
     /**
      * Indicates that validation failed with one or more errors.
      * 
-     * @property errors List of validation errors
+     * @property validationErrors List of validation errors
      */
-    data class Invalid(val errors: List<ValidationError>) : ValidationResult()
+    data class Invalid(val validationErrors: List<ValidationError>) : ValidationResult()
     
     /**
      * Checks if this result is valid.
@@ -59,7 +59,7 @@ sealed class ValidationResult {
      */
     fun getErrors(): List<ValidationError> = when (this) {
         is Valid -> emptyList()
-        is Invalid -> errors
+        is Invalid -> validationErrors
     }
 }
 

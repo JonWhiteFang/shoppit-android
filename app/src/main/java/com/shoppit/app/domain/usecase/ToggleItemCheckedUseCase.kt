@@ -19,10 +19,13 @@ class ToggleItemCheckedUseCase @Inject constructor(
      */
     suspend operator fun invoke(itemId: Long, isChecked: Boolean): Result<Unit> {
         return try {
-            repository.getShoppingListItem(itemId).first().flatMap { item ->
-                val updatedItem = item.copy(isChecked = isChecked)
-                repository.updateShoppingListItem(updatedItem)
+            val result = repository.getShoppingListItem(itemId).first()
+            if (result.isFailure) {
+                return result.map { }
             }
+            val item = result.getOrThrow()
+            val updatedItem = item.copy(isChecked = isChecked)
+            repository.updateShoppingListItem(updatedItem)
         } catch (e: Exception) {
             Result.failure(e)
         }

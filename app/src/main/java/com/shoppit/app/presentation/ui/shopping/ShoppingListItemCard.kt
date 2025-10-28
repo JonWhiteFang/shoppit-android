@@ -57,7 +57,7 @@ import com.shoppit.app.presentation.ui.common.AnimatedQuantityChange
  * @param onDelete Callback when delete is selected (only for manual items)
  * @param modifier Optional modifier for the card
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListItemCard(
     item: ShoppingListItem,

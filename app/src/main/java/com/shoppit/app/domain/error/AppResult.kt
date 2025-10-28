@@ -32,7 +32,7 @@ fun <T> AppResult<T>.onFailure(action: (AppError) -> Unit): AppResult<T> {
         val exception = exceptionOrNull()
         val error = when (exception) {
             is AppErrorException -> exception.error
-            else -> AppError.UnknownError(exception ?: Throwable("Unknown error"))
+            else -> AppError.UnknownError(exception?.message ?: "Unknown error")
         }
         action(error)
     }

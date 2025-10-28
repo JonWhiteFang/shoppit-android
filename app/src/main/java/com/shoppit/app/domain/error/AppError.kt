@@ -45,10 +45,12 @@ sealed class AppError : Exception() {
     data class BarcodeScanError(override val message: String) : AppError()
 
     /**
+     * Resource not found errors
+     */
+    data class NotFoundError(override val message: String) : AppError()
+
+    /**
      * Unknown or unexpected errors with the original throwable
      */
-    data class UnknownError(val throwable: Throwable) : AppError() {
-        override val message: String
-            get() = "An unexpected error occurred: ${throwable.message ?: "Unknown error"}"
-    }
+    data class UnknownError(override val message: String) : AppError()
 }

@@ -83,8 +83,11 @@ object ErrorMapper {
             is AppError.BarcodeScanError -> 
                 error.message
             
+            is AppError.NotFoundError -> 
+                error.message
+            
             is AppError.UnknownError -> 
-                "An unexpected error occurred: ${error.throwable.message ?: "Unknown error"}"
+                "An unexpected error occurred: ${error.message}"
         }
     }
     

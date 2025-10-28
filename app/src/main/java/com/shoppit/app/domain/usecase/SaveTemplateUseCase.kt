@@ -68,7 +68,7 @@ class SaveTemplateUseCase @Inject constructor(
                 }
             )
         } catch (e: Exception) {
-            Result.failure(AppError.UnknownError(e))
+            Result.failure(AppError.UnknownError(e.message ?: "Failed to save template"))
         }
     }
 }

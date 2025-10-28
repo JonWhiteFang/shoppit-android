@@ -52,7 +52,7 @@ abstract class UseCase<in P, R> {
             is IllegalArgumentException -> AppError.ValidationError(
                 exception.message ?: "Validation failed"
             )
-            else -> AppError.UnknownError(exception)
+            else -> AppError.UnknownError(exception.message ?: "Unknown error occurred")
         }
         return Exception(error.toString())
     }

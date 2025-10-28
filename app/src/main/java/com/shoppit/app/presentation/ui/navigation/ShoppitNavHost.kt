@@ -141,8 +141,18 @@ fun ShoppitNavHost(
         
         // Item history screen
         composable(Screen.ItemHistory.route) {
+            val viewModel: ShoppingListViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsState()
+            
             ItemHistoryScreen(
+                historyItems = uiState.frequentItems,
+                isLoading = uiState.isLoadingHistory,
                 onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onItemClick = { historyItem ->
+                    // Add item from history to shopping list
+                    // This would need a method in ViewModel
                     navController.popBackStack()
                 }
             )
@@ -150,9 +160,23 @@ fun ShoppitNavHost(
         
         // Template manager screen
         composable(Screen.TemplateManager.route) {
+            val viewModel: ShoppingListViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsState()
+            
             TemplateManagerScreen(
+                templates = uiState.templates,
+                isLoading = uiState.isLoadingTemplates,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onCreateTemplate = { name, description ->
+                    // Create template - would need a method in ViewModel
+                },
+                onLoadTemplate = { templateId ->
+                    // Load template - would need a method in ViewModel
+                },
+                onDeleteTemplate = { templateId ->
+                    // Delete template - would need a method in ViewModel
                 }
             )
         }

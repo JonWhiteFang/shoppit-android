@@ -21,15 +21,14 @@ class ExportShoppingListUseCase @Inject constructor(
             return Result.failure(result.exceptionOrNull() ?: Exception("Failed to get shopping list"))
         }
         
-        val data = result.getOrNull() ?: return Result.failure(Exception("Shopping list data is null"))
-        val items = data.itemsByCategory.flatMap { it.value }
-            .filter { !it.isChecked } // Only export unchecked items
+        val items = result.getOrNull() ?: return Result.failure(Exception("Shopping list data is null"))
+        val uncheckedItems = items.filter { !it.isChecked } // Only export unchecked items
         
         return try {
             val exportResult = when (params.format) {
-                ExportFormat.TEXT -> exportAsText(items)
-                ExportFormat.CSV -> exportAsCsv(items)
-                ExportFormat.JSON -> exportAsJson(items)
+                ExportFormat.TEXT -> exportAsText(uncheckedItems)
+                ExportFormat.CSV -> exportAsCsv(uncheckedItems)
+                ExportFormat.JSON -> exportAsJson(uncheckedItems)
             }
             Result.success(exportResult)
         } catch (e: Exception) {

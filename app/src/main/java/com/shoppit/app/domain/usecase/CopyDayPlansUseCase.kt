@@ -31,14 +31,23 @@ class CopyDayPlansUseCase @Inject constructor(
         targetDate: LocalDate,
         replaceExisting: Boolean = false
     ): Result<Unit> {
-        return repository.getMealPlansForDate(sourceDate).first().flatMap { sourcePlans ->
-            if (replaceExisting) {
-                repository.deleteMealPlansForDate(targetDate).flatMap {
-                    copyPlans(sourcePlans, targetDate)
-                }
-            } else {
-                copyPlans(sourcePlans, targetDate)
+        return try {
+            val result = repository.getMealPlansForDate(sourceDate).first()
+            if (result.isFailure) {
+                return result.map { }
             }
+            val sourcePlans = result.getOrThrow()
+            
+            if (replaceExisting) {
+                val deleteResult = repository.deleteMealPlansForDate(targetDate)
+                if (deleteResult.isFailure) {
+                    return deleteResult
+                }
+            }
+            
+            copyPlans(sourcePlans, targetDate)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
     

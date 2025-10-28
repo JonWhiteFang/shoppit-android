@@ -25,9 +25,16 @@ class UpdateMealPlanUseCase @Inject constructor(
         mealPlanId: Long,
         newMealId: Long
     ): Result<Unit> {
-        return repository.getMealPlanById(mealPlanId).first().flatMap { mealPlan ->
+        return try {
+            val result = repository.getMealPlanById(mealPlanId).first()
+            if (result.isFailure) {
+                return result.map { }
+            }
+            val mealPlan = result.getOrThrow()
             val updatedPlan = mealPlan.copy(mealId = newMealId)
             repository.updateMealPlan(updatedPlan)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

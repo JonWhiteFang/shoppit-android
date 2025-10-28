@@ -31,20 +31,24 @@ class UpdateManualItemUseCase @Inject constructor(
         }
         
         return try {
-            repository.getShoppingListItem(itemId).first().flatMap { item ->
-                if (!item.isManual) {
-                    return@flatMap Result.failure(
-                        IllegalStateException("Cannot edit auto-generated items")
-                    )
-                }
-                
-                val updatedItem = item.copy(
-                    name = name.trim(),
-                    quantity = quantity.trim(),
-                    unit = unit.trim()
-                )
-                repository.updateShoppingListItem(updatedItem)
+            val result = repository.getShoppingListItem(itemId).first()
+            if (result.isFailure) {
+                return result.map { }
             }
+            val item = result.getOrThrow()
+            
+            if (!item.isManual) {
+                return Result.failure(
+                    IllegalStateException("Cannot edit auto-generated items")
+                )
+            }
+            
+            val updatedItem = item.copy(
+                name = name.trim(),
+                quantity = quantity.trim(),
+                unit = unit.trim()
+            )
+            repository.updateShoppingListItem(updatedItem)
         } catch (e: Exception) {
             Result.failure(e)
         }

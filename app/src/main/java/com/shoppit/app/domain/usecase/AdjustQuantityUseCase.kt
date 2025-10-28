@@ -66,7 +66,7 @@ class AdjustQuantityUseCase @Inject constructor(
             )
         } catch (e: Exception) {
             Result.failure(
-                AppError.UnknownError(e)
+                AppError.UnknownError(e.message ?: "Unknown error adjusting quantity")
             )
         }
     }

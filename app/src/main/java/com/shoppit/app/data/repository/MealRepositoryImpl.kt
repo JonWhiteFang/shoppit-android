@@ -51,22 +51,22 @@ class MealRepositoryImpl @Inject constructor(
      * @return Flow emitting Result with list of meals or PersistenceError.QueryFailed
      */
     override fun getMeals(): Flow<Result<List<Meal>>> {
+        // Check cache first
+        val cachedMeals = mealListCache.get(MEAL_LIST_CACHE_KEY)
+        if (cachedMeals != null) {
+            PersistenceLogger.logCacheHit(MEAL_LIST_CACHE_KEY)
+        } else {
+            PersistenceLogger.logCacheMiss(MEAL_LIST_CACHE_KEY)
+        }
+        
         return mealDao.getAllMeals()
-            .onStart {
-                // Try to emit cached data first for immediate UI update
-                mealListCache.get(MEAL_LIST_CACHE_KEY)?.let { cachedMeals ->
-                    PersistenceLogger.logCacheHit(MEAL_LIST_CACHE_KEY)
-                    emit(Result.success(cachedMeals))
-                } ?: PersistenceLogger.logCacheMiss(MEAL_LIST_CACHE_KEY)
-            }
             .map { entities -> 
                 val meals = entities.map { it.toDomainModel() }
                 // Update cache with fresh data
                 mealListCache.put(MEAL_LIST_CACHE_KEY, meals)
                 PersistenceLogger.logOperationSuccess("getMeals", 0)
-                meals
+                Result.success(meals)
             }
-            .map { meals -> Result.success(meals) }
             .catch { e -> 
                 PersistenceLogger.logQueryFailure("getAllMeals", e)
                 emit(Result.failure(PersistenceError.QueryFailed("getAllMeals", e)))
@@ -81,26 +81,26 @@ class MealRepositoryImpl @Inject constructor(
      * @return Flow emitting Result with meal or PersistenceError.QueryFailed
      */
     override fun getMealById(id: Long): Flow<Result<Meal>> {
+        // Check cache first
+        val cachedMeal = mealDetailCache.get(id)
+        if (cachedMeal != null) {
+            PersistenceLogger.logCacheHit("meal_$id")
+        } else {
+            PersistenceLogger.logCacheMiss("meal_$id")
+        }
+        
         return mealDao.getMealById(id)
-            .onStart {
-                // Try to emit cached data first
-                mealDetailCache.get(id)?.let { cachedMeal ->
-                    PersistenceLogger.logCacheHit("meal_$id")
-                    emit(Result.success(cachedMeal))
-                } ?: PersistenceLogger.logCacheMiss("meal_$id")
-            }
             .map { entity ->
                 if (entity != null) {
                     val meal = entity.toDomainModel()
                     // Update cache with fresh data
                     mealDetailCache.put(id, meal)
                     PersistenceLogger.logOperationSuccess("getMealById", 0)
-                    meal
+                    Result.success(meal)
                 } else {
-                    throw Exception("Meal not found: id=$id")
+                    Result.failure(PersistenceError.QueryFailed("getMealById", Exception("Meal not found: id=$id")))
                 }
             }
-            .map { meal -> Result.success(meal) }
             .catch { e ->
                 PersistenceLogger.logQueryFailure("getMealById", e)
                 emit(Result.failure(PersistenceError.QueryFailed("getMealById", e)))
