@@ -32,3 +32,13 @@ class BackupException(
     message: String,
     cause: Throwable? = null
 ) : Exception(message, cause)
+
+/**
+ * Exception thrown when a meal plan conflict occurs.
+ * Typically used when attempting to assign a meal to a slot that is already occupied.
+ *
+ * @property message Descriptive error message indicating the conflict
+ */
+class ConflictException(
+    message: String
+) : Exception(message)
