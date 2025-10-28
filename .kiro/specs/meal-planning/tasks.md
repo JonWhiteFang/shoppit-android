@@ -152,21 +152,30 @@
   - Implement MealSlotCard composable for individual meal slots with add/view/delete actions
   - _Requirements: 1.3, 5.4, 11.1, 11.2, 11.3, 11.4, 11.5, 14.3_
 
-- [ ] 7. Implement meal planner screen
-  - [ ] 7.1 Create MealPlannerScreen stateful composable
+- [x] 7. Implement meal planner screen
+
+
+
+
+  - [x] 7.1 Create MealPlannerScreen stateful composable
+
+
     - Inject MealPlannerViewModel with hiltViewModel()
     - Collect uiState as State
     - Pass state and callbacks to MealPlannerContent
     - _Requirements: 1.1, 5.1_
   
-  - [ ] 7.2 Create MealPlannerContent stateless composable
+  - [x] 7.2 Create MealPlannerContent stateless composable
+
     - Implement Scaffold with WeekNavigationBar as topBar
     - Handle loading, error, and success states
     - Render WeekCalendarView for success state
     - Show MealSelectionDialog when showMealSelection is true
     - _Requirements: 1.1, 1.4, 1.5, 2.1, 8.1, 8.2_
   
-  - [ ] 7.3 Create WeekCalendarView composable
+  - [x] 7.3 Create WeekCalendarView composable
+
+
     - Use LazyColumn for scrollable calendar
     - Render header row with DayHeader for each day
     - Render rows for each MealType (breakfast, lunch, dinner, snack)
@@ -174,14 +183,17 @@
     - Support long-press on day header for copy/clear actions
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 7.1, 10.1, 11.1_
   
-  - [ ] 7.4 Create MealSlotCard composable
+  - [x] 7.4 Create MealSlotCard composable
+
     - Display meal name if assigned, or add icon if empty
     - Handle click to open meal selection or show options
     - Show view details and delete buttons for filled slots
     - Apply appropriate styling for empty vs filled states
     - _Requirements: 1.5, 2.1, 3.1, 4.1, 6.1_
   
-  - [ ] 7.5 Create MealSelectionDialog composable
+  - [x] 7.5 Create MealSelectionDialog composable
+
+
     - Display dialog with meal list from available meals
     - Implement search TextField with real-time filtering
     - Use LazyColumn for meal list with MealSelectionItem
@@ -190,7 +202,9 @@
     - Show appropriate title for assign vs replace mode
     - _Requirements: 2.1, 2.2, 12.1, 12.2, 12.3, 12.4, 12.5, 13.2_
   
-  - [ ] 7.6 Create MealSelectionItem composable
+  - [x] 7.6 Create MealSelectionItem composable
+
+
     - Display meal name and ingredient count
     - Make clickable to select meal
     - _Requirements: 2.2, 9.2_

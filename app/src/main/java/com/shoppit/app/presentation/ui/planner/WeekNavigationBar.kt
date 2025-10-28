@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Today
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,7 +55,7 @@ fun WeekNavigationBar(
         ) {
             IconButton(onClick = onPreviousWeek) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.Filled.ArrowBack,
                     contentDescription = "Previous week"
                 )
             }
@@ -69,14 +69,14 @@ fun WeekNavigationBar(
             Row {
                 IconButton(onClick = onToday) {
                     Icon(
-                        imageVector = Icons.Default.Today,
+                        imageVector = Icons.Filled.CalendarToday,
                         contentDescription = "Go to today"
                     )
                 }
 
                 IconButton(onClick = onNextWeek) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        imageVector = Icons.Filled.ArrowForward,
                         contentDescription = "Next week"
                     )
                 }
