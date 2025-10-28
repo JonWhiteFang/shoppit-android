@@ -31,8 +31,8 @@
     - Register migration in database builder
     - _Requirements: 1.5, 10.5, 11.4_
 
-- [ ] 3. Implement new repositories
-  - [ ] 3.1 Create ItemHistoryRepository
+- [x] 3. Implement new repositories
+  - [x] 3.1 Create ItemHistoryRepository
     - Define interface with Flow-based queries
     - Implement ItemHistoryRepositoryImpl with error handling
     - Add methods for recent history and frequent items
@@ -40,7 +40,7 @@
     - Create mapper functions for entity/domain conversions
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 10.1, 10.2, 10.3, 10.4, 10.5_
   
-  - [ ] 3.2 Create TemplateRepository
+  - [x] 3.2 Create TemplateRepository
     - Define interface for template CRUD operations
     - Implement TemplateRepositoryImpl with transaction support
     - Add methods for saving and loading templates
@@ -48,14 +48,14 @@
     - Create mapper functions for template entities
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
   
-  - [ ] 3.3 Create StoreSectionRepository
+  - [x] 3.3 Create StoreSectionRepository
     - Define interface for section management
     - Implement StoreSectionRepositoryImpl
     - Add methods for section ordering and collapse state
     - Implement custom section creation
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
   
-  - [ ] 3.4 Extend ShoppingListRepository
+  - [x] 3.4 Extend ShoppingListRepository
     - Add methods for notes, priority, order, price updates
     - Add method for moving items between sections
     - Add method for duplicating items

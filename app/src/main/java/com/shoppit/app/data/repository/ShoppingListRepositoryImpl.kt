@@ -4,10 +4,12 @@ import com.shoppit.app.data.error.PersistenceError
 import com.shoppit.app.data.local.dao.ShoppingListDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
+import com.shoppit.app.domain.model.BudgetSummary
 import com.shoppit.app.domain.model.ShoppingListItem
 import com.shoppit.app.domain.repository.ShoppingListRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -99,6 +101,123 @@ class ShoppingListRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("uncheckAllItems", e))
+        }
+    }
+    
+    // Management features
+    
+    override suspend fun updateItemNotes(itemId: Long, notes: String): Result<Unit> {
+        return try {
+            shoppingListDao.updateItemNotes(itemId, notes)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(PersistenceError.WriteFailed("updateItemNotes", e))
+        }
+    }
+    
+    override suspend fun toggleItemPriority(itemId: Long, isPriority: Boolean): Result<Unit> {
+        return try {
+            shoppingListDao.updateItemPriority(itemId, isPriority)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(PersistenceError.WriteFailed("toggleItemPriority", e))
+        }
+    }
+    
+    override suspend fun updateItemOrder(itemId: Long, newOrder: Int): Result<Unit> {
+        return try {
+            shoppingListDao.updateItemOrder(itemId, newOrder)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(PersistenceError.WriteFailed("updateItemOrder", e))
+        }
+    }
+    
+    override suspend fun updateItemPrice(itemId: Long, price: Double?): Result<Unit> {
+        return try {
+            shoppingListDao.updateItemPrice(itemId, price)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(PersistenceError.WriteFailed("updateItemPrice", e))
+        }
+    }
+    
+    override suspend fun moveItemToSection(itemId: Long, section: String): Result<Unit> {
+        return try {
+            shoppingListDao.updateItemSection(itemId, section)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(PersistenceError.WriteFailed("moveItemToSection", e))
+        }
+    }
+    
+    override suspend fun duplicateItem(itemId: Long): Result<Long> {
+        return try {
+            // Get the original item
+            val originalItem = shoppingListDao.getItemById(itemId).first()
+                ?: return Result.failure(
+                    PersistenceError.QueryFailed(
+                        "duplicateItem",
+                        IllegalStateException("Item not found")
+                    )
+                )
+            
+            // Create a duplicate with modified name and reset properties
+            val duplicateItem = originalItem.copy(
+                id = 0, // Auto-generate new ID
+                name = "${originalItem.name} (copy)",
+                isManual = true,
+                isChecked = false,
+                createdAt = System.currentTimeMillis(),
+                lastModifiedAt = System.currentTimeMillis()
+            )
+            
+            val newId = shoppingListDao.insertItem(duplicateItem)
+            Result.success(newId)
+        } catch (e: Exception) {
+            Result.failure(PersistenceError.WriteFailed("duplicateItem", e))
+        }
+    }
+    
+    override fun getItemsBySection(section: String): Flow<Result<List<ShoppingListItem>>> {
+        return shoppingListDao.getItemsBySection(section)
+            .map { entities ->
+                Result.success(entities.map { it.toDomainModel() })
+            }
+            .catch { e ->
+                emit(Result.failure(PersistenceError.QueryFailed("getItemsBySection", e)))
+            }
+    }
+    
+    override fun getPriorityItems(): Flow<Result<List<ShoppingListItem>>> {
+        return shoppingListDao.getPriorityItems()
+            .map { entities ->
+                Result.success(entities.map { it.toDomainModel() })
+            }
+            .catch { e ->
+                emit(Result.failure(PersistenceError.QueryFailed("getPriorityItems", e)))
+            }
+    }
+    
+    override suspend fun getBudgetSummary(): Result<BudgetSummary> {
+        return try {
+            val totalEstimated = shoppingListDao.getTotalEstimatedPrice() ?: 0.0
+            val checkedTotal = shoppingListDao.getCheckedItemsPrice() ?: 0.0
+            val itemsWithPrices = shoppingListDao.getItemsWithPriceCount()
+            val totalItems = shoppingListDao.getItemCount()
+            val remainingBudget = totalEstimated - checkedTotal
+            
+            val summary = BudgetSummary(
+                totalEstimated = totalEstimated,
+                checkedTotal = checkedTotal,
+                remainingBudget = remainingBudget,
+                itemsWithPrices = itemsWithPrices,
+                totalItems = totalItems
+            )
+            
+            Result.success(summary)
+        } catch (e: Exception) {
+            Result.failure(PersistenceError.QueryFailed("getBudgetSummary", e))
         }
     }
 }
