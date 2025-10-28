@@ -295,20 +295,20 @@
     - Register new use cases
     - _Requirements: 1.1, 5.1, 10.1, 11.1_
 
-- [ ] 9. Implement permissions and system integration
-  - [ ] 9.1 Add camera permission handling
+- [x] 9. Implement permissions and system integration
+  - [x] 9.1 Add camera permission handling
     - Request camera permission for barcode scanning
     - Handle permission denial gracefully
     - Show rationale dialog
     - _Requirements: 14.5_
   
-  - [ ] 9.2 Add microphone permission handling
+  - [x] 9.2 Add microphone permission handling
     - Request microphone permission for voice input
     - Handle permission denial gracefully
     - Show rationale dialog
     - _Requirements: 16.5_
   
-  - [ ] 9.3 Add location permission handling (future)
+  - [x] 9.3 Add location permission handling (future)
     - Request location permission for store notifications
     - Handle permission denial gracefully
     - Show rationale dialog
