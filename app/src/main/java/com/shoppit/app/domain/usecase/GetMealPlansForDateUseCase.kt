@@ -29,19 +29,27 @@ class GetMealPlansForDateUseCase @Inject constructor(
     operator fun invoke(date: LocalDate): Flow<Result<List<MealPlanWithMeal>>> {
         return mealPlanRepository.getMealPlansForDate(date)
             .combine(mealRepository.getMeals()) { plansResult, mealsResult ->
-                plansResult.flatMap { plans ->
-                    mealsResult.map { meals ->
-                        // Create a map for efficient meal lookup
-                        val mealMap = meals.associateBy { it.id }
-                        
-                        // Combine plans with meals, filtering out plans for deleted meals
-                        plans.mapNotNull { plan ->
-                            mealMap[plan.mealId]?.let { meal ->
-                                MealPlanWithMeal(plan, meal)
-                            }
-                        }
-                    }
-                }
+                plansResult.fold(
+                    onSuccess = { plans ->
+                        mealsResult.fold(
+                            onSuccess = { meals ->
+                                // Create a map for efficient meal lookup
+                                val mealMap = meals.associateBy { it.id }
+                                
+                                // Combine plans with meals, filtering out plans for deleted meals
+                                val plansWithMeals = plans.mapNotNull { plan ->
+                                    mealMap[plan.mealId]?.let { meal ->
+                                        MealPlanWithMeal(plan, meal)
+                                    }
+                                }
+                                
+                                Result.success(plansWithMeals)
+                            },
+                            onFailure = { error -> Result.failure(error) }
+                        )
+                    },
+                    onFailure = { error -> Result.failure(error) }
+                )
             }
     }
 }

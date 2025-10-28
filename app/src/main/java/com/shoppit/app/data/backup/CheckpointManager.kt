@@ -7,6 +7,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.ListenableWorker.Result as WorkResult
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -129,7 +130,7 @@ class CheckpointWorker(
     params: WorkerParameters
 ) : CoroutineWorker(context, params) {
     
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): WorkResult {
         return try {
             Timber.d("Starting periodic checkpoint backup")
             
@@ -137,10 +138,10 @@ class CheckpointWorker(
             // For now, this is a placeholder that would need proper DI setup
             
             Timber.i("Periodic checkpoint completed")
-            Result.success()
+            WorkResult.success()
         } catch (e: Exception) {
             Timber.e(e, "Periodic checkpoint failed")
-            Result.failure()
+            WorkResult.failure()
         }
     }
 }

@@ -27,9 +27,17 @@ class AddMealUseCase @Inject constructor(
      * @return Result with the ID of the newly created meal or validation/database error
      */
     suspend operator fun invoke(meal: Meal): Result<Long> {
-        return validator.validate(meal).fold(
-            onSuccess = { repository.addMeal(meal) },
-            onFailure = { Result.failure(it) }
-        )
+        // Validate the meal first
+        val validationResult = validator.validate(meal)
+        
+        // Check if validation passed
+        return if (validationResult.isValid()) {
+            repository.addMeal(meal)
+        } else {
+            // Convert validation errors to failure result
+            val errors = validationResult.getErrors()
+            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
+            Result.failure(Exception(message))
+        }
     }
 }

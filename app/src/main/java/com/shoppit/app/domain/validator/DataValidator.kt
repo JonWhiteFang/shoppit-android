@@ -103,6 +103,26 @@ fun ValidationResult.toResult(): Result<Unit> {
 }
 
 /**
+ * Extension function to fold ValidationResult into a Result<R>.
+ * 
+ * @param onSuccess Function to call when validation is successful
+ * @param onFailure Function to call when validation fails
+ * @return Result<R> based on validation outcome
+ */
+inline fun <R> ValidationResult.fold(
+    onSuccess: () -> R,
+    onFailure: (ValidationException) -> R
+): R {
+    return when (this) {
+        is ValidationResult.Valid -> onSuccess()
+        is ValidationResult.Invalid -> {
+            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
+            onFailure(ValidationException(message))
+        }
+    }
+}
+
+/**
  * Exception thrown when validation fails.
  */
 class ValidationException(message: String) : Exception(message)

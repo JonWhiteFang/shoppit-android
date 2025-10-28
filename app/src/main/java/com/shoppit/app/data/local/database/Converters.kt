@@ -50,4 +50,28 @@ class Converters {
     fun localDateToLong(date: LocalDate?): Long? {
         return date?.toEpochDay()
     }
+
+    /**
+     * Converts a comma-separated string to a list of Long values.
+     * @param value The comma-separated string
+     * @return List of Long values or empty list if value is blank
+     */
+    @TypeConverter
+    fun fromMealIdList(value: List<Long>): String {
+        return value.joinToString(",")
+    }
+
+    /**
+     * Converts a list of Long values to a comma-separated string.
+     * @param value The list of Long values
+     * @return Comma-separated string
+     */
+    @TypeConverter
+    fun toMealIdList(value: String): List<Long> {
+        return if (value.isBlank()) {
+            emptyList()
+        } else {
+            value.split(",").mapNotNull { it.toLongOrNull() }
+        }
+    }
 }

@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons)
     implementation(libs.compose.activity)
     implementation(libs.compose.navigation)
     
@@ -112,6 +113,7 @@ dependencies {
     
     // Security
     implementation(libs.security.crypto)
+    implementation(libs.work.runtime)
     
     // Testing
     testImplementation(libs.junit)

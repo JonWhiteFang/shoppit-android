@@ -1,5 +1,6 @@
 package com.shoppit.app.data.transaction
 
+import androidx.room.withTransaction
 import kotlinx.coroutines.delay
 import timber.log.Timber
 import kotlin.math.pow
@@ -66,13 +67,7 @@ class TransactionManagerImpl(
             val startTime = System.currentTimeMillis()
             Timber.d("Starting transaction")
             
-            val result = database.withTransaction {
-                val elapsed = System.currentTimeMillis() - startTime
-                if (elapsed > TRANSACTION_TIMEOUT_MS) {
-                    throw TransactionTimeoutException(
-                        "Transaction exceeded timeout of ${TRANSACTION_TIMEOUT_MS}ms"
-                    )
-                }
+            val result = withTransaction(database) {
                 block()
             }
             
@@ -131,12 +126,3 @@ class TransactionManagerImpl(
  * Exception thrown when a transaction exceeds the timeout limit.
  */
 class TransactionTimeoutException(message: String) : Exception(message)
-
-/**
- * Extension function to execute a block within a transaction using Room's withTransaction.
- */
-suspend fun <T> androidx.room.RoomDatabase.withTransaction(block: suspend () -> T): T {
-    return androidx.room.withTransaction(this) {
-        block()
-    }
-}

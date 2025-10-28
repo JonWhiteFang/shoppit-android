@@ -7,7 +7,7 @@
 
 ## Phase 2: Core Features
 - [x] **meal-planning** - Weekly meal planning functionality
-- [ ] **shopping-list-generation** - Automatic shopping list creation
+- [-] **shopping-list-generation** - Automatic shopping list creation
 - [ ] **shopping-list-management** - Interactive shopping list
 
 ## Phase 3: User Experience  
@@ -26,9 +26,9 @@
 
 ## Completion Status
 - **Total Specs**: 12
-- **Completed**: 2
+- **Completed**: 4
 - **In Progress**: 0
-- **Remaining**: 10
+- **Remaining**: 8
 
 ## Notes
 - Each spec should be completed in order within its phase
