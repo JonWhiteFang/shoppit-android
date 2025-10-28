@@ -17,6 +17,8 @@ ksp = "2.0.21-1.0.28"
 android-gradle = "8.7.3"
 security-crypto = "1.1.0-alpha06"
 work = "2.9.0"
+camerax = "1.3.0"
+barcode-scanning = "17.2.0"
 
 [libraries]
 # Compose
@@ -77,6 +79,15 @@ compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-mani
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
 room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+
+# CameraX
+camerax-core = { group = "androidx.camera", name = "camera-core", version.ref = "camerax" }
+camerax-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "camerax" }
+camerax-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
+camerax-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
+
+# ML Kit Barcode Scanning
+mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "barcode-scanning" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "android-gradle" }

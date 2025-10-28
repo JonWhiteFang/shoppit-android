@@ -12,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
@@ -44,6 +46,9 @@ import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.ErrorScreen
 import com.shoppit.app.presentation.ui.common.LoadingScreen
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 
 /**
  * Stateful composable for the shopping list screen.
@@ -71,6 +76,26 @@ fun ShoppingListScreen(
         }
     }
     
+    // Show undo snackbar when item is checked
+    LaunchedEffect(uiState.showUndoSnackbar) {
+        if (uiState.showUndoSnackbar) {
+            val result = snackbarHostState.showSnackbar(
+                message = "Item checked",
+                actionLabel = "Undo",
+                duration = androidx.compose.material3.SnackbarDuration.Short
+            )
+            
+            when (result) {
+                androidx.compose.material3.SnackbarResult.ActionPerformed -> {
+                    viewModel.undoLastCheck()
+                }
+                androidx.compose.material3.SnackbarResult.Dismissed -> {
+                    viewModel.dismissUndoSnackbar()
+                }
+            }
+        }
+    }
+    
     // Handle share intent
     LaunchedEffect(uiState.shareText) {
         uiState.shareText?.let { text ->
@@ -85,11 +110,39 @@ fun ShoppingListScreen(
         }
     }
     
+    // Handle export data sharing
+    LaunchedEffect(uiState.exportData) {
+        uiState.exportData?.let { data ->
+            val sendIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, data)
+                type = "text/plain"
+            }
+            val shareIntent = Intent.createChooser(sendIntent, "Export Shopping List")
+            context.startActivity(shareIntent)
+            viewModel.clearExportData()
+        }
+    }
+    
+    // Handle clipboard copy
+    LaunchedEffect(uiState.clipboardData) {
+        uiState.clipboardData?.let { data ->
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val clip = ClipData.newPlainText("Shopping List", data)
+            clipboard.setPrimaryClip(clip)
+            
+            snackbarHostState.showSnackbar("Copied to clipboard")
+            viewModel.clearClipboardData()
+        }
+    }
+    
     ShoppingListContent(
         uiState = uiState,
         onItemCheckedChange = viewModel::toggleItemChecked,
         onItemClick = viewModel::showItemDetail,
         onAddItemClick = viewModel::showAddItemDialog,
+        onScanBarcodeClick = viewModel::showBarcodeScanner,
+        onExportClick = viewModel::showExportDialog,
         onGenerateList = viewModel::generateShoppingList,
         onClearChecked = viewModel::showClearCheckedConfirmation,
         onUncheckAll = viewModel::showUncheckAllConfirmation,
@@ -156,6 +209,22 @@ fun ShoppingListScreen(
         }
         null -> { /* No confirmation needed */ }
     }
+    
+    // Show barcode scanner
+    if (uiState.showBarcodeScanner) {
+        BarcodeScanner(
+            onBarcodeDetected = viewModel::processBarcode,
+            onDismiss = viewModel::dismissBarcodeScanner
+        )
+    }
+    
+    // Show export dialog
+    if (uiState.showExportDialog) {
+        ExportDialog(
+            onExport = viewModel::exportShoppingList,
+            onDismiss = viewModel::dismissExportDialog
+        )
+    }
 }
 
 /**
@@ -166,6 +235,8 @@ fun ShoppingListScreen(
  * @param onItemCheckedChange Callback when an item's checked status changes
  * @param onItemClick Callback when an item is clicked
  * @param onAddItemClick Callback when the add item button is clicked
+ * @param onScanBarcodeClick Callback when the scan barcode button is clicked
+ * @param onExportClick Callback when the export button is clicked
  * @param onGenerateList Callback when the generate list button is clicked
  * @param onClearChecked Callback when clear checked items is requested
  * @param onUncheckAll Callback when uncheck all is requested
@@ -182,6 +253,8 @@ fun ShoppingListContent(
     onItemCheckedChange: (Long, Boolean) -> Unit,
     onItemClick: (com.shoppit.app.domain.model.ShoppingListItem) -> Unit,
     onAddItemClick: () -> Unit,
+    onScanBarcodeClick: () -> Unit,
+    onExportClick: () -> Unit,
     onGenerateList: () -> Unit,
     onClearChecked: () -> Unit,
     onUncheckAll: () -> Unit,
@@ -199,6 +272,18 @@ fun ShoppingListContent(
             TopAppBar(
                 title = { Text("Shopping List") },
                 actions = {
+                    IconButton(onClick = onScanBarcodeClick) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Scan barcode"
+                        )
+                    }
+                    IconButton(onClick = onExportClick) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = "Export shopping list"
+                        )
+                    }
                     IconButton(onClick = onGenerateList, enabled = !uiState.isGenerating) {
                         if (uiState.isGenerating) {
                             CircularProgressIndicator(

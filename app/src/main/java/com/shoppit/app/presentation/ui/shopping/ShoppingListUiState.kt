@@ -62,5 +62,18 @@ data class ShoppingListUiState(
     val isProcessingVoice: Boolean = false,
     
     // Suggestions state (Task 5.10)
-    val suggestedItems: List<String> = emptyList()
+    val suggestedItems: List<String> = emptyList(),
+    
+    // Barcode scanning state (Task 7.1)
+    val showBarcodeScanner: Boolean = false,
+    val isProcessingBarcode: Boolean = false,
+    
+    // Undo functionality state (Task 7.2)
+    val lastCheckedItem: ShoppingListItem? = null,
+    val showUndoSnackbar: Boolean = false,
+    
+    // Export functionality state (Task 7.3)
+    val showExportDialog: Boolean = false,
+    val exportData: String? = null,
+    val clipboardData: String? = null
 )

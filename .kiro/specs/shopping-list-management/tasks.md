@@ -249,8 +249,8 @@
     - Implement dismiss action
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
 
-- [ ] 7. Implement advanced features
-  - [ ] 7.1 Add barcode scanning
+- [x] 7. Implement advanced features
+  - [x] 7.1 Add barcode scanning
     - Integrate CameraX for barcode scanning
     - Implement barcode detection
     - Add product lookup (mock for now)
@@ -258,14 +258,14 @@
     - Handle camera permissions
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
   
-  - [ ] 7.2 Add undo functionality
+  - [x] 7.2 Add undo functionality
     - Implement undo state tracking
     - Create undo snackbar
     - Add 5-second timeout
     - Handle navigation cancellation
     - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
   
-  - [ ] 7.3 Add export functionality
+  - [x] 7.3 Add export functionality
     - Implement text export format
     - Implement CSV export format
     - Implement JSON export format

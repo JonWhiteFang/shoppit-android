@@ -115,6 +115,15 @@ dependencies {
     implementation(libs.security.crypto)
     implementation(libs.work.runtime)
     
+    // CameraX
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    
+    // ML Kit Barcode Scanning
+    implementation(libs.mlkit.barcode.scanning)
+    
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

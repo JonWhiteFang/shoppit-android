@@ -52,6 +52,8 @@ class ShoppingListViewModel @Inject constructor(
     private val getBudgetSummaryUseCase: com.shoppit.app.domain.usecase.GetBudgetSummaryUseCase,
     private val processVoiceInputUseCase: com.shoppit.app.domain.usecase.ProcessVoiceInputUseCase,
     private val getSuggestedItemsUseCase: com.shoppit.app.domain.usecase.GetSuggestedItemsUseCase,
+    private val scanBarcodeUseCase: com.shoppit.app.domain.usecase.ScanBarcodeUseCase,
+    private val exportShoppingListUseCase: com.shoppit.app.domain.usecase.ExportShoppingListUseCase,
     private val templateRepository: com.shoppit.app.domain.repository.TemplateRepository,
     private val storeSectionRepository: com.shoppit.app.domain.repository.StoreSectionRepository
 ) : ViewModel() {
@@ -134,9 +136,26 @@ class ShoppingListViewModel @Inject constructor(
     
     /**
      * Toggles the checked status of a shopping list item.
+     * Tracks the item for undo functionality when checking.
      */
     fun toggleItemChecked(itemId: Long, isChecked: Boolean) {
         viewModelScope.launch {
+            // If checking an item, store it for undo
+            if (isChecked) {
+                val item = uiState.value.shoppingListData?.itemsByCategory
+                    ?.flatMap { it.value }
+                    ?.find { it.id == itemId }
+                
+                if (item != null) {
+                    _uiState.update { 
+                        it.copy(
+                            lastCheckedItem = item,
+                            showUndoSnackbar = true
+                        )
+                    }
+                }
+            }
+            
             toggleItemCheckedUseCase(itemId, isChecked).fold(
                 onSuccess = { /* List updates automatically via Flow */ },
                 onFailure = { error ->
@@ -914,5 +933,166 @@ class ShoppingListViewModel @Inject constructor(
                 suggestedItems = currentState.suggestedItems.filter { it != itemName }
             )
         }
+    }
+    
+    // ========== Barcode Scanning (Task 7.1) ==========
+    
+    /**
+     * Shows the barcode scanner.
+     */
+    fun showBarcodeScanner() {
+        _uiState.update { it.copy(showBarcodeScanner = true) }
+    }
+    
+    /**
+     * Dismisses the barcode scanner.
+     */
+    fun dismissBarcodeScanner() {
+        _uiState.update { it.copy(showBarcodeScanner = false, isProcessingBarcode = false) }
+    }
+    
+    /**
+     * Processes a scanned barcode and adds the item to the shopping list.
+     */
+    fun processBarcode(barcode: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isProcessingBarcode = true) }
+            
+            scanBarcodeUseCase(com.shoppit.app.domain.usecase.ScanBarcodeUseCase.Params(barcode)).fold(
+                onSuccess = { 
+                    _uiState.update { 
+                        it.copy(
+                            showBarcodeScanner = false,
+                            isProcessingBarcode = false
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(
+                            error = error.message ?: "Failed to process barcode",
+                            isProcessingBarcode = false
+                        )
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Undo Functionality (Task 7.2) ==========
+    
+    /**
+     * Undoes the last check action.
+     */
+    fun undoLastCheck() {
+        viewModelScope.launch {
+            val lastItem = uiState.value.lastCheckedItem
+            if (lastItem != null) {
+                toggleItemCheckedUseCase(lastItem.id, false).fold(
+                    onSuccess = { 
+                        _uiState.update { 
+                            it.copy(
+                                lastCheckedItem = null,
+                                showUndoSnackbar = false
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        _uiState.update { 
+                            it.copy(
+                                error = error.message ?: "Failed to undo",
+                                lastCheckedItem = null,
+                                showUndoSnackbar = false
+                            )
+                        }
+                    }
+                )
+            }
+        }
+    }
+    
+    /**
+     * Dismisses the undo snackbar.
+     */
+    fun dismissUndoSnackbar() {
+        _uiState.update { 
+            it.copy(
+                lastCheckedItem = null,
+                showUndoSnackbar = false
+            )
+        }
+    }
+    
+    // ========== Export Functionality (Task 7.3) ==========
+    
+    /**
+     * Shows the export dialog.
+     */
+    fun showExportDialog() {
+        _uiState.update { it.copy(showExportDialog = true) }
+    }
+    
+    /**
+     * Dismisses the export dialog.
+     */
+    fun dismissExportDialog() {
+        _uiState.update { it.copy(showExportDialog = false) }
+    }
+    
+    /**
+     * Exports the shopping list in the specified format.
+     */
+    fun exportShoppingList(
+        format: com.shoppit.app.domain.usecase.ExportShoppingListUseCase.ExportFormat,
+        action: com.shoppit.app.presentation.ui.shopping.ExportAction
+    ) {
+        viewModelScope.launch {
+            exportShoppingListUseCase(
+                com.shoppit.app.domain.usecase.ExportShoppingListUseCase.Params(format)
+            ).fold(
+                onSuccess = { exportedData ->
+                    when (action) {
+                        com.shoppit.app.presentation.ui.shopping.ExportAction.SHARE -> {
+                            _uiState.update { 
+                                it.copy(
+                                    exportData = exportedData,
+                                    showExportDialog = false
+                                )
+                            }
+                        }
+                        com.shoppit.app.presentation.ui.shopping.ExportAction.COPY_TO_CLIPBOARD -> {
+                            _uiState.update { 
+                                it.copy(
+                                    clipboardData = exportedData,
+                                    showExportDialog = false
+                                )
+                            }
+                        }
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(
+                            error = error.message ?: "Failed to export shopping list",
+                            showExportDialog = false
+                        )
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Clears the export data after sharing is complete.
+     */
+    fun clearExportData() {
+        _uiState.update { it.copy(exportData = null) }
+    }
+    
+    /**
+     * Clears the clipboard data after copying is complete.
+     */
+    fun clearClipboardData() {
+        _uiState.update { it.copy(clipboardData = null) }
     }
 }
