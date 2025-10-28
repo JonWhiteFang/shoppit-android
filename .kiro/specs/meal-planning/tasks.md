@@ -57,8 +57,15 @@
     - Implement deleteMealPlansForDate() with error handling
     - _Requirements: 2.3, 3.3, 4.4, 5.3, 7.2, 8.2, 10.2_
 
-- [ ] 3. Implement domain use cases
-  - [ ] 3.1 Create GetMealPlansForWeekUseCase
+- [x] 3. Implement domain use cases
+
+
+
+
+
+  - [x] 3.1 Create GetMealPlansForWeekUseCase
+
+
     - Inject MealPlanRepository and MealRepository
     - Implement operator invoke that combines meal plans with meal details
     - Calculate week start and end dates (Monday to Sunday)
@@ -66,29 +73,39 @@
     - Handle cases where meals are deleted but plans exist
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 5.2_
   
-  - [ ] 3.2 Create GetMealPlansForDateUseCase
+  - [x] 3.2 Create GetMealPlansForDateUseCase
+
+
     - Inject MealPlanRepository and MealRepository
     - Implement operator invoke combining plans with meal details for single date
     - _Requirements: 6.2, 10.1_
   
-  - [ ] 3.3 Create AssignMealToPlanUseCase
+  - [x] 3.3 Create AssignMealToPlanUseCase
+
+
     - Inject MealPlanRepository
     - Implement operator invoke creating MealPlan from mealId, date, and mealType
     - Call repository addMealPlan
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
   
-  - [ ] 3.4 Create UpdateMealPlanUseCase
+  - [x] 3.4 Create UpdateMealPlanUseCase
+
+
     - Inject MealPlanRepository
     - Implement operator invoke to replace meal in existing plan
     - Fetch existing plan, update mealId, call repository updateMealPlan
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
   
-  - [ ] 3.5 Create DeleteMealPlanUseCase
+  - [x] 3.5 Create DeleteMealPlanUseCase
+
+
     - Inject MealPlanRepository
     - Implement operator invoke calling repository deleteMealPlan
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
   
-  - [ ] 3.6 Create CopyDayPlansUseCase
+  - [x] 3.6 Create CopyDayPlansUseCase
+
+
     - Inject MealPlanRepository
     - Implement operator invoke to copy all plans from source date to target date
     - Support replaceExisting flag to clear target date first
@@ -96,7 +113,9 @@
     - Use batch insert for efficiency
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
   
-  - [ ] 3.7 Create ClearDayPlansUseCase
+  - [x] 3.7 Create ClearDayPlansUseCase
+
+
     - Inject MealPlanRepository
     - Implement operator invoke calling repository deleteMealPlansForDate
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
