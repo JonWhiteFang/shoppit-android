@@ -1,6 +1,8 @@
 package com.shoppit.app.di
 
+import com.shoppit.app.data.repository.MealPlanRepositoryImpl
 import com.shoppit.app.data.repository.MealRepositoryImpl
+import com.shoppit.app.domain.repository.MealPlanRepository
 import com.shoppit.app.domain.repository.MealRepository
 import dagger.Binds
 import dagger.Module
@@ -17,4 +19,10 @@ abstract class RepositoryModule {
     abstract fun bindMealRepository(
         impl: MealRepositoryImpl
     ): MealRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindMealPlanRepository(
+        impl: MealPlanRepositoryImpl
+    ): MealPlanRepository
 }

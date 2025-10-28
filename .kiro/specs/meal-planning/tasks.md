@@ -209,34 +209,47 @@
     - Make clickable to select meal
     - _Requirements: 2.2, 9.2_
 
-- [ ] 8. Implement day action dialogs
-  - [ ] 8.1 Create CopyDayDialog composable
+- [x] 8. Implement day action dialogs
+
+
+
+  - [x] 8.1 Create CopyDayDialog composable
+
     - Show date picker for target date selection
     - Display checkbox for "Replace existing meals"
     - Call onCopyDay with selected date and replace flag
     - _Requirements: 7.1, 7.2, 7.3, 7.5_
   
-  - [ ] 8.2 Create ClearDayDialog composable
+
+  - [x] 8.2 Create ClearDayDialog composable
+
     - Show confirmation dialog with meal count
     - Display source date and meal names to be cleared
     - Call onClearDay when confirmed
     - _Requirements: 10.1, 10.2, 10.3, 10.5_
 
-- [ ] 9. Set up navigation integration
+
+- [x] 9. Set up navigation integration
+
   - Add MealPlanner route to Screen sealed class
   - Add composable destination to NavHost
   - Wire up navigation to meal detail screen from planner
   - Maintain week position when navigating back from detail
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 10. Configure dependency injection
+
+- [x] 10. Configure dependency injection
+
   - Create MealPlanRepositoryModule binding MealPlanRepository to MealPlanRepositoryImpl
   - Update DatabaseModule to provide MealPlanDao from AppDatabase
   - Update DatabaseModule to include migration from version 2 to 3
   - Verify Hilt generates all necessary components
   - _Requirements: 2.3, 8.3_
 
-- [ ] 11. Update bottom navigation
+
+- [x] 11. Update bottom navigation
+
+
   - Add Planner tab to bottom navigation bar
   - Add navigation icon for meal planner
   - Wire up navigation to MealPlannerScreen

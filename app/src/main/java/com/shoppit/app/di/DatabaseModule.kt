@@ -9,6 +9,7 @@ import com.shoppit.app.data.backup.BackupManagerImpl
 import com.shoppit.app.data.backup.CheckpointManager
 import com.shoppit.app.data.backup.DatabaseIntegrityChecker
 import com.shoppit.app.data.local.dao.MealDao
+import com.shoppit.app.data.local.dao.MealPlanDao
 import com.shoppit.app.data.local.database.AppDatabase
 import com.shoppit.app.data.local.database.migration.MigrationHandler
 import com.shoppit.app.data.local.database.migration.MigrationHandlerImpl
@@ -79,6 +80,9 @@ object DatabaseModule {
     
     @Provides
     fun provideMealDao(database: AppDatabase) = database.mealDao()
+    
+    @Provides
+    fun provideMealPlanDao(database: AppDatabase) = database.mealPlanDao()
     
     @Provides
     @Singleton

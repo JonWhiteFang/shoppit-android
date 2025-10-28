@@ -10,6 +10,7 @@ import androidx.navigation.navArgument
 import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
+import com.shoppit.app.presentation.ui.planner.MealPlannerScreen
 
 /**
  * Main navigation host for the Shoppit app.
@@ -99,8 +100,16 @@ fun ShoppitNavHost(
             )
         }
         
+        // Meal planner screen
+        composable(Screen.MealPlanner.route) {
+            MealPlannerScreen(
+                onMealDetailClick = { mealId ->
+                    navController.navigate(Screen.MealDetail.createRoute(mealId))
+                }
+            )
+        }
+        
         // Future navigation destinations will be added here:
-        // - Meal planner screen
         // - Shopping list screen
     }
 }

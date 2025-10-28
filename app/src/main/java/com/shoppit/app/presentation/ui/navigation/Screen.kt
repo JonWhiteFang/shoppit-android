@@ -42,8 +42,12 @@ sealed class Screen(val route: String) {
     }
     
     /**
+     * Meal planner screen - weekly meal planning calendar
+     */
+    data object MealPlanner : Screen("meal_planner")
+    
+    /**
      * Future screens will be added here as features are implemented:
-     * - Meal planner screen
      * - Shopping list screen
      */
 }
