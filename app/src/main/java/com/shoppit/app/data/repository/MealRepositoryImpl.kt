@@ -64,8 +64,9 @@ class MealRepositoryImpl @Inject constructor(
                 // Update cache with fresh data
                 mealListCache.put(MEAL_LIST_CACHE_KEY, meals)
                 PersistenceLogger.logOperationSuccess("getMeals", 0)
-                Result.success(meals)
+                meals
             }
+            .map { meals -> Result.success(meals) }
             .catch { e -> 
                 PersistenceLogger.logQueryFailure("getAllMeals", e)
                 emit(Result.failure(PersistenceError.QueryFailed("getAllMeals", e)))
@@ -94,12 +95,12 @@ class MealRepositoryImpl @Inject constructor(
                     // Update cache with fresh data
                     mealDetailCache.put(id, meal)
                     PersistenceLogger.logOperationSuccess("getMealById", 0)
-                    Result.success(meal)
+                    meal
                 } else {
-                    PersistenceLogger.logQueryFailure("getMealById", Exception("Meal not found: id=$id"))
-                    Result.failure(PersistenceError.QueryFailed("getMealById", Exception("Meal not found: id=$id")))
+                    throw Exception("Meal not found: id=$id")
                 }
             }
+            .map { meal -> Result.success(meal) }
             .catch { e ->
                 PersistenceLogger.logQueryFailure("getMealById", e)
                 emit(Result.failure(PersistenceError.QueryFailed("getMealById", e)))
@@ -276,8 +277,9 @@ class MealRepositoryImpl @Inject constructor(
             .map { entities ->
                 val meals = entities.map { it.toDomainModel() }
                 PersistenceLogger.logOperationSuccess("getMealsPaginated", 0)
-                Result.success(meals)
+                meals
             }
+            .map { meals -> Result.success(meals) }
             .catch { e ->
                 PersistenceLogger.logQueryFailure("getMealsPaginated", e)
                 emit(Result.failure(PersistenceError.QueryFailed("getMealsPaginated", e)))

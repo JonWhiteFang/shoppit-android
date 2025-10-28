@@ -4,6 +4,8 @@ enum class ItemCategory {
     PRODUCE,
     DAIRY,
     MEAT,
+    BAKERY,
+    FROZEN,
     PANTRY,
     OTHER;
     
@@ -11,6 +13,8 @@ enum class ItemCategory {
         PRODUCE -> "Produce"
         DAIRY -> "Dairy"
         MEAT -> "Meat & Seafood"
+        BAKERY -> "Bakery"
+        FROZEN -> "Frozen"
         PANTRY -> "Pantry"
         OTHER -> "Other"
     }

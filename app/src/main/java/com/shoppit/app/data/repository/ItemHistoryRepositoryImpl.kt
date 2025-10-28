@@ -99,7 +99,9 @@ class ItemHistoryRepositoryImpl @Inject constructor(
                     price,
                     existingHistory.purchaseCount
                 )
-                itemHistoryDao.updateAveragePrice(itemName, newAveragePrice)
+                if (newAveragePrice != null) {
+                    itemHistoryDao.updateAveragePrice(itemName, newAveragePrice)
+                }
             }
             
             Result.success(Unit)

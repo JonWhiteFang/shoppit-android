@@ -14,9 +14,9 @@ import javax.inject.Inject
  */
 class ScanBarcodeUseCase @Inject constructor(
     private val shoppingListRepository: ShoppingListRepository
-) : UseCase<ScanBarcodeUseCase.Params, Result<Long>> {
+) {
 
-    override suspend fun invoke(params: Params): Result<Long> {
+    suspend operator fun invoke(params: Params): Result<Long> {
         // Validate barcode
         if (params.barcode.isBlank()) {
             return Result.failure(

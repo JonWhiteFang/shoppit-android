@@ -36,22 +36,27 @@ class GetMealPlansForWeekUseCase @Inject constructor(
         
         return mealPlanRepository.getMealPlansForWeek(weekStart, weekEnd)
             .combine(mealRepository.getMeals()) { plansResult, mealsResult ->
-                plansResult.flatMap { plans ->
-                    mealsResult.map { meals ->
-                        // Create a map for efficient meal lookup
-                        val mealMap = meals.associateBy { it.id }
-                        
-                        // Combine plans with meals, filtering out plans for deleted meals
-                        val plansByDate = plans
-                            .mapNotNull { plan ->
-                                mealMap[plan.mealId]?.let { meal ->
-                                    MealPlanWithMeal(plan, meal)
-                                }
+                if (plansResult.isFailure) {
+                    Result.failure(plansResult.exceptionOrNull() ?: Exception("Unknown error"))
+                } else if (mealsResult.isFailure) {
+                    Result.failure(mealsResult.exceptionOrNull() ?: Exception("Unknown error"))
+                } else {
+                    val plans = plansResult.getOrNull() ?: emptyList()
+                    val meals = mealsResult.getOrNull() ?: emptyList()
+                    
+                    // Create a map for efficient meal lookup
+                    val mealMap = meals.associateBy { it.id }
+                    
+                    // Combine plans with meals, filtering out plans for deleted meals
+                    val plansByDate = plans
+                        .mapNotNull { plan ->
+                            mealMap[plan.mealId]?.let { meal ->
+                                MealPlanWithMeal(plan, meal)
                             }
-                            .groupBy { it.mealPlan.date }
-                        
-                        WeekPlanData(weekStart, weekEnd, plansByDate)
-                    }
+                        }
+                        .groupBy { it.mealPlan.date }
+                    
+                    Result.success(WeekPlanData(weekStart, weekEnd, plansByDate))
                 }
             }
     }

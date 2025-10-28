@@ -12,20 +12,28 @@ import javax.inject.Inject
  */
 class ExportShoppingListUseCase @Inject constructor(
     private val shoppingListRepository: ShoppingListRepository
-) : UseCase<ExportShoppingListUseCase.Params, Result<String>> {
+) {
 
-    override suspend fun invoke(params: Params): Result<String> {
-        return shoppingListRepository.getShoppingList().first().flatMap { result ->
-            result.map { data ->
-                val items = data.itemsByCategory.flatMap { it.value }
-                    .filter { !it.isChecked } // Only export unchecked items
-                
-                when (params.format) {
-                    ExportFormat.TEXT -> exportAsText(items)
-                    ExportFormat.CSV -> exportAsCsv(items)
-                    ExportFormat.JSON -> exportAsJson(items)
-                }
+    suspend operator fun invoke(params: Params): Result<String> {
+        val result = shoppingListRepository.getShoppingList().first()
+        
+        if (result.isFailure) {
+            return Result.failure(result.exceptionOrNull() ?: Exception("Failed to get shopping list"))
+        }
+        
+        val data = result.getOrNull() ?: return Result.failure(Exception("Shopping list data is null"))
+        val items = data.itemsByCategory.flatMap { it.value }
+            .filter { !it.isChecked } // Only export unchecked items
+        
+        return try {
+            val exportResult = when (params.format) {
+                ExportFormat.TEXT -> exportAsText(items)
+                ExportFormat.CSV -> exportAsCsv(items)
+                ExportFormat.JSON -> exportAsJson(items)
             }
+            Result.success(exportResult)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

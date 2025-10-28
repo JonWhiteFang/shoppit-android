@@ -11,6 +11,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -147,8 +151,8 @@ fun UpdatePriceDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var priceText by androidx.compose.runtime.remember(item.estimatedPrice) {
-        androidx.compose.runtime.mutableStateOf(
+    var priceText by remember(item.estimatedPrice) {
+        mutableStateOf(
             item.estimatedPrice?.let { String.format("%.2f", it) } ?: ""
         )
     }

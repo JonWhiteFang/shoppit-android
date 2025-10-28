@@ -67,7 +67,7 @@ class TransactionManagerImpl(
             val startTime = System.currentTimeMillis()
             Timber.d("Starting transaction")
             
-            val result = withTransaction(database) {
+            val result = database.withTransaction {
                 block()
             }
             

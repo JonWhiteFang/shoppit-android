@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.shoppit.app.domain.model.MealType
 import com.shoppit.app.presentation.ui.common.ErrorScreen
 import com.shoppit.app.presentation.ui.common.LoadingScreen
@@ -26,7 +26,7 @@ fun MealPlannerScreen(
     onMealDetailClick: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     MealPlannerContent(
         uiState = uiState,
