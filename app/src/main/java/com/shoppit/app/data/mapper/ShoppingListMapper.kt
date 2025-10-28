@@ -14,7 +14,13 @@ fun ShoppingListItemEntity.toDomainModel(): ShoppingListItem {
         isChecked = isChecked,
         isManual = isManual,
         mealIds = if (mealIds.isBlank()) emptyList() else mealIds.split(",").mapNotNull { it.toLongOrNull() },
-        createdAt = createdAt
+        createdAt = createdAt,
+        notes = notes,
+        isPriority = isPriority,
+        customOrder = customOrder,
+        estimatedPrice = estimatedPrice,
+        storeSection = storeSection,
+        lastModifiedAt = lastModifiedAt
     )
 }
 
@@ -28,6 +34,12 @@ fun ShoppingListItem.toEntity(): ShoppingListItemEntity {
         isChecked = isChecked,
         isManual = isManual,
         mealIds = mealIds.joinToString(","),
-        createdAt = createdAt
+        createdAt = createdAt,
+        notes = notes,
+        isPriority = isPriority,
+        customOrder = customOrder,
+        estimatedPrice = estimatedPrice,
+        storeSection = storeSection,
+        lastModifiedAt = lastModifiedAt
     )
 }

@@ -49,4 +49,34 @@ interface ShoppingListDao {
     
     @Query("SELECT COUNT(*) FROM shopping_list_items WHERE is_checked = 1")
     suspend fun getCheckedItemCount(): Int
+    
+    @Query("SELECT * FROM shopping_list_items WHERE store_section = :section ORDER BY is_priority DESC, custom_order ASC, name ASC")
+    fun getItemsBySection(section: String): Flow<List<ShoppingListItemEntity>>
+    
+    @Query("SELECT * FROM shopping_list_items WHERE is_priority = 1 ORDER BY store_section ASC, name ASC")
+    fun getPriorityItems(): Flow<List<ShoppingListItemEntity>>
+    
+    @Query("UPDATE shopping_list_items SET notes = :notes WHERE id = :itemId")
+    suspend fun updateItemNotes(itemId: Long, notes: String)
+    
+    @Query("UPDATE shopping_list_items SET is_priority = :isPriority WHERE id = :itemId")
+    suspend fun updateItemPriority(itemId: Long, isPriority: Boolean)
+    
+    @Query("UPDATE shopping_list_items SET custom_order = :order WHERE id = :itemId")
+    suspend fun updateItemOrder(itemId: Long, order: Int)
+    
+    @Query("UPDATE shopping_list_items SET estimated_price = :price WHERE id = :itemId")
+    suspend fun updateItemPrice(itemId: Long, price: Double?)
+    
+    @Query("UPDATE shopping_list_items SET store_section = :section WHERE id = :itemId")
+    suspend fun updateItemSection(itemId: Long, section: String)
+    
+    @Query("SELECT SUM(estimated_price) FROM shopping_list_items WHERE estimated_price IS NOT NULL")
+    suspend fun getTotalEstimatedPrice(): Double?
+    
+    @Query("SELECT SUM(estimated_price) FROM shopping_list_items WHERE is_checked = 1 AND estimated_price IS NOT NULL")
+    suspend fun getCheckedItemsPrice(): Double?
+    
+    @Query("SELECT COUNT(*) FROM shopping_list_items WHERE estimated_price IS NOT NULL")
+    suspend fun getItemsWithPriceCount(): Int
 }

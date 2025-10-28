@@ -85,6 +85,18 @@ object DatabaseModule {
     fun provideMealPlanDao(database: AppDatabase) = database.mealPlanDao()
     
     @Provides
+    fun provideShoppingListDao(database: AppDatabase) = database.shoppingListDao()
+    
+    @Provides
+    fun provideItemHistoryDao(database: AppDatabase) = database.itemHistoryDao()
+    
+    @Provides
+    fun provideTemplateDao(database: AppDatabase) = database.templateDao()
+    
+    @Provides
+    fun provideStoreSectionDao(database: AppDatabase) = database.storeSectionDao()
+    
+    @Provides
     @Singleton
     fun provideTransactionManager(database: AppDatabase): TransactionManager {
         return TransactionManagerImpl(database)

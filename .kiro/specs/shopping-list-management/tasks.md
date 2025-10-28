@@ -9,7 +9,7 @@
   - _Requirements: 1.1, 2.1, 3.1, 5.1, 7.1, 8.1, 10.1, 11.1, 12.1_
 
 - [ ] 2. Implement database schema extensions
-  - [ ] 2.1 Create database migration from version 3 to 4
+  - [x] 2.1 Create database migration from version 3 to 4
     - Add new columns to shopping_list_items table
     - Create item_history table with indices
     - Create shopping_templates and template_items tables
@@ -17,14 +17,14 @@
     - Add indices for new columns (is_priority, store_section)
     - _Requirements: 1.5, 3.4, 5.5, 10.5, 11.4_
   
-  - [ ] 2.2 Create new DAOs
+  - [x] 2.2 Create new DAOs
     - Implement ItemHistoryDao with CRUD operations
     - Implement TemplateDao with template and item operations
     - Implement StoreSectionDao for section management
     - Extend ShoppingListDao with new query methods
     - _Requirements: 1.1, 10.1, 11.1, 5.1_
   
-  - [ ] 2.3 Update database class
+  - [x] 2.3 Update database class
     - Register new entities in AppDatabase
     - Add new DAOs to database
     - Update database version to 4
