@@ -255,13 +255,19 @@
   - Wire up navigation to MealPlannerScreen
   - _Requirements: 1.1, 5.1_
 
-- [ ] 12. Write unit tests for domain layer
-  - [ ] 12.1 Test MealType enum
+- [x] 12. Write unit tests for domain layer
+
+
+  - [x] 12.1 Test MealType enum
+
+
     - Test displayName() returns correct strings
     - Test all enum values are defined
     - _Requirements: 1.2_
   
-  - [ ] 12.2 Test use cases with fake repositories
+  - [x] 12.2 Test use cases with fake repositories
+
+
     - Test GetMealPlansForWeekUseCase combines plans with meals correctly
     - Test GetMealPlansForWeekUseCase handles deleted meals gracefully
     - Test AssignMealToPlanUseCase creates correct MealPlan
@@ -271,8 +277,13 @@
     - Test ClearDayPlansUseCase calls repository correctly
     - _Requirements: 2.1, 4.3, 7.3, 10.3_
 
-- [ ] 13. Write unit tests for ViewModels
-  - [ ] 13.1 Test MealPlannerViewModel
+- [x] 13. Write unit tests for ViewModels
+
+
+
+  - [x] 13.1 Test MealPlannerViewModel
+
+
     - Test initial state loads current week
     - Test loads week data successfully and updates state
     - Test handles error and updates error state
