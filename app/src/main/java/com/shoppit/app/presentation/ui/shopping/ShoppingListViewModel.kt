@@ -245,15 +245,17 @@ class ShoppingListViewModel @Inject constructor(
      */
     fun clearCheckedItems() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isClearingChecked = true, confirmationAction = null) }
+            
             clearCheckedItemsUseCase().fold(
                 onSuccess = { 
-                    _uiState.update { it.copy(confirmationAction = null) }
+                    _uiState.update { it.copy(isClearingChecked = false) }
                 },
                 onFailure = { error ->
                     _uiState.update { 
                         it.copy(
                             error = error.message ?: "Failed to clear checked items",
-                            confirmationAction = null
+                            isClearingChecked = false
                         )
                     }
                 }
@@ -273,15 +275,17 @@ class ShoppingListViewModel @Inject constructor(
      */
     fun uncheckAllItems() {
         viewModelScope.launch {
+            _uiState.update { it.copy(isUncheckingAll = true, confirmationAction = null) }
+            
             uncheckAllItemsUseCase().fold(
                 onSuccess = { 
-                    _uiState.update { it.copy(confirmationAction = null) }
+                    _uiState.update { it.copy(isUncheckingAll = false) }
                 },
                 onFailure = { error ->
                     _uiState.update { 
                         it.copy(
                             error = error.message ?: "Failed to uncheck items",
-                            confirmationAction = null
+                            isUncheckingAll = false
                         )
                     }
                 }
@@ -294,6 +298,21 @@ class ShoppingListViewModel @Inject constructor(
      */
     fun toggleFilter() {
         _uiState.update { it.copy(filterUncheckedOnly = !it.filterUncheckedOnly) }
+    }
+    
+    /**
+     * Toggles the collapsed state of a category.
+     */
+    fun toggleCategoryCollapsed(category: com.shoppit.app.domain.model.ItemCategory) {
+        _uiState.update { currentState ->
+            val collapsedCategories = currentState.collapsedCategories.toMutableSet()
+            if (category in collapsedCategories) {
+                collapsedCategories.remove(category)
+            } else {
+                collapsedCategories.add(category)
+            }
+            currentState.copy(collapsedCategories = collapsedCategories)
+        }
     }
     
     /**

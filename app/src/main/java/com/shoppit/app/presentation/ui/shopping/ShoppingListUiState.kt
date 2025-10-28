@@ -1,6 +1,7 @@
 package com.shoppit.app.presentation.ui.shopping
 
 import com.shoppit.app.domain.model.IngredientSource
+import com.shoppit.app.domain.model.ItemCategory
 import com.shoppit.app.domain.model.ShoppingListData
 import com.shoppit.app.domain.model.ShoppingListItem
 
@@ -21,6 +22,8 @@ data class ShoppingListUiState(
     val shoppingListData: ShoppingListData? = null,
     val isLoading: Boolean = false,
     val isGenerating: Boolean = false,
+    val isClearingChecked: Boolean = false,
+    val isUncheckingAll: Boolean = false,
     val error: String? = null,
     val showAddItemDialog: Boolean = false,
     val showItemDetail: ShoppingListItem? = null,
@@ -28,5 +31,6 @@ data class ShoppingListUiState(
     val filterUncheckedOnly: Boolean = false,
     val searchQuery: String = "",
     val shareText: String? = null,
-    val confirmationAction: ConfirmationAction? = null
+    val confirmationAction: ConfirmationAction? = null,
+    val collapsedCategories: Set<ItemCategory> = emptySet()
 )

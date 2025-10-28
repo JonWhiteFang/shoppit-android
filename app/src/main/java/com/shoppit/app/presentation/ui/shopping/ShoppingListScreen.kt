@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.shopping
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Share
@@ -93,6 +96,7 @@ fun ShoppingListScreen(
         onToggleFilter = viewModel::toggleFilter,
         onSearchQueryChange = viewModel::updateSearchQuery,
         onShareList = viewModel::shareShoppingList,
+        onToggleCategoryCollapsed = viewModel::toggleCategoryCollapsed,
         onMealDetailClick = onMealDetailClick,
         snackbarHostState = snackbarHostState,
         modifier = modifier
@@ -184,6 +188,7 @@ fun ShoppingListContent(
     onToggleFilter: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onShareList: () -> Unit,
+    onToggleCategoryCollapsed: (ItemCategory) -> Unit,
     onMealDetailClick: (Long) -> Unit,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
@@ -194,9 +199,11 @@ fun ShoppingListContent(
             TopAppBar(
                 title = { Text("Shopping List") },
                 actions = {
-                    IconButton(onClick = onGenerateList) {
+                    IconButton(onClick = onGenerateList, enabled = !uiState.isGenerating) {
                         if (uiState.isGenerating) {
-                            CircularProgressIndicator()
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(12.dp)
+                            )
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
@@ -234,92 +241,112 @@ fun ShoppingListContent(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        when {
-            uiState.isLoading -> {
-                LoadingScreen(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                )
-            }
-            
-            uiState.shoppingListData == null -> {
-                EmptyState(
-                    message = "No shopping list yet",
-                    actionLabel = "Generate from meal plans",
-                    onActionClick = onGenerateList,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                )
-            }
-            
-            uiState.shoppingListData.totalItems == 0 -> {
-                EmptyState(
-                    message = "Your shopping list is empty",
-                    actionLabel = "Add items manually or generate from meal plans",
-                    onActionClick = onAddItemClick,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                )
-            }
-            
-            else -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                ) {
-                    // Summary header
-                    ShoppingListSummary(
-                        totalItems = uiState.shoppingListData.totalItems,
-                        checkedItems = uiState.shoppingListData.checkedItems,
+        Box(modifier = Modifier.fillMaxSize()) {
+            when {
+                uiState.isLoading -> {
+                    LoadingScreen(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
+                            .fillMaxSize()
+                            .padding(paddingValues)
                     )
-                    
-                    // Shopping list items grouped by category
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                }
+                
+                uiState.shoppingListData == null -> {
+                    EmptyState(
+                        message = "No shopping list yet",
+                        actionLabel = "Generate from meal plans",
+                        onActionClick = onGenerateList,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    )
+                }
+                
+                uiState.shoppingListData.totalItems == 0 -> {
+                    EmptyState(
+                        message = "Your shopping list is empty",
+                        actionLabel = "Add items manually or generate from meal plans",
+                        onActionClick = onAddItemClick,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                    )
+                }
+                
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
                     ) {
-                        uiState.shoppingListData.itemsByCategory.forEach { (category, items) ->
-                            val filteredItems = if (uiState.filterUncheckedOnly) {
-                                items.filter { !it.isChecked }
-                            } else {
-                                items
-                            }
-                            
-                            if (filteredItems.isNotEmpty()) {
-                                // Category header
-                                item(key = "header_${category.name}") {
-                                    Text(
-                                        text = category.displayName(),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                                    )
+                        // Summary header
+                        ShoppingListSummary(
+                            totalItems = uiState.shoppingListData.totalItems,
+                            checkedItems = uiState.shoppingListData.checkedItems,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        )
+                        
+                        // Shopping list items grouped by category
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            uiState.shoppingListData.itemsByCategory.forEach { (category, items) ->
+                                // Filter items based on filter state
+                                val filteredItems = if (uiState.filterUncheckedOnly) {
+                                    items.filter { !it.isChecked }
+                                } else {
+                                    items
                                 }
                                 
-                                // Category items
-                                items(
-                                    items = filteredItems,
-                                    key = { it.id }
-                                ) { item ->
-                                    ShoppingListItemCard(
-                                        item = item,
-                                        onCheckedChange = { checked ->
-                                            onItemCheckedChange(item.id, checked)
-                                        },
-                                        onClick = { onItemClick(item) },
-                                        modifier = Modifier.padding(horizontal = 16.dp)
-                                    )
+                                if (filteredItems.isNotEmpty()) {
+                                    val isCollapsed = category in uiState.collapsedCategories
+                                    val uncheckedCount = filteredItems.count { !it.isChecked }
+                                    
+                                    // Category header
+                                    item(key = "header_${category.name}") {
+                                        CategoryHeader(
+                                            category = category,
+                                            uncheckedCount = uncheckedCount,
+                                            isCollapsed = isCollapsed,
+                                            onClick = { onToggleCategoryCollapsed(category) }
+                                        )
+                                    }
+                                    
+                                    // Category items (only show if not collapsed)
+                                    if (!isCollapsed) {
+                                        items(
+                                            items = filteredItems,
+                                            key = { it.id }
+                                        ) { item ->
+                                            ShoppingListItemCard(
+                                                item = item,
+                                                onCheckedChange = { checked ->
+                                                    onItemCheckedChange(item.id, checked)
+                                                },
+                                                onClick = { onItemClick(item) },
+                                                modifier = Modifier.padding(horizontal = 16.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+                }
+            }
+            
+            // Show loading overlay for bulk operations
+            if (uiState.isClearingChecked || uiState.isUncheckingAll) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }
@@ -358,6 +385,51 @@ fun ShoppingListSummary(
         LinearProgressIndicator(
             progress = if (totalItems > 0) checkedItems.toFloat() / totalItems else 0f,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/**
+ * Collapsible category header with item count.
+ */
+@Composable
+fun CategoryHeader(
+    category: ItemCategory,
+    uncheckedCount: Int,
+    isCollapsed: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = category.displayName(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (uncheckedCount > 0) {
+                Text(
+                    text = "($uncheckedCount)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        
+        Icon(
+            imageVector = if (isCollapsed) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+            contentDescription = if (isCollapsed) "Expand category" else "Collapse category",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

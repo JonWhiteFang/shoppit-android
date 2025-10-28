@@ -1,5 +1,8 @@
 package com.shoppit.app.presentation.ui.shopping
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +16,8 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
@@ -35,17 +40,41 @@ fun ShoppingListItemCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Animate color transitions
+    val containerColor by animateColorAsState(
+        targetValue = if (item.isChecked) {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "containerColor"
+    )
+    
+    // Animate text alpha
+    val textAlpha by animateFloatAsState(
+        targetValue = if (item.isChecked) 0.6f else 1f,
+        animationSpec = tween(durationMillis = 300),
+        label = "textAlpha"
+    )
+    
+    val quantityAlpha by animateFloatAsState(
+        targetValue = if (item.isChecked) 0.5f else 1f,
+        animationSpec = tween(durationMillis = 300),
+        label = "quantityAlpha"
+    )
+    
+    val textDecoration = remember(item.isChecked) {
+        if (item.isChecked) TextDecoration.LineThrough else TextDecoration.None
+    }
+    
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (item.isChecked) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
+            containerColor = containerColor
         )
     ) {
         Row(
@@ -71,16 +100,8 @@ fun ShoppingListItemCard(
                     Text(
                         text = item.name,
                         style = MaterialTheme.typography.bodyLarge,
-                        textDecoration = if (item.isChecked) {
-                            TextDecoration.LineThrough
-                        } else {
-                            TextDecoration.None
-                        },
-                        color = if (item.isChecked) {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        } else {
-                            MaterialTheme.colorScheme.onSurface
-                        }
+                        textDecoration = textDecoration,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = textAlpha)
                     )
                     
                     // Show badge for items from multiple meals
@@ -110,11 +131,7 @@ fun ShoppingListItemCard(
                     Text(
                         text = "${item.quantity} ${item.unit}".trim(),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (item.isChecked) {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = quantityAlpha)
                     )
                 }
             }
