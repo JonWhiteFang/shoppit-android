@@ -55,12 +55,20 @@ import android.content.Context
  * Injects the ViewModel and manages state collection.
  *
  * @param onMealDetailClick Callback when a meal is clicked from item sources
+ * @param onNavigateToHistory Callback to navigate to item history screen
+ * @param onNavigateToTemplates Callback to navigate to template manager screen
+ * @param onNavigateToSectionEditor Callback to navigate to store section editor
+ * @param onNavigateToShoppingMode Callback to navigate to shopping mode screen
  * @param viewModel The ViewModel for managing shopping list state
  * @param modifier Optional modifier for the screen
  */
 @Composable
 fun ShoppingListScreen(
     onMealDetailClick: (Long) -> Unit,
+    onNavigateToHistory: () -> Unit = {},
+    onNavigateToTemplates: () -> Unit = {},
+    onNavigateToSectionEditor: () -> Unit = {},
+    onNavigateToShoppingMode: () -> Unit = {},
     viewModel: ShoppingListViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {

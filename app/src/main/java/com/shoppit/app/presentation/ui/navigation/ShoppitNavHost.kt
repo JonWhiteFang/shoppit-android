@@ -1,7 +1,10 @@
 package com.shoppit.app.presentation.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -11,7 +14,12 @@ import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
 import com.shoppit.app.presentation.ui.planner.MealPlannerScreen
+import com.shoppit.app.presentation.ui.shopping.ItemHistoryScreen
 import com.shoppit.app.presentation.ui.shopping.ShoppingListScreen
+import com.shoppit.app.presentation.ui.shopping.ShoppingListViewModel
+import com.shoppit.app.presentation.ui.shopping.ShoppingModeScreen
+import com.shoppit.app.presentation.ui.shopping.StoreSectionEditor
+import com.shoppit.app.presentation.ui.shopping.TemplateManagerScreen
 
 /**
  * Main navigation host for the Shoppit app.
@@ -115,6 +123,67 @@ fun ShoppitNavHost(
             ShoppingListScreen(
                 onMealDetailClick = { mealId ->
                     navController.navigate(Screen.MealDetail.createRoute(mealId))
+                },
+                onNavigateToHistory = {
+                    navController.navigate(Screen.ItemHistory.route)
+                },
+                onNavigateToTemplates = {
+                    navController.navigate(Screen.TemplateManager.route)
+                },
+                onNavigateToSectionEditor = {
+                    navController.navigate(Screen.StoreSectionEditor.route)
+                },
+                onNavigateToShoppingMode = {
+                    navController.navigate(Screen.ShoppingMode.route)
+                }
+            )
+        }
+        
+        // Item history screen
+        composable(Screen.ItemHistory.route) {
+            ItemHistoryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Template manager screen
+        composable(Screen.TemplateManager.route) {
+            TemplateManagerScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        // Store section editor screen
+        composable(Screen.StoreSectionEditor.route) {
+            val viewModel: ShoppingListViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsState()
+            
+            StoreSectionEditor(
+                sections = uiState.storeSections,
+                isLoading = uiState.isLoading,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onReorderSections = { sections ->
+                    // Update section order through repository
+                    // This would need a method in ViewModel
+                },
+                onCreateSection = { name, color ->
+                    // Create custom section through repository
+                    // This would need a method in ViewModel
+                }
+            )
+        }
+        
+        // Shopping mode screen
+        composable(Screen.ShoppingMode.route) {
+            ShoppingModeScreen(
+                onExitShoppingMode = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -55,7 +55,8 @@ class ShoppingListViewModel @Inject constructor(
     private val scanBarcodeUseCase: com.shoppit.app.domain.usecase.ScanBarcodeUseCase,
     private val exportShoppingListUseCase: com.shoppit.app.domain.usecase.ExportShoppingListUseCase,
     private val templateRepository: com.shoppit.app.domain.repository.TemplateRepository,
-    private val storeSectionRepository: com.shoppit.app.domain.repository.StoreSectionRepository
+    private val storeSectionRepository: com.shoppit.app.domain.repository.StoreSectionRepository,
+    private val updateItemHistoryUseCase: com.shoppit.app.domain.usecase.UpdateItemHistoryUseCase
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ShoppingListUiState())
@@ -69,6 +70,7 @@ class ShoppingListViewModel @Inject constructor(
         loadStoreSections()
         loadBudgetSummary()
         loadSuggestedItems()
+        observeCheckedItemsForHistory()
     }
     
     /**
@@ -112,6 +114,32 @@ class ShoppingListViewModel @Inject constructor(
     }
     
     /**
+     * Observes checked items and updates purchase history.
+     * Tracks purchase counts and average prices for items.
+     * 
+     * Requirements: 10.1, 10.2, 10.3, 10.4, 10.5
+     */
+    private fun observeCheckedItemsForHistory() {
+        viewModelScope.launch {
+            getShoppingListUseCase()
+                .collect { result ->
+                    result.fold(
+                        onSuccess = { data ->
+                            // Track newly checked items
+                            data.itemsByCategory.values.flatten()
+                                .filter { it.isChecked }
+                                .forEach { item ->
+                                    // Update history for checked items
+                                    updateItemHistoryUseCase(item)
+                                }
+                        },
+                        onFailure = { /* Ignore errors in history tracking */ }
+                    )
+                }
+        }
+    }
+    
+    /**
      * Generates a shopping list from the current week's meal plans.
      */
     fun generateShoppingList() {
@@ -137,10 +165,11 @@ class ShoppingListViewModel @Inject constructor(
     /**
      * Toggles the checked status of a shopping list item.
      * Tracks the item for undo functionality when checking.
+     * Updates purchase history when item is checked.
      */
     fun toggleItemChecked(itemId: Long, isChecked: Boolean) {
         viewModelScope.launch {
-            // If checking an item, store it for undo
+            // If checking an item, store it for undo and update history
             if (isChecked) {
                 val item = uiState.value.shoppingListData?.itemsByCategory
                     ?.flatMap { it.value }
@@ -153,6 +182,12 @@ class ShoppingListViewModel @Inject constructor(
                             showUndoSnackbar = true
                         )
                     }
+                    
+                    // Update history when item is checked
+                    updateItemHistoryUseCase(item).fold(
+                        onSuccess = { /* History updated successfully */ },
+                        onFailure = { /* Ignore history update errors */ }
+                    )
                 }
             }
             

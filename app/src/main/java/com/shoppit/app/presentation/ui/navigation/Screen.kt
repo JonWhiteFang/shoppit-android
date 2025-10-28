@@ -50,4 +50,24 @@ sealed class Screen(val route: String) {
      * Shopping list screen - displays aggregated shopping list from meal plans
      */
     data object ShoppingList : Screen("shopping_list")
+    
+    /**
+     * Item history screen - displays purchase history for quick re-adding
+     */
+    data object ItemHistory : Screen("item_history")
+    
+    /**
+     * Template manager screen - manage shopping list templates
+     */
+    data object TemplateManager : Screen("template_manager")
+    
+    /**
+     * Store section editor - customize store section order and preferences
+     */
+    data object StoreSectionEditor : Screen("store_section_editor")
+    
+    /**
+     * Shopping mode screen - simplified interface for active shopping
+     */
+    data object ShoppingMode : Screen("shopping_mode")
 }

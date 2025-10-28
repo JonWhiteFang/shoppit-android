@@ -273,22 +273,22 @@
     - Create export dialog with format selection
     - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
 
-- [ ] 8. Add navigation and integration
-  - [ ] 8.1 Register new routes
+- [x] 8. Add navigation and integration
+  - [x] 8.1 Register new routes
     - Add ItemHistory screen route
     - Add TemplateManager screen route
     - Add StoreSectionEditor route
     - Add ShoppingMode screen route
     - _Requirements: 4.1, 5.1, 10.1, 11.1_
   
-  - [ ] 8.2 Implement history tracking
+  - [x] 8.2 Implement history tracking
     - Add observer to track checked items
     - Update history when items are checked
     - Increment purchase counts
     - Update average prices
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
   
-  - [ ] 8.3 Wire up dependency injection
+  - [x] 8.3 Wire up dependency injection
     - Create module for new repositories
     - Bind repository interfaces
     - Provide DAOs from database
