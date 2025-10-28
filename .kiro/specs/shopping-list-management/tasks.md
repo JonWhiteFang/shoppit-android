@@ -178,15 +178,15 @@
     - Add suggestion acceptance action
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
 
-- [ ] 6. Build enhanced UI components
-  - [ ] 6.1 Create QuickAddSheet composable
+- [x] 6. Build enhanced UI components
+  - [x] 6.1 Create QuickAddSheet composable
     - Build bottom sheet with frequent items grid
     - Display item names with icons
     - Implement tap to add functionality
     - Add loading state for history
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
   
-  - [ ] 6.2 Enhance ShoppingListItemCard
+  - [x] 6.2 Enhance ShoppingListItemCard
     - Add increment/decrement buttons for numeric quantities
     - Add priority indicator badge
     - Add note indicator icon
@@ -194,55 +194,55 @@
     - Implement long-press menu for actions
     - _Requirements: 2.1, 2.2, 2.3, 7.3, 7.4, 8.2, 12.1_
   
-  - [ ] 6.3 Create ShoppingModeScreen
+  - [x] 6.3 Create ShoppingModeScreen
     - Build simplified layout with large text
     - Hide checked items automatically
     - Show only essential information
     - Add quick toggle to exit mode
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
   
-  - [ ] 6.4 Create StoreSectionEditor
+  - [x] 6.4 Create StoreSectionEditor
     - Build section list with drag handles
     - Implement section reordering
     - Add custom section creation dialog
     - Add section color picker
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
   
-  - [ ] 6.5 Create ItemHistoryScreen
+  - [x] 6.5 Create ItemHistoryScreen
     - Display history list with purchase counts
     - Show last purchased dates
     - Add tap to add functionality
     - Implement search/filter
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
   
-  - [ ] 6.6 Create TemplateManagerScreen
+  - [x] 6.6 Create TemplateManagerScreen
     - Display template list with metadata
     - Add create template dialog
     - Implement template load action
     - Add template delete confirmation
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
   
-  - [ ] 6.7 Create ItemNoteDialog
+  - [x] 6.7 Create ItemNoteDialog
     - Build note input dialog
     - Add multiline text field
     - Implement save and cancel actions
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
   
-  - [ ] 6.8 Create BudgetSummaryCard
+  - [x] 6.8 Create BudgetSummaryCard
     - Display total estimated cost
     - Show checked items total
     - Display remaining budget
     - Add progress indicator
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
   
-  - [ ] 6.9 Create VoiceInputDialog
+  - [x] 6.9 Create VoiceInputDialog
     - Build voice recording UI
     - Add microphone animation
     - Display recognized text
     - Implement cancel and confirm actions
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
   
-  - [ ] 6.10 Create SuggestionsSection
+  - [x] 6.10 Create SuggestionsSection
     - Display suggested items list
     - Add tap to add functionality
     - Show suggestion reasoning
