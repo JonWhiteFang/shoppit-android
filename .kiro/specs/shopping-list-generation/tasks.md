@@ -26,8 +26,8 @@
     - Ensure database module provides ShoppingListDao
     - _Requirements: 12.1_
 
-- [ ] 3. Implement core use cases
-  - [ ] 3.1 Create GenerateShoppingListUseCase
+- [x] 3. Implement core use cases
+  - [x] 3.1 Create GenerateShoppingListUseCase
     - Implement logic to fetch current week's meal plans
     - Aggregate ingredients by name (case-insensitive)
     - Categorize ingredients using keyword matching
@@ -35,33 +35,33 @@
     - Delete existing auto-generated items before inserting new ones
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5, 4.1, 4.2, 4.3, 10.1, 10.2_
   
-  - [ ] 3.2 Create GetShoppingListUseCase
+  - [x] 3.2 Create GetShoppingListUseCase
     - Implement Flow-based shopping list retrieval
     - Group items by category
     - Calculate total and checked item counts
     - _Requirements: 1.5, 10.1, 10.3, 11.1, 11.2_
   
-  - [ ] 3.3 Create item management use cases
+  - [x] 3.3 Create item management use cases
     - Implement ToggleItemCheckedUseCase for check/uncheck
     - Implement AddManualItemUseCase with validation
     - Implement UpdateManualItemUseCase with manual-only check
     - Implement DeleteManualItemUseCase with manual-only check
     - _Requirements: 3.1, 3.2, 3.3, 5.1, 5.2, 5.3, 5.4, 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4_
   
-  - [ ] 3.4 Create bulk operation use cases
+  - [x] 3.4 Create bulk operation use cases
     - Implement ClearCheckedItemsUseCase
     - Implement UncheckAllItemsUseCase
     - Implement GetItemSourcesUseCase for meal tracking
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 9.1, 9.2, 9.3, 17.1, 17.2, 17.3, 17.4_
 
-- [ ] 4. Build ViewModel and UI state
-  - [ ] 4.1 Create UI state models
+- [x] 4. Build ViewModel and UI state
+  - [x] 4.1 Create UI state models
     - Define ShoppingListUiState data class
     - Include loading, error, and dialog states
     - Add filter and search state properties
     - _Requirements: 14.1, 14.2, 14.3, 15.1, 15.2_
   
-  - [ ] 4.2 Implement ShoppingListViewModel
+  - [x] 4.2 Implement ShoppingListViewModel
     - Set up StateFlow for UI state management
     - Implement loadShoppingList with Flow collection
     - Create generateShoppingList action
@@ -72,8 +72,8 @@
     - Handle item detail display with source loading
     - _Requirements: 1.1, 3.1, 3.2, 4.1, 4.2, 4.3, 5.1, 6.1, 7.1, 8.1, 9.1, 14.1, 14.2, 15.1, 15.2, 17.1_
 
-- [ ] 5. Create UI components
-  - [ ] 5.1 Build ShoppingListScreen composable
+- [x] 5. Create UI components
+  - [x] 5.1 Build ShoppingListScreen composable
     - Create main screen layout with Scaffold
     - Add top app bar with actions (generate, filter, share)
     - Display summary header with counts and progress
@@ -82,7 +82,7 @@
     - Handle empty state when no items exist
     - _Requirements: 1.5, 5.1, 8.1, 10.3, 10.4, 10.5, 11.1, 11.2, 11.3, 13.1, 14.1, 16.2_
   
-  - [ ] 5.2 Create shopping list item composable
+  - [x] 5.2 Create shopping list item composable
     - Build ShoppingListItemCard with checkbox
     - Display item name, quantity, and unit
     - Show category badge
@@ -92,13 +92,13 @@
     - Add manual item indicator
     - _Requirements: 3.1, 3.4, 5.5, 6.5, 18.1, 18.2, 18.3_
   
-  - [ ] 5.3 Build AddItemDialog composable
+  - [x] 5.3 Build AddItemDialog composable
     - Create dialog with input fields for name, quantity, unit
     - Add validation for required fields
     - Implement confirm and cancel actions
     - _Requirements: 5.1, 5.2, 5.3_
   
-  - [ ] 5.4 Build ItemDetailDialog composable
+  - [x] 5.4 Build ItemDetailDialog composable
     - Display item details (name, quantity, unit)
     - Show list of meals using the ingredient
     - Display quantity per meal
@@ -107,7 +107,7 @@
     - Add delete button for manual items only
     - _Requirements: 6.1, 7.1, 9.1, 9.2, 9.3, 9.4, 9.5_
   
-  - [ ] 5.5 Implement search and filter UI
+  - [x] 5.5 Implement search and filter UI
     - Add search bar to top app bar
     - Implement real-time search filtering
     - Add filter toggle for unchecked items only
