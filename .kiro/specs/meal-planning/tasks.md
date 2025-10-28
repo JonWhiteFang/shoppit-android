@@ -120,12 +120,16 @@
     - Implement operator invoke calling repository deleteMealPlansForDate
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 4. Implement UI state models
+- [x] 4. Implement UI state models
+
+
   - Define MealPlannerUiState data class with weekData, currentWeekStart, loading, error, and meal selection fields
   - Define MealSlot data class representing a calendar slot with date, mealType, and optional existing plan
   - _Requirements: 1.1, 1.5, 2.1, 8.1_
 
-- [ ] 5. Implement MealPlannerViewModel with state management
+- [x] 5. Implement MealPlannerViewModel with state management
+
+
   - Inject all use cases (GetMealPlansForWeekUseCase, GetMealsUseCase, AssignMealToPlanUseCase, UpdateMealPlanUseCase, DeleteMealPlanUseCase, CopyDayPlansUseCase, ClearDayPlansUseCase)
   - Initialize with current week (Monday to Sunday)
   - Load week data in init block collecting Flow and updating StateFlow
@@ -139,7 +143,10 @@
   - Handle all errors and update error state
   - _Requirements: 1.1, 1.4, 2.1, 2.4, 3.1, 4.1, 5.1, 5.2, 5.3, 5.4, 5.5, 6.1, 7.1, 10.1, 14.1, 14.2, 14.3, 14.4, 14.5_
 
-- [ ] 6. Create reusable UI components
+- [x] 6. Create reusable UI components
+
+
+
   - Implement WeekNavigationBar composable with previous/next/today buttons and week range display
   - Implement DayHeader composable showing date, day name, and completion indicator
   - Implement MealSlotCard composable for individual meal slots with add/view/delete actions
