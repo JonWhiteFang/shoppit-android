@@ -118,61 +118,61 @@
     - Implement meal plan analysis
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
 
-- [ ] 5. Extend ViewModel with new features
-  - [ ] 5.1 Add shopping mode state management
+- [x] 5. Extend ViewModel with new features
+  - [x] 5.1 Add shopping mode state management
     - Add shopping mode toggle to UI state
     - Implement mode switching logic
     - Add filtered view for shopping mode
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
   
-  - [ ] 5.2 Add quick add functionality
+  - [x] 5.2 Add quick add functionality
     - Add frequent items state to ViewModel
     - Implement quick add action
     - Add history loading on init
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
   
-  - [ ] 5.3 Add quantity adjustment actions
+  - [x] 5.3 Add quantity adjustment actions
     - Implement increment quantity action
     - Implement decrement quantity action
     - Add validation for numeric quantities
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
   
-  - [ ] 5.4 Add item reordering support
+  - [x] 5.4 Add item reordering support
     - Implement reorder action
     - Add custom order state tracking
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
   
-  - [ ] 5.5 Add section management actions
+  - [x] 5.5 Add section management actions
     - Implement move to section action
     - Add section list state
     - Implement section collapse toggle
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4, 6.5_
   
-  - [ ] 5.6 Add item enhancement actions
+  - [x] 5.6 Add item enhancement actions
     - Implement add/edit note action
     - Implement toggle priority action
     - Implement duplicate item action
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.1, 8.2, 8.3, 8.4, 8.5, 9.1, 9.2, 9.3, 9.4, 9.5_
   
-  - [ ] 5.7 Add template management actions
+  - [x] 5.7 Add template management actions
     - Implement save template action
     - Implement load template action
     - Add template list state
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
   
-  - [ ] 5.8 Add budget tracking state
+  - [x] 5.8 Add budget tracking state
     - Add budget summary to UI state
     - Implement price update action
     - Add budget calculation
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
   
-  - [ ] 5.9 Add voice input action
+  - [x] 5.9 Add voice input action
     - Implement voice input trigger
     - Add voice processing state
     - Handle voice input results
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
   
-  - [ ] 5.10 Add suggestions state
+  - [x] 5.10 Add suggestions state
     - Add suggested items to UI state
     - Implement suggestion loading
     - Add suggestion acceptance action

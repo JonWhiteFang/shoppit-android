@@ -32,5 +32,35 @@ data class ShoppingListUiState(
     val searchQuery: String = "",
     val shareText: String? = null,
     val confirmationAction: ConfirmationAction? = null,
-    val collapsedCategories: Set<ItemCategory> = emptySet()
+    val collapsedCategories: Set<ItemCategory> = emptySet(),
+    
+    // Shopping mode state (Task 5.1)
+    val shoppingModePreferences: com.shoppit.app.domain.model.ShoppingModePreferences = 
+        com.shoppit.app.domain.model.ShoppingModePreferences(),
+    
+    // Quick add state (Task 5.2)
+    val frequentItems: List<com.shoppit.app.domain.model.ItemHistory> = emptyList(),
+    val showQuickAddSheet: Boolean = false,
+    
+    // Section management state (Task 5.5)
+    val storeSections: List<com.shoppit.app.domain.model.StoreSection> = emptyList(),
+    
+    // Item enhancement state (Task 5.6)
+    val showNoteDialog: ShoppingListItem? = null,
+    
+    // Template management state (Task 5.7)
+    val templates: List<com.shoppit.app.domain.model.ShoppingTemplate> = emptyList(),
+    val showSaveTemplateDialog: Boolean = false,
+    val showLoadTemplateDialog: Boolean = false,
+    
+    // Budget tracking state (Task 5.8)
+    val budgetSummary: com.shoppit.app.domain.model.BudgetSummary? = null,
+    val showPriceDialog: ShoppingListItem? = null,
+    
+    // Voice input state (Task 5.9)
+    val showVoiceInputDialog: Boolean = false,
+    val isProcessingVoice: Boolean = false,
+    
+    // Suggestions state (Task 5.10)
+    val suggestedItems: List<String> = emptyList()
 )

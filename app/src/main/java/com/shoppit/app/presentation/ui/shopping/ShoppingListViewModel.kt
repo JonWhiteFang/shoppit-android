@@ -35,7 +35,25 @@ class ShoppingListViewModel @Inject constructor(
     private val deleteManualItemUseCase: DeleteManualItemUseCase,
     private val clearCheckedItemsUseCase: ClearCheckedItemsUseCase,
     private val uncheckAllItemsUseCase: UncheckAllItemsUseCase,
-    private val getItemSourcesUseCase: GetItemSourcesUseCase
+    private val getItemSourcesUseCase: GetItemSourcesUseCase,
+    // New use cases for management features
+    private val toggleShoppingModeUseCase: com.shoppit.app.domain.usecase.ToggleShoppingModeUseCase,
+    private val getItemHistoryUseCase: com.shoppit.app.domain.usecase.GetItemHistoryUseCase,
+    private val quickAddItemUseCase: com.shoppit.app.domain.usecase.QuickAddItemUseCase,
+    private val adjustQuantityUseCase: com.shoppit.app.domain.usecase.AdjustQuantityUseCase,
+    private val reorderItemsUseCase: com.shoppit.app.domain.usecase.ReorderItemsUseCase,
+    private val moveItemToSectionUseCase: com.shoppit.app.domain.usecase.MoveItemToSectionUseCase,
+    private val addItemNoteUseCase: com.shoppit.app.domain.usecase.AddItemNoteUseCase,
+    private val togglePriorityUseCase: com.shoppit.app.domain.usecase.TogglePriorityUseCase,
+    private val duplicateItemUseCase: com.shoppit.app.domain.usecase.DuplicateItemUseCase,
+    private val saveTemplateUseCase: com.shoppit.app.domain.usecase.SaveTemplateUseCase,
+    private val loadTemplateUseCase: com.shoppit.app.domain.usecase.LoadTemplateUseCase,
+    private val updatePriceEstimateUseCase: com.shoppit.app.domain.usecase.UpdatePriceEstimateUseCase,
+    private val getBudgetSummaryUseCase: com.shoppit.app.domain.usecase.GetBudgetSummaryUseCase,
+    private val processVoiceInputUseCase: com.shoppit.app.domain.usecase.ProcessVoiceInputUseCase,
+    private val getSuggestedItemsUseCase: com.shoppit.app.domain.usecase.GetSuggestedItemsUseCase,
+    private val templateRepository: com.shoppit.app.domain.repository.TemplateRepository,
+    private val storeSectionRepository: com.shoppit.app.domain.repository.StoreSectionRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ShoppingListUiState())
@@ -43,6 +61,12 @@ class ShoppingListViewModel @Inject constructor(
     
     init {
         loadShoppingList()
+        loadShoppingModeState()
+        loadFrequentItems()
+        loadTemplates()
+        loadStoreSections()
+        loadBudgetSummary()
+        loadSuggestedItems()
     }
     
     /**
@@ -367,5 +391,528 @@ class ShoppingListViewModel @Inject constructor(
      */
     fun clearShareText() {
         _uiState.update { it.copy(shareText = null) }
+    }
+    
+    // ========== Shopping Mode Management (Task 5.1) ==========
+    
+    /**
+     * Loads shopping mode state and observes changes.
+     */
+    private fun loadShoppingModeState() {
+        viewModelScope.launch {
+            toggleShoppingModeUseCase.getShoppingModeState()
+                .catch { e ->
+                    _uiState.update { 
+                        it.copy(error = e.message ?: "Failed to load shopping mode state")
+                    }
+                }
+                .collect { preferences ->
+                    _uiState.update { it.copy(shoppingModePreferences = preferences) }
+                }
+        }
+    }
+    
+    /**
+     * Toggles shopping mode on/off.
+     */
+    fun toggleShoppingMode(enabled: Boolean) {
+        viewModelScope.launch {
+            toggleShoppingModeUseCase(enabled).fold(
+                onSuccess = { /* State updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to toggle shopping mode")
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Quick Add Functionality (Task 5.2) ==========
+    
+    /**
+     * Loads frequent items for quick add on initialization.
+     */
+    private fun loadFrequentItems() {
+        viewModelScope.launch {
+            getItemHistoryUseCase.getFrequentItems(20)
+                .catch { e ->
+                    _uiState.update { 
+                        it.copy(error = e.message ?: "Failed to load frequent items")
+                    }
+                }
+                .collect { result ->
+                    result.fold(
+                        onSuccess = { items ->
+                            _uiState.update { it.copy(frequentItems = items) }
+                        },
+                        onFailure = { error ->
+                            _uiState.update { 
+                                it.copy(error = error.message ?: "Failed to load frequent items")
+                            }
+                        }
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Quickly adds an item from history to the shopping list.
+     */
+    fun quickAddItem(historyItem: com.shoppit.app.domain.model.ItemHistory) {
+        viewModelScope.launch {
+            quickAddItemUseCase(historyItem).fold(
+                onSuccess = { /* List updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to add item")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Shows the quick add sheet.
+     */
+    fun showQuickAddSheet() {
+        _uiState.update { it.copy(showQuickAddSheet = true) }
+    }
+    
+    /**
+     * Dismisses the quick add sheet.
+     */
+    fun dismissQuickAddSheet() {
+        _uiState.update { it.copy(showQuickAddSheet = false) }
+    }
+    
+    // ========== Quantity Adjustment (Task 5.3) ==========
+    
+    /**
+     * Increments the quantity of an item.
+     */
+    fun incrementQuantity(itemId: Long) {
+        viewModelScope.launch {
+            adjustQuantityUseCase(itemId, increment = true).fold(
+                onSuccess = { /* List updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to adjust quantity")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Decrements the quantity of an item.
+     */
+    fun decrementQuantity(itemId: Long) {
+        viewModelScope.launch {
+            adjustQuantityUseCase(itemId, increment = false).fold(
+                onSuccess = { /* List updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to adjust quantity")
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Item Reordering (Task 5.4) ==========
+    
+    /**
+     * Reorders an item to a new position.
+     */
+    fun reorderItem(itemId: Long, newPosition: Int) {
+        viewModelScope.launch {
+            reorderItemsUseCase(itemId, newPosition).fold(
+                onSuccess = { /* List updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to reorder item")
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Section Management (Task 5.5) ==========
+    
+    /**
+     * Loads store sections on initialization.
+     */
+    private fun loadStoreSections() {
+        viewModelScope.launch {
+            storeSectionRepository.getAllSections()
+                .catch { e ->
+                    _uiState.update { 
+                        it.copy(error = e.message ?: "Failed to load store sections")
+                    }
+                }
+                .collect { result ->
+                    result.fold(
+                        onSuccess = { sections ->
+                            _uiState.update { it.copy(storeSections = sections) }
+                        },
+                        onFailure = { error ->
+                            _uiState.update { 
+                                it.copy(error = error.message ?: "Failed to load store sections")
+                            }
+                        }
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Moves an item to a different section.
+     */
+    fun moveItemToSection(itemId: Long, sectionName: String) {
+        viewModelScope.launch {
+            moveItemToSectionUseCase(itemId, sectionName).fold(
+                onSuccess = { /* List updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to move item")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Toggles the collapsed state of a section.
+     */
+    fun toggleSectionCollapsed(sectionId: Long, isCollapsed: Boolean) {
+        viewModelScope.launch {
+            storeSectionRepository.toggleSectionCollapsed(sectionId, isCollapsed).fold(
+                onSuccess = { /* Sections update automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to toggle section")
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Item Enhancement Actions (Task 5.6) ==========
+    
+    /**
+     * Shows the note dialog for an item.
+     */
+    fun showNoteDialog(item: ShoppingListItem) {
+        _uiState.update { it.copy(showNoteDialog = item) }
+    }
+    
+    /**
+     * Dismisses the note dialog.
+     */
+    fun dismissNoteDialog() {
+        _uiState.update { it.copy(showNoteDialog = null) }
+    }
+    
+    /**
+     * Adds or updates a note for an item.
+     */
+    fun addItemNote(itemId: Long, notes: String) {
+        viewModelScope.launch {
+            addItemNoteUseCase(itemId, notes).fold(
+                onSuccess = { 
+                    _uiState.update { it.copy(showNoteDialog = null) }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to add note")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Toggles the priority status of an item.
+     */
+    fun toggleItemPriority(itemId: Long, isPriority: Boolean) {
+        viewModelScope.launch {
+            togglePriorityUseCase(itemId, isPriority).fold(
+                onSuccess = { /* List updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to toggle priority")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Duplicates an item.
+     */
+    fun duplicateItem(itemId: Long) {
+        viewModelScope.launch {
+            duplicateItemUseCase(itemId).fold(
+                onSuccess = { /* List updates automatically via Flow */ },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to duplicate item")
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Template Management (Task 5.7) ==========
+    
+    /**
+     * Loads templates on initialization.
+     */
+    private fun loadTemplates() {
+        viewModelScope.launch {
+            templateRepository.getAllTemplates()
+                .catch { e ->
+                    _uiState.update { 
+                        it.copy(error = e.message ?: "Failed to load templates")
+                    }
+                }
+                .collect { result ->
+                    result.fold(
+                        onSuccess = { templates ->
+                            _uiState.update { it.copy(templates = templates) }
+                        },
+                        onFailure = { error ->
+                            _uiState.update { 
+                                it.copy(error = error.message ?: "Failed to load templates")
+                            }
+                        }
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Shows the save template dialog.
+     */
+    fun showSaveTemplateDialog() {
+        _uiState.update { it.copy(showSaveTemplateDialog = true) }
+    }
+    
+    /**
+     * Dismisses the save template dialog.
+     */
+    fun dismissSaveTemplateDialog() {
+        _uiState.update { it.copy(showSaveTemplateDialog = false) }
+    }
+    
+    /**
+     * Saves the current shopping list as a template.
+     */
+    fun saveTemplate(name: String, description: String) {
+        viewModelScope.launch {
+            saveTemplateUseCase(name, description).fold(
+                onSuccess = { 
+                    _uiState.update { it.copy(showSaveTemplateDialog = false) }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to save template")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Shows the load template dialog.
+     */
+    fun showLoadTemplateDialog() {
+        _uiState.update { it.copy(showLoadTemplateDialog = true) }
+    }
+    
+    /**
+     * Dismisses the load template dialog.
+     */
+    fun dismissLoadTemplateDialog() {
+        _uiState.update { it.copy(showLoadTemplateDialog = false) }
+    }
+    
+    /**
+     * Loads a template into the shopping list.
+     */
+    fun loadTemplate(templateId: Long) {
+        viewModelScope.launch {
+            loadTemplateUseCase(templateId).fold(
+                onSuccess = { 
+                    _uiState.update { it.copy(showLoadTemplateDialog = false) }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to load template")
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Budget Tracking (Task 5.8) ==========
+    
+    /**
+     * Loads budget summary on initialization.
+     */
+    private fun loadBudgetSummary() {
+        viewModelScope.launch {
+            // Reload budget summary whenever shopping list changes
+            getShoppingListUseCase()
+                .collect { result ->
+                    result.fold(
+                        onSuccess = {
+                            // Fetch budget summary
+                            getBudgetSummaryUseCase().fold(
+                                onSuccess = { summary ->
+                                    _uiState.update { it.copy(budgetSummary = summary) }
+                                },
+                                onFailure = { error ->
+                                    _uiState.update { 
+                                        it.copy(error = error.message ?: "Failed to load budget summary")
+                                    }
+                                }
+                            )
+                        },
+                        onFailure = { /* Already handled in loadShoppingList */ }
+                    )
+                }
+        }
+    }
+    
+    /**
+     * Shows the price dialog for an item.
+     */
+    fun showPriceDialog(item: ShoppingListItem) {
+        _uiState.update { it.copy(showPriceDialog = item) }
+    }
+    
+    /**
+     * Dismisses the price dialog.
+     */
+    fun dismissPriceDialog() {
+        _uiState.update { it.copy(showPriceDialog = null) }
+    }
+    
+    /**
+     * Updates the price estimate for an item.
+     */
+    fun updateItemPrice(itemId: Long, price: Double?) {
+        viewModelScope.launch {
+            updatePriceEstimateUseCase(itemId, price).fold(
+                onSuccess = { 
+                    _uiState.update { it.copy(showPriceDialog = null) }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to update price")
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Voice Input (Task 5.9) ==========
+    
+    /**
+     * Shows the voice input dialog.
+     */
+    fun showVoiceInputDialog() {
+        _uiState.update { it.copy(showVoiceInputDialog = true) }
+    }
+    
+    /**
+     * Dismisses the voice input dialog.
+     */
+    fun dismissVoiceInputDialog() {
+        _uiState.update { it.copy(showVoiceInputDialog = false, isProcessingVoice = false) }
+    }
+    
+    /**
+     * Processes voice input and adds the item to the shopping list.
+     */
+    fun processVoiceInput(voiceText: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isProcessingVoice = true) }
+            
+            processVoiceInputUseCase(voiceText).fold(
+                onSuccess = { 
+                    _uiState.update { 
+                        it.copy(
+                            showVoiceInputDialog = false,
+                            isProcessingVoice = false
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(
+                            error = error.message ?: "Failed to process voice input",
+                            isProcessingVoice = false
+                        )
+                    }
+                }
+            )
+        }
+    }
+    
+    // ========== Suggestions (Task 5.10) ==========
+    
+    /**
+     * Loads suggested items on initialization.
+     */
+    private fun loadSuggestedItems() {
+        viewModelScope.launch {
+            getSuggestedItemsUseCase().fold(
+                onSuccess = { suggestions ->
+                    _uiState.update { it.copy(suggestedItems = suggestions) }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to load suggestions")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Adds a suggested item to the shopping list.
+     */
+    fun addSuggestedItem(itemName: String) {
+        viewModelScope.launch {
+            addManualItemUseCase(itemName, "1", "").fold(
+                onSuccess = { 
+                    // Remove from suggestions
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            suggestedItems = currentState.suggestedItems.filter { it != itemName }
+                        )
+                    }
+                },
+                onFailure = { error ->
+                    _uiState.update { 
+                        it.copy(error = error.message ?: "Failed to add suggested item")
+                    }
+                }
+            )
+        }
+    }
+    
+    /**
+     * Dismisses a suggested item.
+     */
+    fun dismissSuggestedItem(itemName: String) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                suggestedItems = currentState.suggestedItems.filter { it != itemName }
+            )
+        }
     }
 }
