@@ -298,8 +298,14 @@
     - Test clearDay calls use case
     - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 7.1, 10.1, 14.1_
 
-- [ ] 14. Write instrumented tests for data layer
-  - [ ] 14.1 Test MealPlanDao with in-memory database
+- [x] 14. Write instrumented tests for data layer
+
+
+
+
+  - [x] 14.1 Test MealPlanDao with in-memory database
+
+
     - Test insertMealPlan and getMealPlansForDate
     - Test getMealPlansForWeek returns plans in date range
     - Test getMealPlanById returns correct plan
@@ -311,7 +317,9 @@
     - Test insertMealPlans batch insert works correctly
     - _Requirements: 1.2, 2.3, 3.2, 4.3, 5.2, 7.3, 10.3_
   
-  - [ ] 14.2 Test MealPlanRepositoryImpl
+  - [x] 14.2 Test MealPlanRepositoryImpl
+
+
     - Test getMealPlansForWeek maps entities to domain models
     - Test addMealPlan persists to database
     - Test error handling for database exceptions
