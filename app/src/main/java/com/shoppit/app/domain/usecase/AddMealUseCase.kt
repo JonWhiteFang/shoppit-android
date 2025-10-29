@@ -30,14 +30,14 @@ class AddMealUseCase @Inject constructor(
         // Validate the meal first
         val validationResult = validator.validate(meal)
         
-        // Check if validation passed
         return if (validationResult.isValid()) {
             repository.addMeal(meal)
         } else {
             // Convert validation errors to failure result
             val errors = validationResult.getErrors()
-            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
-            Result.failure(Exception(message))
+            // Return the first error message for simplicity
+            val message = errors.firstOrNull()?.message ?: "Validation failed"
+            Result.failure(com.shoppit.app.domain.validator.ValidationException(message))
         }
     }
 }

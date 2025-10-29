@@ -142,8 +142,8 @@ class MealValidatorTest {
     }
     
     @Test
-    fun `validate returns Invalid when ingredient quantity is empty`() {
-        // Given
+    fun `validate returns Valid when ingredient quantity is empty`() {
+        // Given - quantity is optional
         val meal = Meal(
             id = 1,
             name = "Test Meal",
@@ -156,16 +156,12 @@ class MealValidatorTest {
         val result = validator.validate(meal)
         
         // Then
-        assertTrue(result.isInvalid())
-        val errors = result.getErrors()
-        assertEquals(1, errors.size)
-        assertEquals("ingredients[0].quantity", errors[0].field)
-        assertEquals("Ingredient quantity cannot be empty", errors[0].message)
+        assertTrue(result.isValid())
     }
     
     @Test
-    fun `validate returns Invalid when ingredient unit is empty`() {
-        // Given
+    fun `validate returns Valid when ingredient unit is empty`() {
+        // Given - unit is optional
         val meal = Meal(
             id = 1,
             name = "Test Meal",
@@ -178,11 +174,7 @@ class MealValidatorTest {
         val result = validator.validate(meal)
         
         // Then
-        assertTrue(result.isInvalid())
-        val errors = result.getErrors()
-        assertEquals(1, errors.size)
-        assertEquals("ingredients[0].unit", errors[0].field)
-        assertEquals("Ingredient unit cannot be empty", errors[0].message)
+        assertTrue(result.isValid())
     }
     
     @Test
@@ -203,13 +195,11 @@ class MealValidatorTest {
         // Then
         assertTrue(result.isInvalid())
         val errors = result.getErrors()
-        assertEquals(4, errors.size) // name + 3 ingredient fields
+        assertEquals(2, errors.size) // name + ingredient name (quantity and unit are optional)
         
         val errorFields = errors.map { it.field }
         assertTrue(errorFields.contains("name"))
         assertTrue(errorFields.contains("ingredients[0].name"))
-        assertTrue(errorFields.contains("ingredients[0].quantity"))
-        assertTrue(errorFields.contains("ingredients[0].unit"))
     }
     
     @Test
@@ -221,7 +211,7 @@ class MealValidatorTest {
             ingredients = listOf(
                 Ingredient("Pasta", "400", "g"),
                 Ingredient("", "4", "pcs"),
-                Ingredient("Salt", "", "tsp")
+                Ingredient("Salt", "", "tsp") // quantity is optional
             )
         )
         
@@ -231,9 +221,8 @@ class MealValidatorTest {
         // Then
         assertTrue(result.isInvalid())
         val errors = result.getErrors()
-        assertEquals(2, errors.size)
+        assertEquals(1, errors.size) // Only ingredient name is required
         assertEquals("ingredients[1].name", errors[0].field)
-        assertEquals("ingredients[2].quantity", errors[1].field)
     }
     
     @Test

@@ -18,7 +18,7 @@ class MealValidator @Inject constructor() : DataValidator<Meal> {
      * - Meal name must not exceed 100 characters
      * - Meal must have at least one ingredient
      * - Each ingredient must have a non-empty name
-     * - Each ingredient must have a positive quantity
+     * - Quantity and unit are optional fields
      *
      * @param data The meal to validate
      * @return ValidationResult indicating success or failure with detailed errors
@@ -66,25 +66,7 @@ class MealValidator @Inject constructor() : DataValidator<Meal> {
                     )
                 }
                 
-                if (ingredient.quantity.isBlank()) {
-                    errors.add(
-                        ValidationError(
-                            field = "ingredients[$index].quantity",
-                            message = "Ingredient quantity cannot be empty",
-                            code = ValidationError.CODE_REQUIRED
-                        )
-                    )
-                }
-                
-                if (ingredient.unit.isBlank()) {
-                    errors.add(
-                        ValidationError(
-                            field = "ingredients[$index].unit",
-                            message = "Ingredient unit cannot be empty",
-                            code = ValidationError.CODE_REQUIRED
-                        )
-                    )
-                }
+                // Quantity and unit are optional, no validation needed
             }
         }
         
