@@ -4,6 +4,7 @@ import com.shoppit.app.data.local.entity.IngredientEntity
 import com.shoppit.app.data.local.entity.MealEntity
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
+import com.shoppit.app.domain.model.MealTag
 
 /**
  * Extension function to convert MealEntity to domain Meal model.
@@ -16,6 +17,7 @@ fun MealEntity.toDomainModel(): Meal {
         name = name,
         ingredients = ingredients.map { it.toDomainModel() },
         notes = notes,
+        tags = tags.toTagSet(),
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -32,6 +34,7 @@ fun Meal.toEntity(): MealEntity {
         name = name,
         ingredients = ingredients.map { it.toEntity() },
         notes = notes,
+        tags = tags.toTagString(),
         createdAt = createdAt,
         updatedAt = updatedAt
     )
@@ -61,4 +64,32 @@ fun Ingredient.toEntity(): IngredientEntity {
         quantity = quantity,
         unit = unit
     )
+}
+
+/**
+ * Extension function to convert a comma-separated string to a set of MealTag enums.
+ * Invalid tag names are ignored.
+ *
+ * @return Set of MealTag enums, or empty set if string is blank
+ */
+fun String.toTagSet(): Set<MealTag> {
+    if (this.isBlank()) return emptySet()
+    return this.split(",")
+        .mapNotNull { tagName ->
+            try {
+                MealTag.valueOf(tagName.trim())
+            } catch (e: IllegalArgumentException) {
+                null // Ignore invalid tags
+            }
+        }
+        .toSet()
+}
+
+/**
+ * Extension function to convert a set of MealTag enums to a comma-separated string.
+ *
+ * @return Comma-separated string of tag names
+ */
+fun Set<MealTag>.toTagString(): String {
+    return this.joinToString(",") { it.name }
 }

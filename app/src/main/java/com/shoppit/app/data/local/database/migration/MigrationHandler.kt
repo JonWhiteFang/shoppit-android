@@ -57,7 +57,8 @@ class MigrationHandlerImpl : MigrationHandler {
             MIGRATION_2_3,
             MIGRATION_3_4,
             MIGRATION_4_5,
-            MIGRATION_5_6
+            MIGRATION_5_6,
+            MIGRATION_6_7
         )
     }
     
@@ -309,6 +310,23 @@ class MigrationHandlerImpl : MigrationHandler {
                 """.trimIndent())
                 
                 Timber.d("Migration 5->6 completed: management features added")
+            }
+        }
+        
+        /**
+         * Migration from version 6 to 7: Add tags column to meals table
+         * Adds support for meal categorization and filtering by tags
+         */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Timber.d("Migrating database from version 6 to 7")
+                
+                // Add tags column to meals table with default empty string
+                database.execSQL("""
+                    ALTER TABLE meals ADD COLUMN tags TEXT NOT NULL DEFAULT ''
+                """.trimIndent())
+                
+                Timber.d("Migration 6->7 completed: tags column added to meals table")
             }
         }
     }

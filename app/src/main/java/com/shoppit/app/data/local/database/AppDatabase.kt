@@ -23,6 +23,7 @@ import com.shoppit.app.data.local.entity.TemplateItemEntity
  * 
  * This database serves as the offline-first data persistence layer.
  * 
+ * Version 7: Added tags column to meals table for meal categorization and filtering
  * Version 6: Added management features to shopping list (item_history, shopping_templates, template_items, store_sections)
  * Version 5: Added shopping_list_items table for shopping list generation feature
  * Version 4: Added meal_plans table for meal planning feature
@@ -41,7 +42,7 @@ import com.shoppit.app.data.local.entity.TemplateItemEntity
         TemplateItemEntity::class,
         StoreSectionEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 @TypeConverters(Converters::class, MealConverters::class)

@@ -17,13 +17,13 @@
     - Return filtered list of meals
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 3. Update data layer for tag persistence
-  - [ ] 3.1 Add tags column to Room database
+- [x] 3. Update data layer for tag persistence
+  - [x] 3.1 Add tags column to Room database
     - Update `MealEntity` to include `tags: String` field
     - Create `MealTagConverter` for type conversion
     - Add database migration to add tags column
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
-  - [ ] 3.2 Update mappers for tag conversion
+  - [x] 3.2 Update mappers for tag conversion
     - Update `MealEntity.toMeal()` to convert tags string to Set<MealTag>
     - Update `Meal.toEntity()` to convert Set<MealTag> to tags string
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_

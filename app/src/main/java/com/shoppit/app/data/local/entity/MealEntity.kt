@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 
 /**
  * Room entity representing a meal in the local database.
- * Stores meal information including name, ingredients list, notes, and timestamps.
+ * Stores meal information including name, ingredients list, notes, tags, and timestamps.
  *
  * Indices are created on frequently queried columns to optimize performance:
  * - name: For searching and sorting meals by name
@@ -18,6 +18,7 @@ import androidx.room.PrimaryKey
  * @property name The name of the meal (required)
  * @property ingredients List of ingredients in the meal (stored as JSON)
  * @property notes Optional notes or instructions for the meal
+ * @property tags Comma-separated list of meal tags for categorization
  * @property createdAt Timestamp when the meal was created
  * @property updatedAt Timestamp when the meal was last updated
  */
@@ -41,6 +42,9 @@ data class MealEntity(
     
     @ColumnInfo(name = "notes")
     val notes: String,
+    
+    @ColumnInfo(name = "tags")
+    val tags: String = "",
     
     @ColumnInfo(name = "created_at")
     val createdAt: Long,
