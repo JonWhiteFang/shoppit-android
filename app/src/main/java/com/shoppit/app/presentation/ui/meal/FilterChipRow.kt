@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -37,6 +38,7 @@ import com.shoppit.app.presentation.ui.theme.ShoppitTheme
  * @param onTagToggle Callback when a tag is selected or deselected
  * @param modifier Optional modifier for the chip row
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterChipRow(
     selectedTags: Set<MealTag>,

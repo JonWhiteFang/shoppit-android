@@ -125,26 +125,26 @@
   - Test migration with existing data
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 10. Add unit tests for search and filter logic
-  - [ ] 10.1 Test SearchMealsUseCase
+- [x] 10. Add unit tests for search and filter logic
+  - [x] 10.1 Test SearchMealsUseCase
     - Test search by meal name (case-insensitive)
     - Test search by ingredient name
     - Test empty query returns all meals
     - Test no matches returns empty list
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.1, 2.2, 2.3, 2.4, 2.5_
-  - [ ] 10.2 Test FilterMealsByTagsUseCase
+  - [x] 10.2 Test FilterMealsByTagsUseCase
     - Test single tag filter
     - Test multiple tag filter (AND logic)
     - Test empty tag set returns all meals
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
-  - [ ] 10.3 Test MealViewModel search and filter state
+  - [x] 10.3 Test MealViewModel search and filter state
     - Test updateSearchQuery updates state and applies filters
     - Test toggleTag updates state and applies filters
     - Test clearFilters resets all state
     - Test combined search and filter
     - Test state preservation with SavedStateHandle
     - _Requirements: 1.1, 1.5, 3.1, 3.2, 4.1, 4.2, 4.3, 4.4_
-  - [ ] 10.4 Test MealTagConverter
+  - [x] 10.4 Test MealTagConverter
     - Test conversion from Set<MealTag> to String
     - Test conversion from String to Set<MealTag>
     - Test empty set handling

@@ -5,7 +5,9 @@ import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.usecase.DeleteMealUseCase
 import com.shoppit.app.domain.usecase.FakeMealRepository
+import com.shoppit.app.domain.usecase.FilterMealsByTagsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
+import com.shoppit.app.domain.usecase.SearchMealsUseCase
 import com.shoppit.app.util.ViewModelTest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -30,6 +32,8 @@ class MealViewModelTest : ViewModelTest() {
     private lateinit var repository: FakeMealRepository
     private lateinit var getMealsUseCase: GetMealsUseCase
     private lateinit var deleteMealUseCase: DeleteMealUseCase
+    private lateinit var searchMealsUseCase: SearchMealsUseCase
+    private lateinit var filterMealsByTagsUseCase: FilterMealsByTagsUseCase
     private lateinit var savedStateHandle: SavedStateHandle
     private lateinit var viewModel: MealViewModel
 
@@ -38,6 +42,8 @@ class MealViewModelTest : ViewModelTest() {
         repository = FakeMealRepository()
         getMealsUseCase = GetMealsUseCase(repository)
         deleteMealUseCase = DeleteMealUseCase(repository)
+        searchMealsUseCase = SearchMealsUseCase()
+        filterMealsByTagsUseCase = FilterMealsByTagsUseCase()
         savedStateHandle = SavedStateHandle()
     }
 
@@ -59,7 +65,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setMeals(meals)
 
         // When - ViewModel is created and loads meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Success with meals
@@ -76,7 +82,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setShouldFail(true, Exception("Database connection failed"))
 
         // When - ViewModel is created and tries to load meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Error with message
@@ -101,7 +107,7 @@ class MealViewModelTest : ViewModelTest() {
             )
         )
         repository.setMeals(meals)
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Verify initial state has 2 meals
@@ -131,7 +137,7 @@ class MealViewModelTest : ViewModelTest() {
             )
         )
         repository.setMeals(meals)
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Set repository to fail on next operation
@@ -153,7 +159,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setMeals(emptyList())
 
         // When - ViewModel is created and loads meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Success with empty list
