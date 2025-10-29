@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -19,10 +20,11 @@ import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
 /**
  * Main screen with bottom navigation bar.
  * Provides navigation between main app sections: Meals, Planner, and Shopping.
+ *
+ * @param navController Optional NavController to use. If not provided, creates a new one.
  */
 @Composable
-fun MainScreen() {
-    val navController = rememberNavController()
+fun MainScreen(navController: NavHostController = rememberNavController()) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     

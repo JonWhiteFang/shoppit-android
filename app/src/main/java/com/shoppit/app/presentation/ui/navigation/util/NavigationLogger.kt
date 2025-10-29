@@ -106,4 +106,48 @@ object NavigationLogger {
             Timber.w(logMessage)
         }
     }
+    
+    /**
+     * Logs deep link navigation events.
+     *
+     * @param uri The deep link URI
+     * @param action The intent action (if available)
+     */
+    fun logDeepLink(
+        uri: String,
+        action: String? = null
+    ) {
+        val logMessage = buildString {
+            append("Deep Link: ")
+            append(uri)
+            if (action != null) {
+                append(" | Action: $action")
+            }
+        }
+        
+        Timber.i(logMessage)
+    }
+    
+    /**
+     * Logs navigation from one screen to another.
+     *
+     * @param from The source screen or context
+     * @param to The destination route
+     * @param arguments The arguments passed to the destination
+     */
+    fun logNavigation(
+        from: String,
+        to: String,
+        arguments: Map<String, Any?>? = null
+    ) {
+        val logMessage = buildString {
+            append("Navigation: ")
+            append("$from -> $to")
+            if (arguments != null && arguments.isNotEmpty()) {
+                append(" | Arguments: $arguments")
+            }
+        }
+        
+        Timber.d(logMessage)
+    }
 }

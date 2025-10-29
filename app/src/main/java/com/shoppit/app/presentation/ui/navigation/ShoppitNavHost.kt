@@ -11,6 +11,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
@@ -73,6 +74,11 @@ fun ShoppitNavHost(
             arguments = listOf(
                 navArgument("mealId") {
                     type = NavType.LongType
+                }
+            ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "shoppit://meal/{mealId}"
                 }
             )
         ) { backStackEntry ->
@@ -259,7 +265,17 @@ fun ShoppitNavHost(
         }
         
         // Meal planner screen
-        composable(Screen.MealPlanner.route) {
+        composable(
+            route = Screen.MealPlanner.route,
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "shoppit://planner?date={date}"
+                },
+                navDeepLink {
+                    uriPattern = "shoppit://planner"
+                }
+            )
+        ) {
             MealPlannerScreen(
                 onMealDetailClick = { mealId ->
                     NavigationErrorHandler.safeNavigate(
@@ -273,7 +289,14 @@ fun ShoppitNavHost(
         }
         
         // Shopping list screen
-        composable(Screen.ShoppingList.route) {
+        composable(
+            route = Screen.ShoppingList.route,
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "shoppit://shopping"
+                }
+            )
+        ) {
             ShoppingListScreen(
                 onMealDetailClick = { mealId ->
                     NavigationErrorHandler.safeNavigate(
@@ -411,7 +434,14 @@ fun ShoppitNavHost(
         }
         
         // Shopping mode screen
-        composable(Screen.ShoppingMode.route) {
+        composable(
+            route = Screen.ShoppingMode.route,
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = "shoppit://shopping/mode"
+                }
+            )
+        ) {
             ShoppingModeScreen(
                 onExitShoppingMode = {
                     try {
