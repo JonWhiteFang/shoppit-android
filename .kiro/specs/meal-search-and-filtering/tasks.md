@@ -1,0 +1,171 @@
+# Implementation Plan
+
+- [x] 1. Add tags support to domain model
+  - Create `MealTag` enum with predefined categories (Breakfast, Lunch, Dinner, Vegetarian, Vegan, etc.)
+  - Update `Meal` data class to include `tags: Set<MealTag>` property
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 2. Implement search and filter use cases
+  - [ ] 2.1 Create `SearchMealsUseCase` for filtering by name and ingredients
+    - Implement case-insensitive search logic
+    - Support matching by meal name or any ingredient name
+    - Return filtered list of meals
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ] 2.2 Create `FilterMealsByTagsUseCase` for tag-based filtering
+    - Implement logic to filter meals by selected tags
+    - Support multiple tag selection (AND logic)
+    - Return filtered list of meals
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 3. Update data layer for tag persistence
+  - [ ] 3.1 Add tags column to Room database
+    - Update `MealEntity` to include `tags: String` field
+    - Create `MealTagConverter` for type conversion
+    - Add database migration to add tags column
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+  - [ ] 3.2 Update mappers for tag conversion
+    - Update `MealEntity.toMeal()` to convert tags string to Set<MealTag>
+    - Update `Meal.toEntity()` to convert Set<MealTag> to tags string
+    - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+
+- [ ] 4. Extend ViewModel with search and filter state
+  - [ ] 4.1 Add search query state management
+    - Add `searchQuery` StateFlow to ViewModel
+    - Implement `updateSearchQuery()` function
+    - Save search query to SavedStateHandle for state preservation
+    - _Requirements: 1.1, 1.2, 1.5, 4.2, 4.3_
+  - [ ] 4.2 Add tag filter state management
+    - Add `selectedTags` StateFlow to ViewModel
+    - Implement `toggleTag()` function
+    - Save selected tags to SavedStateHandle for state preservation
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 4.1_
+  - [ ] 4.3 Implement filter application logic
+    - Create `applyFilters()` function to combine search and tag filters
+    - Update UI state with filtered results
+    - Track total count and filtered count
+    - _Requirements: 1.1, 1.2, 1.5, 3.5, 4.3, 4.4_
+  - [ ] 4.4 Add clear filters functionality
+    - Implement `clearFilters()` function to reset search and tags
+    - Update SavedStateHandle when clearing
+    - _Requirements: 4.2, 4.3_
+  - [ ] 4.5 Update MealListUiState
+    - Add `totalCount`, `filteredCount`, and `isFiltered` properties to Success state
+    - _Requirements: 4.3, 4.4_
+
+- [ ] 5. Create search and filter UI components
+  - [ ] 5.1 Create MealSearchBar composable
+    - Implement OutlinedTextField with search icon
+    - Add clear button when query is not empty
+    - Add placeholder text "Search meals or ingredients..."
+    - Add content descriptions for accessibility
+    - _Requirements: 1.1, 1.2, 4.2, 4.3_
+  - [ ] 5.2 Create FilterChipRow composable
+    - Implement horizontal scrolling row of FilterChips
+    - Display all MealTag options
+    - Show selected state with checkmark icon
+    - Add content descriptions for accessibility
+    - _Requirements: 3.1, 3.2, 3.4, 4.1, 4.5_
+  - [ ] 5.3 Create ResultsHeader composable
+    - Display count of filtered results vs total
+    - Show "Clear filters" button when filters are active
+    - Update text based on filter state
+    - _Requirements: 4.3, 4.4_
+
+- [ ] 6. Update MealListScreen with search and filter UI
+  - [ ] 6.1 Integrate search bar into screen layout
+    - Add MealSearchBar at top of screen
+    - Connect to ViewModel's searchQuery state
+    - Wire up onQueryChange callback
+    - _Requirements: 1.1, 1.2, 1.5_
+  - [ ] 6.2 Integrate filter chips into screen layout
+    - Add FilterChipRow below search bar
+    - Connect to ViewModel's selectedTags state
+    - Wire up onTagToggle callback
+    - _Requirements: 3.1, 3.2, 3.4_
+  - [ ] 6.3 Add results header
+    - Add ResultsHeader between filters and meal list
+    - Display filtered count and total count
+    - Wire up clear filters callback
+    - _Requirements: 4.3, 4.4_
+  - [ ] 6.4 Update empty state handling
+    - Show different empty state for no meals vs no results
+    - Provide "Clear filters" action when no results found
+    - _Requirements: 1.4, 4.3_
+  - [ ] 6.5 Update MealListContent signature
+    - Add search and filter parameters
+    - Pass callbacks to child composables
+    - Update all preview composables
+
+- [ ] 7. Add accessibility support
+  - [ ] 7.1 Add content descriptions to all interactive elements
+    - Search bar and clear button
+    - Filter chips with selected state
+    - Clear filters button
+    - _Requirements: 4.1, 4.2_
+  - [ ] 7.2 Add semantic properties for screen readers
+    - Mark results count as live region
+    - Add role descriptions for filter chips
+    - Add state descriptions for selected filters
+    - _Requirements: 4.3_
+  - [ ] 7.3 Implement keyboard navigation support
+    - Ensure tab order is logical (search → filters → list)
+    - Support Enter key for filter chip selection
+    - Support Escape key to clear search
+    - _Requirements: 4.1, 4.2_
+
+- [ ] 8. Update dependency injection
+  - Create or update Hilt modules to provide new use cases
+  - Ensure SearchMealsUseCase and FilterMealsByTagsUseCase are injectable
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+
+- [ ] 9. Handle database migration
+  - Add Room migration to add tags column to meals table
+  - Set default empty string for existing meals
+  - Update database version number
+  - Test migration with existing data
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+
+- [ ] 10. Add unit tests for search and filter logic
+  - [ ] 10.1 Test SearchMealsUseCase
+    - Test search by meal name (case-insensitive)
+    - Test search by ingredient name
+    - Test empty query returns all meals
+    - Test no matches returns empty list
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.1, 2.2, 2.3, 2.4, 2.5_
+  - [ ] 10.2 Test FilterMealsByTagsUseCase
+    - Test single tag filter
+    - Test multiple tag filter (AND logic)
+    - Test empty tag set returns all meals
+    - _Requirements: 3.1, 3.2, 3.3, 3.4_
+  - [ ] 10.3 Test MealViewModel search and filter state
+    - Test updateSearchQuery updates state and applies filters
+    - Test toggleTag updates state and applies filters
+    - Test clearFilters resets all state
+    - Test combined search and filter
+    - Test state preservation with SavedStateHandle
+    - _Requirements: 1.1, 1.5, 3.1, 3.2, 4.1, 4.2, 4.3, 4.4_
+  - [ ] 10.4 Test MealTagConverter
+    - Test conversion from Set<MealTag> to String
+    - Test conversion from String to Set<MealTag>
+    - Test empty set handling
+    - Test invalid tag names are ignored
+    - _Requirements: 5.1, 5.2_
+
+- [ ] 11. Add UI tests for search and filter components
+  - [ ] 11.1 Test MealSearchBar
+    - Test text input updates query
+    - Test clear button appears when query is not empty
+    - Test clear button clears query
+    - _Requirements: 1.1, 1.2, 4.2_
+  - [ ] 11.2 Test FilterChipRow
+    - Test all tags are displayed
+    - Test chip selection toggles state
+    - Test selected chips show checkmark
+    - _Requirements: 3.1, 3.2, 3.4, 4.1_
+  - [ ] 11.3 Test MealListScreen integration
+    - Test search filters meal list
+    - Test tag selection filters meal list
+    - Test combined search and filter
+    - Test clear filters button
+    - Test empty state for no results
+    - _Requirements: 1.1, 1.4, 3.5, 4.3, 4.4_
