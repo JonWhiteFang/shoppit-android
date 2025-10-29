@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
+import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.ErrorScreen
 import com.shoppit.app.presentation.ui.common.LoadingScreen
@@ -47,8 +48,12 @@ import com.shoppit.app.presentation.ui.theme.ShoppitTheme
  * Injects the ViewModel and manages state collection.
  *
  * Requirements:
+ * - 1.1: Display search input field
+ * - 1.5: Preserve search state across navigation
  * - 2.1: Navigate to meal list screen and retrieve all meals
  * - 2.5: Tap meal to navigate to detail screen
+ * - 3.1: Display filter chips for meal tags
+ * - 3.2: Support multiple tag selection
  *
  * @param onMealClick Callback when a meal is clicked
  * @param onAddMealClick Callback when the add meal button is clicked
@@ -63,9 +68,16 @@ fun MealListScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedTags by viewModel.selectedTags.collectAsState()
     
     MealListContent(
         uiState = uiState,
+        searchQuery = searchQuery,
+        selectedTags = selectedTags,
+        onSearchQueryChange = viewModel::updateSearchQuery,
+        onTagToggle = viewModel::toggleTag,
+        onClearFilters = viewModel::clearFilters,
         onMealClick = onMealClick,
         onAddMealClick = onAddMealClick,
         onDeleteMeal = viewModel::deleteMeal,
@@ -78,11 +90,23 @@ fun MealListScreen(
  * Handles different UI states and renders appropriate content.
  *
  * Requirements:
+ * - 1.1: Display search input field
+ * - 1.2: Support real-time search
+ * - 1.4: Display empty state for no results
  * - 2.2: Display meals in alphabetical order
  * - 2.3: Show meal name and ingredient count
  * - 2.4: Display empty state when no meals exist
+ * - 3.1: Display filter chips for meal tags
+ * - 3.2: Support multiple tag selection
+ * - 4.3: Display filtered count vs total count
+ * - 4.4: Show clear filters button
  *
  * @param uiState The current UI state
+ * @param searchQuery Current search query
+ * @param selectedTags Currently selected filter tags
+ * @param onSearchQueryChange Callback when search query changes
+ * @param onTagToggle Callback when a tag is toggled
+ * @param onClearFilters Callback when clear filters is clicked
  * @param onMealClick Callback when a meal is clicked
  * @param onAddMealClick Callback when the add meal button is clicked
  * @param onDeleteMeal Callback when a meal is deleted
@@ -91,6 +115,11 @@ fun MealListScreen(
 @Composable
 fun MealListContent(
     uiState: MealListUiState,
+    searchQuery: String,
+    selectedTags: Set<MealTag>,
+    onSearchQueryChange: (String) -> Unit,
+    onTagToggle: (MealTag) -> Unit,
+    onClearFilters: () -> Unit,
     onMealClick: (Long) -> Unit,
     onAddMealClick: () -> Unit,
     onDeleteMeal: (Long) -> Unit,
@@ -107,36 +136,63 @@ fun MealListContent(
             }
         }
     ) { padding ->
-        when (uiState) {
-            is MealListUiState.Loading -> {
-                LoadingScreen(
-                    modifier = Modifier.padding(padding),
-                    message = "Loading meals..."
-                )
-            }
-            is MealListUiState.Success -> {
-                if (uiState.meals.isEmpty()) {
-                    EmptyState(
-                        message = "No meals yet. Add your first meal to get started!",
-                        actionLabel = "Add Meal",
-                        onActionClick = onAddMealClick,
-                        modifier = Modifier.padding(padding)
-                    )
-                } else {
-                    MealList(
-                        meals = uiState.meals,
-                        onMealClick = onMealClick,
-                        onDeleteMeal = onDeleteMeal,
-                        modifier = Modifier.padding(padding)
+        Column(modifier = Modifier.padding(padding)) {
+            // Search bar
+            MealSearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+                modifier = Modifier.padding(16.dp)
+            )
+            
+            // Filter chips
+            FilterChipRow(
+                selectedTags = selectedTags,
+                onTagToggle = onTagToggle,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            // Content based on state
+            when (uiState) {
+                is MealListUiState.Loading -> {
+                    LoadingScreen(
+                        message = "Loading meals..."
                     )
                 }
-            }
-            is MealListUiState.Error -> {
-                ErrorScreen(
-                    message = uiState.message,
-                    onRetry = null,
-                    modifier = Modifier.padding(padding)
-                )
+                is MealListUiState.Success -> {
+                    if (uiState.meals.isEmpty() && !uiState.isFiltered) {
+                        EmptyState(
+                            message = "No meals yet. Add your first meal to get started!",
+                            actionLabel = "Add Meal",
+                            onActionClick = onAddMealClick
+                        )
+                    } else if (uiState.meals.isEmpty() && uiState.isFiltered) {
+                        EmptyState(
+                            message = "No meals match your search or filters",
+                            actionLabel = "Clear Filters",
+                            onActionClick = onClearFilters
+                        )
+                    } else {
+                        Column {
+                            ResultsHeader(
+                                totalCount = uiState.totalCount,
+                                filteredCount = uiState.filteredCount,
+                                isFiltered = uiState.isFiltered,
+                                onClearFilters = onClearFilters
+                            )
+                            MealList(
+                                meals = uiState.meals,
+                                onMealClick = onMealClick,
+                                onDeleteMeal = onDeleteMeal
+                            )
+                        }
+                    }
+                }
+                is MealListUiState.Error -> {
+                    ErrorScreen(
+                        message = uiState.message,
+                        onRetry = null
+                    )
+                }
             }
         }
     }
@@ -168,7 +224,7 @@ fun MealList(
         state = listState,
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
     ) {
         items(
             items = meals,
@@ -306,6 +362,11 @@ private fun MealListContentLoadingPreview() {
     ShoppitTheme {
         MealListContent(
             uiState = MealListUiState.Loading,
+            searchQuery = "",
+            selectedTags = emptySet(),
+            onSearchQueryChange = {},
+            onTagToggle = {},
+            onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {}
@@ -319,6 +380,11 @@ private fun MealListContentEmptyPreview() {
     ShoppitTheme {
         MealListContent(
             uiState = MealListUiState.Success(emptyList()),
+            searchQuery = "",
+            selectedTags = emptySet(),
+            onSearchQueryChange = {},
+            onTagToggle = {},
+            onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {}
@@ -332,7 +398,7 @@ private fun MealListContentSuccessPreview() {
     ShoppitTheme {
         MealListContent(
             uiState = MealListUiState.Success(
-                listOf(
+                meals = listOf(
                     Meal(
                         id = 1,
                         name = "Spaghetti Carbonara",
@@ -350,8 +416,16 @@ private fun MealListContentSuccessPreview() {
                             Ingredient("Croutons", "1", "cup")
                         )
                     )
-                )
+                ),
+                totalCount = 2,
+                filteredCount = 2,
+                isFiltered = false
             ),
+            searchQuery = "",
+            selectedTags = emptySet(),
+            onSearchQueryChange = {},
+            onTagToggle = {},
+            onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {}
@@ -365,6 +439,65 @@ private fun MealListContentErrorPreview() {
     ShoppitTheme {
         MealListContent(
             uiState = MealListUiState.Error("Failed to load meals. Please try again."),
+            searchQuery = "",
+            selectedTags = emptySet(),
+            onSearchQueryChange = {},
+            onTagToggle = {},
+            onClearFilters = {},
+            onMealClick = {},
+            onAddMealClick = {},
+            onDeleteMeal = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MealListContentWithFiltersPreview() {
+    ShoppitTheme {
+        MealListContent(
+            uiState = MealListUiState.Success(
+                meals = listOf(
+                    Meal(
+                        id = 1,
+                        name = "Spaghetti Carbonara",
+                        ingredients = listOf(
+                            Ingredient("Pasta", "400", "g")
+                        )
+                    )
+                ),
+                totalCount = 10,
+                filteredCount = 1,
+                isFiltered = true
+            ),
+            searchQuery = "pasta",
+            selectedTags = setOf(MealTag.VEGETARIAN),
+            onSearchQueryChange = {},
+            onTagToggle = {},
+            onClearFilters = {},
+            onMealClick = {},
+            onAddMealClick = {},
+            onDeleteMeal = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun MealListContentNoResultsPreview() {
+    ShoppitTheme {
+        MealListContent(
+            uiState = MealListUiState.Success(
+                meals = emptyList(),
+                totalCount = 10,
+                filteredCount = 0,
+                isFiltered = true
+            ),
+            searchQuery = "xyz",
+            selectedTags = emptySet(),
+            onSearchQueryChange = {},
+            onTagToggle = {},
+            onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {}

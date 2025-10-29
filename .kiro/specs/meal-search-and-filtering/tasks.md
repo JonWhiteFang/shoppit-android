@@ -52,46 +52,46 @@
     - Add `totalCount`, `filteredCount`, and `isFiltered` properties to Success state
     - _Requirements: 4.3, 4.4_
 
-- [ ] 5. Create search and filter UI components
-  - [ ] 5.1 Create MealSearchBar composable
+- [x] 5. Create search and filter UI components
+  - [x] 5.1 Create MealSearchBar composable
     - Implement OutlinedTextField with search icon
     - Add clear button when query is not empty
     - Add placeholder text "Search meals or ingredients..."
     - Add content descriptions for accessibility
     - _Requirements: 1.1, 1.2, 4.2, 4.3_
-  - [ ] 5.2 Create FilterChipRow composable
+  - [x] 5.2 Create FilterChipRow composable
     - Implement horizontal scrolling row of FilterChips
     - Display all MealTag options
     - Show selected state with checkmark icon
     - Add content descriptions for accessibility
     - _Requirements: 3.1, 3.2, 3.4, 4.1, 4.5_
-  - [ ] 5.3 Create ResultsHeader composable
+  - [x] 5.3 Create ResultsHeader composable
     - Display count of filtered results vs total
     - Show "Clear filters" button when filters are active
     - Update text based on filter state
     - _Requirements: 4.3, 4.4_
 
-- [ ] 6. Update MealListScreen with search and filter UI
-  - [ ] 6.1 Integrate search bar into screen layout
+- [x] 6. Update MealListScreen with search and filter UI
+  - [x] 6.1 Integrate search bar into screen layout
     - Add MealSearchBar at top of screen
     - Connect to ViewModel's searchQuery state
     - Wire up onQueryChange callback
     - _Requirements: 1.1, 1.2, 1.5_
-  - [ ] 6.2 Integrate filter chips into screen layout
+  - [x] 6.2 Integrate filter chips into screen layout
     - Add FilterChipRow below search bar
     - Connect to ViewModel's selectedTags state
     - Wire up onTagToggle callback
     - _Requirements: 3.1, 3.2, 3.4_
-  - [ ] 6.3 Add results header
+  - [x] 6.3 Add results header
     - Add ResultsHeader between filters and meal list
     - Display filtered count and total count
     - Wire up clear filters callback
     - _Requirements: 4.3, 4.4_
-  - [ ] 6.4 Update empty state handling
+  - [x] 6.4 Update empty state handling
     - Show different empty state for no meals vs no results
     - Provide "Clear filters" action when no results found
     - _Requirements: 1.4, 4.3_
-  - [ ] 6.5 Update MealListContent signature
+  - [x] 6.5 Update MealListContent signature
     - Add search and filter parameters
     - Pass callbacks to child composables
     - Update all preview composables
