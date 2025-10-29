@@ -10,10 +10,12 @@ import com.shoppit.app.domain.usecase.CopyDayPlansUseCase
 import com.shoppit.app.domain.usecase.DeleteMealPlanUseCase
 import com.shoppit.app.domain.usecase.FakeMealPlanRepository
 import com.shoppit.app.domain.usecase.FakeMealRepository
+import com.shoppit.app.domain.usecase.GenerateShoppingListUseCase
 import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.UpdateMealPlanUseCase
 import com.shoppit.app.util.ViewModelTest
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -43,6 +45,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
     private lateinit var deleteMealPlanUseCase: DeleteMealPlanUseCase
     private lateinit var copyDayPlansUseCase: CopyDayPlansUseCase
     private lateinit var clearDayPlansUseCase: ClearDayPlansUseCase
+    private lateinit var generateShoppingListUseCase: GenerateShoppingListUseCase
     private lateinit var viewModel: MealPlannerViewModel
 
     @Before
@@ -57,6 +60,11 @@ class MealPlannerViewModelTest : ViewModelTest() {
         deleteMealPlanUseCase = DeleteMealPlanUseCase(mealPlanRepository)
         copyDayPlansUseCase = CopyDayPlansUseCase(mealPlanRepository)
         clearDayPlansUseCase = ClearDayPlansUseCase(mealPlanRepository)
+        generateShoppingListUseCase = GenerateShoppingListUseCase(
+            shoppingListRepository = mockk(relaxed = true),
+            mealPlanRepository = mealPlanRepository,
+            mealRepository = mealRepository
+        )
     }
 
     @Test
@@ -373,7 +381,8 @@ class MealPlannerViewModelTest : ViewModelTest() {
             updateMealPlanUseCase,
             deleteMealPlanUseCase,
             copyDayPlansUseCase,
-            clearDayPlansUseCase
+            clearDayPlansUseCase,
+            generateShoppingListUseCase
         )
     }
 }

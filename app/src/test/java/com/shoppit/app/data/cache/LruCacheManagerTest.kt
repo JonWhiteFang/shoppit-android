@@ -10,7 +10,7 @@ class LruCacheManagerTest {
     
     @Before
     fun setup() {
-        cacheManager = LruCacheManager(maxSize = 3)
+        cacheManager = LruCacheManager(maxSize = 3, defaultTtl = 60000L)
     }
     
     @Test
@@ -148,6 +148,7 @@ class LruCacheManagerTest {
         var evictedValue: String? = null
         val cacheWithCallback = LruCacheManager<String, String>(
             maxSize = 2,
+            defaultTtl = 60000L,
             onEviction = { key, value ->
                 evictedKey = key
                 evictedValue = value
@@ -168,7 +169,7 @@ class LruCacheManagerTest {
     @Test
     fun `handles null values correctly`() {
         // Given
-        val cacheWithNullable = LruCacheManager<String, String?>(maxSize = 3)
+        val cacheWithNullable = LruCacheManager<String, String?>(maxSize = 3, defaultTtl = 60000L)
         
         // When
         cacheWithNullable.put("key1", null)

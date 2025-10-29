@@ -97,4 +97,30 @@ class FakeMealRepository : MealRepository {
             Result.success(Unit)
         }
     }
+
+    override suspend fun addMeals(meals: List<Meal>): Result<List<Long>> {
+        return if (shouldFail) {
+            Result.failure(failureException)
+        } else {
+            val ids = mutableListOf<Long>()
+            val newMeals = meals.map { meal ->
+                val id = nextId++
+                ids.add(id)
+                meal.copy(id = id)
+            }
+            this.meals.value = this.meals.value + newMeals
+            Result.success(ids)
+        }
+    }
+
+    override fun getMealsPaginated(limit: Int, offset: Int): Flow<Result<List<Meal>>> {
+        return meals.map { mealList ->
+            if (shouldFail) {
+                Result.failure(failureException)
+            } else {
+                val paginated = mealList.drop(offset).take(limit)
+                Result.success(paginated)
+            }
+        }
+    }
 }

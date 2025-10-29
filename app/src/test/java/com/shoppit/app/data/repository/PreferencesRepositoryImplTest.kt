@@ -3,6 +3,7 @@ package com.shoppit.app.data.repository
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.mutablePreferencesOf
 import com.shoppit.app.domain.model.ShoppingModePreferences
@@ -10,9 +11,13 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.slot
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -32,8 +37,14 @@ class PreferencesRepositoryImplTest {
     
     @Before
     fun setup() {
+        mockkStatic("androidx.datastore.preferences.core.PreferencesKt")
         dataStore = mockk()
         repository = PreferencesRepositoryImpl(dataStore)
+    }
+    
+    @After
+    fun tearDown() {
+        unmockkStatic("androidx.datastore.preferences.core.PreferencesKt")
     }
     
     @Test
@@ -88,10 +99,10 @@ class PreferencesRepositoryImplTest {
     @Test
     fun `setShoppingModeEnabled updates preference successfully`() = runTest {
         // Given
-        coEvery { dataStore.edit(any<suspend (Preferences) -> Unit>()) } coAnswers {
-            val prefs = mutablePreferencesOf()
-            firstArg<suspend (Preferences) -> Unit>().invoke(prefs)
-            prefs
+        coEvery { 
+            dataStore.edit(any())
+        } coAnswers {
+            mutablePreferencesOf()
         }
         
         // When
@@ -99,13 +110,13 @@ class PreferencesRepositoryImplTest {
         
         // Then
         assertTrue(result.isSuccess)
-        coVerify { dataStore.edit(any<suspend (Preferences) -> Unit>()) }
+        coVerify { dataStore.edit(any()) }
     }
     
     @Test
     fun `setShoppingModeEnabled returns failure on IOException`() = runTest {
         // Given
-        coEvery { dataStore.edit(any<suspend (Preferences) -> Unit>()) } throws IOException("Write failed")
+        coEvery { dataStore.edit(any()) } throws IOException("Write failed")
         
         // When
         val result = repository.setShoppingModeEnabled(true)
@@ -124,10 +135,10 @@ class PreferencesRepositoryImplTest {
             increasedTextSize = false,
             showOnlyEssentials = false
         )
-        coEvery { dataStore.edit(any<suspend (Preferences) -> Unit>()) } coAnswers {
-            val prefs = mutablePreferencesOf()
-            firstArg<suspend (Preferences) -> Unit>().invoke(prefs)
-            prefs
+        coEvery { 
+            dataStore.edit(any())
+        } coAnswers {
+            mutablePreferencesOf()
         }
         
         // When
@@ -135,14 +146,14 @@ class PreferencesRepositoryImplTest {
         
         // Then
         assertTrue(result.isSuccess)
-        coVerify { dataStore.edit(any<suspend (Preferences) -> Unit>()) }
+        coVerify { dataStore.edit(any()) }
     }
     
     @Test
     fun `updateShoppingModePreferences returns failure on IOException`() = runTest {
         // Given
         val preferences = ShoppingModePreferences(isEnabled = true)
-        coEvery { dataStore.edit(any<suspend (Preferences) -> Unit>()) } throws IOException("Write failed")
+        coEvery { dataStore.edit(any()) } throws IOException("Write failed")
         
         // When
         val result = repository.updateShoppingModePreferences(preferences)
@@ -156,7 +167,7 @@ class PreferencesRepositoryImplTest {
     fun `updateShoppingModePreferences handles unexpected exceptions`() = runTest {
         // Given
         val preferences = ShoppingModePreferences(isEnabled = true)
-        coEvery { dataStore.edit(any<suspend (Preferences) -> Unit>()) } throws RuntimeException("Unexpected error")
+        coEvery { dataStore.edit(any()) } throws RuntimeException("Unexpected error")
         
         // When
         val result = repository.updateShoppingModePreferences(preferences)

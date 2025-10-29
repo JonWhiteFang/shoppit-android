@@ -2,7 +2,7 @@ package com.shoppit.app.data.backup
 
 import android.content.Context
 import android.net.Uri
-import androidx.room.RoomDatabase
+import com.shoppit.app.data.local.database.AppDatabase
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
@@ -13,7 +13,7 @@ import java.io.File
 class BackupManagerTest {
     
     private lateinit var context: Context
-    private lateinit var database: RoomDatabase
+    private lateinit var database: AppDatabase
     private lateinit var backupManager: BackupManagerImpl
     private lateinit var backupDir: File
     

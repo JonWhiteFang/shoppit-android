@@ -1,8 +1,10 @@
 package com.shoppit.app.data.transaction
 
 import androidx.room.RoomDatabase
+import androidx.room.withTransaction
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -14,15 +16,21 @@ class TransactionManagerTest {
     
     @Before
     fun setup() {
+        mockkStatic("androidx.room.RoomDatabaseKt")
         database = mockk(relaxed = true)
         transactionManager = TransactionManagerImpl(database)
+    }
+    
+    @After
+    fun tearDown() {
+        unmockkStatic("androidx.room.RoomDatabaseKt")
     }
     
     @Test
     fun `executeInTransaction returns success when block succeeds`() = runTest {
         // Given
         val expectedValue = "success"
-        coEvery { database.withTransaction(any<suspend () -> String>()) } coAnswers {
+        coEvery { database.withTransaction<String>(any()) } coAnswers {
             val block = firstArg<suspend () -> String>()
             block()
         }
@@ -41,7 +49,7 @@ class TransactionManagerTest {
     fun `executeInTransaction returns failure when block throws exception`() = runTest {
         // Given
         val exception = RuntimeException("Test exception")
-        coEvery { database.withTransaction(any<suspend () -> String>()) } throws exception
+        coEvery { database.withTransaction<String>(any()) } throws exception
         
         // When
         val result = transactionManager.executeInTransaction<String> {
