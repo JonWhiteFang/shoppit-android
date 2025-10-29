@@ -5,13 +5,13 @@
   - Update `Meal` data class to include `tags: Set<MealTag>` property
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 2. Implement search and filter use cases
-  - [ ] 2.1 Create `SearchMealsUseCase` for filtering by name and ingredients
+- [x] 2. Implement search and filter use cases
+  - [x] 2.1 Create `SearchMealsUseCase` for filtering by name and ingredients
     - Implement case-insensitive search logic
     - Support matching by meal name or any ingredient name
     - Return filtered list of meals
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5_
-  - [ ] 2.2 Create `FilterMealsByTagsUseCase` for tag-based filtering
+  - [x] 2.2 Create `FilterMealsByTagsUseCase` for tag-based filtering
     - Implement logic to filter meals by selected tags
     - Support multiple tag selection (AND logic)
     - Return filtered list of meals
