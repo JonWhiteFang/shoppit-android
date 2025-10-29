@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.shopping
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shoppit.app.domain.usecase.AddManualItemUseCase
@@ -29,6 +30,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ShoppingListViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     private val getShoppingListUseCase: GetShoppingListUseCase,
     private val generateShoppingListUseCase: GenerateShoppingListUseCase,
     private val toggleItemCheckedUseCase: ToggleItemCheckedUseCase,
@@ -61,7 +63,25 @@ class ShoppingListViewModel @Inject constructor(
     private val updateItemHistoryUseCase: com.shoppit.app.domain.usecase.UpdateItemHistoryUseCase
 ) : ViewModel() {
     
-    private val _uiState = MutableStateFlow(ShoppingListUiState())
+    // Restore filter and search state from SavedStateHandle
+    // Requirement 6.1, 6.2: Preserve filter and search states across navigation
+    private val initialFilterState = savedStateHandle.get<Boolean>(KEY_FILTER_UNCHECKED_ONLY) ?: false
+    private val initialSearchQuery = savedStateHandle.get<String>(KEY_SEARCH_QUERY) ?: ""
+    private val initialCollapsedCategories = savedStateHandle.get<Set<String>>(KEY_COLLAPSED_CATEGORIES) ?: emptySet()
+    
+    private val _uiState = MutableStateFlow(
+        ShoppingListUiState(
+            filterUncheckedOnly = initialFilterState,
+            searchQuery = initialSearchQuery,
+            collapsedCategories = initialCollapsedCategories.mapNotNull { categoryName ->
+                try {
+                    com.shoppit.app.domain.model.ItemCategory.valueOf(categoryName)
+                } catch (e: IllegalArgumentException) {
+                    null
+                }
+            }.toSet()
+        )
+    )
     val uiState: StateFlow<ShoppingListUiState> = _uiState.asStateFlow()
     
     // In-memory cache for frequent items (Task 11.2 - Performance optimization)
@@ -384,13 +404,17 @@ class ShoppingListViewModel @Inject constructor(
     
     /**
      * Toggles the filter to show only unchecked items.
+     * Requirement 6.2: Save filter state in ViewModel
      */
     fun toggleFilter() {
-        _uiState.update { it.copy(filterUncheckedOnly = !it.filterUncheckedOnly) }
+        val newValue = !uiState.value.filterUncheckedOnly
+        _uiState.update { it.copy(filterUncheckedOnly = newValue) }
+        savedStateHandle[KEY_FILTER_UNCHECKED_ONLY] = newValue
     }
     
     /**
      * Toggles the collapsed state of a category.
+     * Requirement 6.1: Preserve UI state across navigation
      */
     fun toggleCategoryCollapsed(category: com.shoppit.app.domain.model.ItemCategory) {
         _uiState.update { currentState ->
@@ -400,15 +424,22 @@ class ShoppingListViewModel @Inject constructor(
             } else {
                 collapsedCategories.add(category)
             }
-            currentState.copy(collapsedCategories = collapsedCategories)
+            val newCollapsedSet = collapsedCategories.toSet()
+            
+            // Save to SavedStateHandle
+            savedStateHandle[KEY_COLLAPSED_CATEGORIES] = newCollapsedSet.map { it.name }.toSet()
+            
+            currentState.copy(collapsedCategories = newCollapsedSet)
         }
     }
     
     /**
      * Updates the search query.
+     * Requirement 6.2: Save search state in ViewModel
      */
     fun updateSearchQuery(query: String) {
         _uiState.update { it.copy(searchQuery = query) }
+        savedStateHandle[KEY_SEARCH_QUERY] = query
     }
     
     /**
@@ -1212,5 +1243,11 @@ class ShoppingListViewModel @Inject constructor(
      */
     fun clearClipboardData() {
         _uiState.update { it.copy(clipboardData = null) }
+    }
+    
+    companion object {
+        private const val KEY_FILTER_UNCHECKED_ONLY = "filter_unchecked_only"
+        private const val KEY_SEARCH_QUERY = "search_query"
+        private const val KEY_COLLAPSED_CATEGORIES = "collapsed_categories"
     }
 }

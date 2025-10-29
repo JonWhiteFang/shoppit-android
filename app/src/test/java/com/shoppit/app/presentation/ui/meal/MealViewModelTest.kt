@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.meal
 
+import androidx.lifecycle.SavedStateHandle
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.usecase.DeleteMealUseCase
@@ -29,6 +30,7 @@ class MealViewModelTest : ViewModelTest() {
     private lateinit var repository: FakeMealRepository
     private lateinit var getMealsUseCase: GetMealsUseCase
     private lateinit var deleteMealUseCase: DeleteMealUseCase
+    private lateinit var savedStateHandle: SavedStateHandle
     private lateinit var viewModel: MealViewModel
 
     @Before
@@ -36,6 +38,7 @@ class MealViewModelTest : ViewModelTest() {
         repository = FakeMealRepository()
         getMealsUseCase = GetMealsUseCase(repository)
         deleteMealUseCase = DeleteMealUseCase(repository)
+        savedStateHandle = SavedStateHandle()
     }
 
     @Test
@@ -56,7 +59,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setMeals(meals)
 
         // When - ViewModel is created and loads meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Success with meals
@@ -73,7 +76,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setShouldFail(true, Exception("Database connection failed"))
 
         // When - ViewModel is created and tries to load meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Error with message
@@ -98,7 +101,7 @@ class MealViewModelTest : ViewModelTest() {
             )
         )
         repository.setMeals(meals)
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Verify initial state has 2 meals
@@ -128,7 +131,7 @@ class MealViewModelTest : ViewModelTest() {
             )
         )
         repository.setMeals(meals)
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Set repository to fail on next operation
@@ -150,7 +153,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setMeals(emptyList())
 
         // When - ViewModel is created and loads meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Success with empty list

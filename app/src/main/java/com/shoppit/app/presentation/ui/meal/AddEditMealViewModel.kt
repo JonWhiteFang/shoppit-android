@@ -59,6 +59,7 @@ class AddEditMealViewModel @Inject constructor(
     /**
      * Loads an existing meal for editing.
      * Updates UI state with the meal data or shows an error if loading fails.
+     * Requirement 6.3: Handle cases where saved state is unavailable
      *
      * @param id The ID of the meal to load
      */
@@ -66,25 +67,37 @@ class AddEditMealViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
-            getMealByIdUseCase(id).first().fold(
-                onSuccess = { meal ->
-                    _uiState.update { 
-                        it.copy(
-                            meal = meal,
-                            isLoading = false,
-                            error = null
-                        )
+            try {
+                getMealByIdUseCase(id).first().fold(
+                    onSuccess = { meal ->
+                        _uiState.update { 
+                            it.copy(
+                                meal = meal,
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        // Requirement 6.3: Handle cases where saved state is unavailable
+                        // If meal cannot be loaded (e.g., deleted), show error and allow navigation back
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false,
+                                error = error.message ?: "Failed to load meal. The meal may have been deleted."
+                            )
+                        }
                     }
-                },
-                onFailure = { error ->
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            error = error.message ?: "Failed to load meal"
-                        )
-                    }
+                )
+            } catch (e: Exception) {
+                // Requirement 6.3: Handle unexpected errors during state restoration
+                _uiState.update { 
+                    it.copy(
+                        isLoading = false,
+                        error = "Failed to restore meal data. Please try again."
+                    )
                 }
-            )
+            }
         }
     }
 

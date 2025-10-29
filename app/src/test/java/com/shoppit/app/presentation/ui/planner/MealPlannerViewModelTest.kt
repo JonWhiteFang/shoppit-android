@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.planner
 
+import androidx.lifecycle.SavedStateHandle
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealPlan
@@ -382,7 +383,8 @@ class MealPlannerViewModelTest : ViewModelTest() {
             deleteMealPlanUseCase,
             copyDayPlansUseCase,
             clearDayPlansUseCase,
-            generateShoppingListUseCase
+            generateShoppingListUseCase,
+            SavedStateHandle()
         )
     }
 }

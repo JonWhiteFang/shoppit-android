@@ -26,6 +26,11 @@ import com.shoppit.app.presentation.ui.navigation.util.keyboardNavigationShortcu
 /**
  * Main screen with bottom navigation bar.
  * Provides navigation between main app sections: Meals, Planner, and Shopping.
+ * 
+ * Requirements:
+ * - 6.5: Each bottom nav item maintains its own back stack
+ * - 1.3: State preservation when switching between tabs
+ * - 1.4: Back navigation works correctly within each section
  *
  * @param navController Optional NavController to use. If not provided, creates a new one.
  */
@@ -60,14 +65,19 @@ fun MainScreen(navController: NavHostController = rememberNavController()) {
                                 // Start comprehensive performance monitoring
                                 NavigationPerformanceAnalytics.startMonitoring(item.route)
                                 
+                                // Requirement 6.5, 1.3, 1.4: Independent back stacks for bottom navigation
+                                // Each bottom nav item maintains its own back stack with state preservation
                                 navController.navigate(item.route) {
                                     // Pop up to the start destination to avoid building up a large stack
                                     popUpTo(navController.graph.findStartDestination().id) {
+                                        // Requirement 6.5: Save state when navigating away from a section
+                                        // This preserves the back stack and scroll positions
                                         saveState = true
                                     }
                                     // Avoid multiple copies of the same destination
                                     launchSingleTop = true
-                                    // Restore state when reselecting a previously selected item
+                                    // Requirement 1.3: Restore state when reselecting a previously selected item
+                                    // This brings back the entire back stack and UI state
                                     restoreState = true
                                 }
                                 

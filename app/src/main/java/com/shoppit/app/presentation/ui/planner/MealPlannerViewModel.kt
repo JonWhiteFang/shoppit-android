@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.planner
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shoppit.app.domain.model.MealType
@@ -24,6 +25,11 @@ import javax.inject.Inject
 /**
  * ViewModel for the meal planner screen.
  * Manages weekly meal plan state and user interactions.
+ * 
+ * Requirements:
+ * - 6.1: Preserve scroll position and UI state across navigation
+ * - 6.2: Save current week selection in ViewModel
+ * - 6.3: Restore state after process death using SavedStateHandle
  */
 @HiltViewModel
 class MealPlannerViewModel @Inject constructor(
@@ -34,10 +40,18 @@ class MealPlannerViewModel @Inject constructor(
     private val deleteMealPlanUseCase: DeleteMealPlanUseCase,
     private val copyDayPlansUseCase: CopyDayPlansUseCase,
     private val clearDayPlansUseCase: ClearDayPlansUseCase,
-    private val generateShoppingListUseCase: GenerateShoppingListUseCase
+    private val generateShoppingListUseCase: GenerateShoppingListUseCase,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(MealPlannerUiState())
+    // Restore current week from saved state or default to current week
+    private val initialWeekStart = savedStateHandle.get<String>(KEY_CURRENT_WEEK_START)
+        ?.let { LocalDate.parse(it) }
+        ?: LocalDate.now().with(java.time.DayOfWeek.MONDAY)
+
+    private val _uiState = MutableStateFlow(
+        MealPlannerUiState(currentWeekStart = initialWeekStart)
+    )
     val uiState: StateFlow<MealPlannerUiState> = _uiState.asStateFlow()
 
     init {
@@ -103,32 +117,41 @@ class MealPlannerViewModel @Inject constructor(
     }
 
     /**
-     * Navigates to the next week.
+     * Navigates to the next week and saves the state.
+     * Requirement 6.2: Save current week selection
      */
     fun navigateToNextWeek() {
+        val newWeekStart = uiState.value.currentWeekStart.plusWeeks(1)
         _uiState.update {
-            it.copy(currentWeekStart = it.currentWeekStart.plusWeeks(1))
+            it.copy(currentWeekStart = newWeekStart)
         }
+        savedStateHandle[KEY_CURRENT_WEEK_START] = newWeekStart.toString()
         loadWeekData()
     }
 
     /**
-     * Navigates to the previous week.
+     * Navigates to the previous week and saves the state.
+     * Requirement 6.2: Save current week selection
      */
     fun navigateToPreviousWeek() {
+        val newWeekStart = uiState.value.currentWeekStart.minusWeeks(1)
         _uiState.update {
-            it.copy(currentWeekStart = it.currentWeekStart.minusWeeks(1))
+            it.copy(currentWeekStart = newWeekStart)
         }
+        savedStateHandle[KEY_CURRENT_WEEK_START] = newWeekStart.toString()
         loadWeekData()
     }
 
     /**
-     * Navigates to the current week (today).
+     * Navigates to the current week (today) and saves the state.
+     * Requirement 6.2: Save current week selection
      */
     fun navigateToToday() {
+        val newWeekStart = LocalDate.now().with(java.time.DayOfWeek.MONDAY)
         _uiState.update {
-            it.copy(currentWeekStart = LocalDate.now().with(java.time.DayOfWeek.MONDAY))
+            it.copy(currentWeekStart = newWeekStart)
         }
+        savedStateHandle[KEY_CURRENT_WEEK_START] = newWeekStart.toString()
         loadWeekData()
     }
 
@@ -259,5 +282,9 @@ class MealPlannerViewModel @Inject constructor(
             generateShoppingListUseCase()
             // Silently fail - shopping list errors shouldn't block meal planning
         }
+    }
+    
+    companion object {
+        private const val KEY_CURRENT_WEEK_START = "current_week_start"
     }
 }

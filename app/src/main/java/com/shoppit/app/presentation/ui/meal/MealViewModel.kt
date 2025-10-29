@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.meal
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shoppit.app.domain.usecase.DeleteMealUseCase
@@ -23,12 +24,15 @@ import javax.inject.Inject
  * - 2.4: Display empty state when no meals exist
  * - 5.2: Remove meal from database when user confirms deletion
  * - 5.3: Display confirmation message on successful deletion
+ * - 6.1: Preserve scroll position and search state across navigation
+ * - 6.2: Save filter and search states in ViewModels
  * - 8.2: Handle database errors with user-friendly messages
  */
 @HiltViewModel
 class MealViewModel @Inject constructor(
     private val getMealsUseCase: GetMealsUseCase,
-    private val deleteMealUseCase: DeleteMealUseCase
+    private val deleteMealUseCase: DeleteMealUseCase,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     // Private mutable state
@@ -36,6 +40,18 @@ class MealViewModel @Inject constructor(
     
     // Public immutable state
     val uiState: StateFlow<MealListUiState> = _uiState.asStateFlow()
+    
+    // Saved state for search query
+    private val _searchQuery = MutableStateFlow(
+        savedStateHandle.get<String>(KEY_SEARCH_QUERY) ?: ""
+    )
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    
+    // Saved state for filter options
+    private val _filterByIngredientCount = MutableStateFlow(
+        savedStateHandle.get<Boolean>(KEY_FILTER_BY_INGREDIENT_COUNT) ?: false
+    )
+    val filterByIngredientCount: StateFlow<Boolean> = _filterByIngredientCount.asStateFlow()
 
     init {
         loadMeals()
@@ -87,5 +103,29 @@ class MealViewModel @Inject constructor(
                 }
             )
         }
+    }
+    
+    /**
+     * Updates the search query and saves it to SavedStateHandle.
+     * Requirement 6.2: Save search state in ViewModel
+     */
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+        savedStateHandle[KEY_SEARCH_QUERY] = query
+    }
+    
+    /**
+     * Toggles the filter by ingredient count and saves it to SavedStateHandle.
+     * Requirement 6.2: Save filter state in ViewModel
+     */
+    fun toggleFilterByIngredientCount() {
+        val newValue = !_filterByIngredientCount.value
+        _filterByIngredientCount.value = newValue
+        savedStateHandle[KEY_FILTER_BY_INGREDIENT_COUNT] = newValue
+    }
+    
+    companion object {
+        private const val KEY_SEARCH_QUERY = "search_query"
+        private const val KEY_FILTER_BY_INGREDIENT_COUNT = "filter_by_ingredient_count"
     }
 }
