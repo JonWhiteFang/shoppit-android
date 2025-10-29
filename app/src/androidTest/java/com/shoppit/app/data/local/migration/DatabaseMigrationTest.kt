@@ -7,7 +7,8 @@ import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.shoppit.app.data.local.database.ShoppitDatabase
+import com.shoppit.app.data.local.database.AppDatabase
+import com.shoppit.app.data.local.database.migration.MigrationHandlerImpl
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -22,12 +23,13 @@ import java.io.IOException
 class DatabaseMigrationTest {
     
     private val TEST_DB_NAME = "migration_test"
+    private val migrationHandler = MigrationHandlerImpl()
     
     @get:Rule
     val helper: MigrationTestHelper = MigrationTestHelper(
         InstrumentationRegistry.getInstrumentation(),
-        ShoppitDatabase::class.java,
-        emptyList(),
+        AppDatabase::class.java,
+        migrationHandler.getMigrations(),
         FrameworkSQLiteOpenHelperFactory()
     )
     
@@ -40,7 +42,7 @@ class DatabaseMigrationTest {
         // When
         val db = Room.databaseBuilder(
             context,
-            ShoppitDatabase::class.java,
+            AppDatabase::class.java,
             TEST_DB_NAME
         ).build()
         
@@ -70,7 +72,7 @@ class DatabaseMigrationTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val migratedDb = Room.databaseBuilder(
             context,
-            ShoppitDatabase::class.java,
+            AppDatabase::class.java,
             TEST_DB_NAME
         ).build()
         
@@ -97,7 +99,7 @@ class DatabaseMigrationTest {
         // When
         val db = Room.databaseBuilder(
             context,
-            ShoppitDatabase::class.java,
+            AppDatabase::class.java,
             TEST_DB_NAME
         ).build()
         
@@ -126,7 +128,7 @@ class DatabaseMigrationTest {
         // When
         val db = Room.databaseBuilder(
             context,
-            ShoppitDatabase::class.java,
+            AppDatabase::class.java,
             TEST_DB_NAME
         ).build()
         
@@ -169,7 +171,7 @@ class DatabaseMigrationTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val migratedDb = Room.databaseBuilder(
             context,
-            ShoppitDatabase::class.java,
+            AppDatabase::class.java,
             TEST_DB_NAME
         ).build()
         
@@ -182,6 +184,86 @@ class DatabaseMigrationTest {
         assertEquals(100, cursor.getInt(0))
         
         cursor.close()
+        migratedDb.close()
+    }
+    
+    @Test
+    @Throws(IOException::class)
+    fun `migration from 6 to 7 adds tags column with default empty string`() {
+        // Given - Create database at version 6 with test meal
+        val db = helper.createDatabase(TEST_DB_NAME, 6)
+        
+        // Insert test meal without tags column
+        db.execSQL(
+            """
+            INSERT INTO meals (id, name, ingredients, notes, created_at, updated_at)
+            VALUES (1, 'Test Meal', '[]', 'Test notes', ${System.currentTimeMillis()}, ${System.currentTimeMillis()})
+            """.trimIndent()
+        )
+        
+        db.close()
+        
+        // When - Migrate to version 7
+        helper.runMigrationsAndValidate(TEST_DB_NAME, 7, true)
+        
+        // Then - Verify tags column exists with default empty string
+        val migratedDb = helper.runMigrationsAndValidate(TEST_DB_NAME, 7, true)
+        
+        val cursor = migratedDb.query("SELECT id, name, tags FROM meals WHERE id = 1")
+        assertTrue(cursor.moveToFirst())
+        
+        val tagsIndex = cursor.getColumnIndex("tags")
+        assertTrue("tags column should exist", tagsIndex >= 0)
+        
+        val tags = cursor.getString(tagsIndex)
+        assertEquals("tags should default to empty string", "", tags)
+        
+        cursor.close()
+        migratedDb.close()
+    }
+    
+    @Test
+    @Throws(IOException::class)
+    fun `migration from 6 to 7 preserves existing meal data`() {
+        // Given - Create database at version 6 with multiple meals
+        val db = helper.createDatabase(TEST_DB_NAME, 6)
+        
+        val testMeals = listOf(
+            Triple(1L, "Pasta Carbonara", "Delicious pasta"),
+            Triple(2L, "Caesar Salad", "Fresh salad"),
+            Triple(3L, "Grilled Chicken", "Healthy protein")
+        )
+        
+        testMeals.forEach { (id, name, notes) ->
+            db.execSQL(
+                """
+                INSERT INTO meals (id, name, ingredients, notes, created_at, updated_at)
+                VALUES ($id, '$name', '[]', '$notes', ${System.currentTimeMillis()}, ${System.currentTimeMillis()})
+                """.trimIndent()
+            )
+        }
+        
+        db.close()
+        
+        // When - Migrate to version 7
+        val migratedDb = helper.runMigrationsAndValidate(TEST_DB_NAME, 7, true)
+        
+        // Then - Verify all meals are preserved with tags column
+        testMeals.forEach { (id, name, notes) ->
+            val cursor = migratedDb.query("SELECT id, name, notes, tags FROM meals WHERE id = $id")
+            assertTrue("Meal $id should exist", cursor.moveToFirst())
+            
+            val nameIndex = cursor.getColumnIndex("name")
+            val notesIndex = cursor.getColumnIndex("notes")
+            val tagsIndex = cursor.getColumnIndex("tags")
+            
+            assertEquals("Name should be preserved", name, cursor.getString(nameIndex))
+            assertEquals("Notes should be preserved", notes, cursor.getString(notesIndex))
+            assertEquals("Tags should default to empty string", "", cursor.getString(tagsIndex))
+            
+            cursor.close()
+        }
+        
         migratedDb.close()
     }
 }

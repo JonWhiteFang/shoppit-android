@@ -118,7 +118,7 @@
   - Ensure SearchMealsUseCase and FilterMealsByTagsUseCase are injectable
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 9. Handle database migration
+- [x] 9. Handle database migration
   - Add Room migration to add tags column to meals table
   - Set default empty string for existing meals
   - Update database version number
