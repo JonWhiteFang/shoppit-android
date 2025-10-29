@@ -5,6 +5,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -24,6 +26,10 @@ import com.shoppit.app.presentation.ui.meal.MealListScreen
 import com.shoppit.app.presentation.ui.navigation.util.FocusManagementEffect
 import com.shoppit.app.presentation.ui.navigation.util.NavigationErrorHandler
 import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
+import com.shoppit.app.presentation.ui.navigation.util.NavigationPerformanceAnalytics
+import com.shoppit.app.presentation.ui.navigation.util.NavigationPerformanceMonitor
+import com.shoppit.app.presentation.ui.navigation.util.NavigationPreloader
+import com.shoppit.app.presentation.ui.navigation.util.RecordNavigationForPreloading
 import com.shoppit.app.presentation.ui.planner.MealPlannerScreen
 import com.shoppit.app.presentation.ui.shopping.ItemHistoryScreen
 import com.shoppit.app.presentation.ui.shopping.ShoppingListScreen
@@ -52,17 +58,30 @@ fun ShoppitNavHost(
     // Announce screen transitions for accessibility
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+    val previousRoute = remember { mutableStateOf<String?>(null) }
+    
+    // Record navigation for preloading analysis
+    RecordNavigationForPreloading(
+        currentRoute = currentRoute,
+        previousRoute = previousRoute.value
+    )
     
     // Manage focus during screen transitions
     FocusManagementEffect(currentRoute)
     
     LaunchedEffect(currentRoute) {
         currentRoute?.let { route ->
+            // Stop comprehensive performance monitoring
+            NavigationPerformanceAnalytics.stopMonitoring(route)
+            
             val screenName = getScreenNameFromRoute(route)
             NavigationLogger.logNavigationSuccess(
                 route = route,
                 arguments = currentBackStackEntry?.arguments?.keyValueMap()
             )
+            
+            // Update previous route for next navigation
+            previousRoute.value = route
         }
     }
     

@@ -19,6 +19,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.shoppit.app.presentation.ui.navigation.util.NavigationErrorHandler
 import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
+import com.shoppit.app.presentation.ui.navigation.util.NavigationPerformanceAnalytics
 import com.shoppit.app.presentation.ui.navigation.util.SetupKeyboardNavigation
 import com.shoppit.app.presentation.ui.navigation.util.keyboardNavigationShortcuts
 
@@ -56,6 +57,9 @@ fun MainScreen(navController: NavHostController = rememberNavController()) {
                         selected = selected,
                         onClick = {
                             try {
+                                // Start comprehensive performance monitoring
+                                NavigationPerformanceAnalytics.startMonitoring(item.route)
+                                
                                 navController.navigate(item.route) {
                                     // Pop up to the start destination to avoid building up a large stack
                                     popUpTo(navController.graph.findStartDestination().id) {

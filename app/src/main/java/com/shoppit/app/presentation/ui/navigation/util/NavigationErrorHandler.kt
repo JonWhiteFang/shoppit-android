@@ -224,7 +224,7 @@ object NavigationErrorHandler {
     }
     
     /**
-     * Safely navigates to a route with error handling.
+     * Safely navigates to a route with error handling and performance monitoring.
      *
      * @param navController The NavController to use for navigation
      * @param route The route to navigate to
@@ -240,6 +240,9 @@ object NavigationErrorHandler {
         fallbackRoute: String = "meal_list" // Default fallback to meal list
     ) {
         try {
+            // Start comprehensive performance monitoring
+            NavigationPerformanceAnalytics.startMonitoring(route)
+            
             if (navOptions != null) {
                 navController.navigate(route, navOptions)
             } else {
@@ -257,6 +260,7 @@ object NavigationErrorHandler {
             
             // Try fallback navigation
             try {
+                NavigationPerformanceAnalytics.startMonitoring(fallbackRoute)
                 navController.navigate(fallbackRoute)
             } catch (fallbackException: Exception) {
                 NavigationLogger.logNavigationError(
