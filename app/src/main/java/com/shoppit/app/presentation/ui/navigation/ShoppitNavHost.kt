@@ -24,6 +24,7 @@ import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
 import com.shoppit.app.presentation.ui.navigation.util.FocusManagementEffect
+import com.shoppit.app.presentation.ui.navigation.util.NavigationAnalytics
 import com.shoppit.app.presentation.ui.navigation.util.NavigationErrorHandler
 import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
 import com.shoppit.app.presentation.ui.navigation.util.NavigationPerformanceAnalytics
@@ -75,10 +76,20 @@ fun ShoppitNavHost(
             NavigationPerformanceAnalytics.stopMonitoring(route)
             
             val screenName = getScreenNameFromRoute(route)
+            val arguments = currentBackStackEntry?.arguments?.keyValueMap()
+            
             NavigationLogger.logNavigationSuccess(
                 route = route,
-                arguments = currentBackStackEntry?.arguments?.keyValueMap()
+                arguments = arguments
             )
+            
+            // Track screen view in analytics
+            NavigationAnalytics.trackScreenView(route, arguments)
+            
+            // Track navigation path if there was a previous route
+            previousRoute.value?.let { prevRoute ->
+                NavigationAnalytics.trackNavigationPath(prevRoute, route, arguments)
+            }
             
             // Update previous route for next navigation
             previousRoute.value = route
@@ -501,6 +512,23 @@ fun ShoppitNavHost(
                 }
             )
         }
+        
+        // Navigation analytics dashboard screen
+        composable(Screen.AnalyticsDashboard.route) {
+            NavigationAnalyticsDashboard(
+                onClose = {
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from AnalyticsDashboard",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -530,6 +558,7 @@ private fun getScreenNameFromRoute(route: String): String {
         route.startsWith("template_manager") -> "Template Manager"
         route.startsWith("store_section_editor") -> "Store Section Editor"
         route.startsWith("shopping_mode") -> "Shopping Mode"
+        route.startsWith("analytics_dashboard") -> "Analytics Dashboard"
         else -> "Unknown Screen"
     }
 }

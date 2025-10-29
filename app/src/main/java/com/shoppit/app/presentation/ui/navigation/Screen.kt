@@ -70,4 +70,9 @@ sealed class Screen(val route: String) {
      * Shopping mode screen - simplified interface for active shopping
      */
     data object ShoppingMode : Screen("shopping_mode")
+    
+    /**
+     * Navigation analytics dashboard - displays navigation metrics and performance data
+     */
+    data object AnalyticsDashboard : Screen("analytics_dashboard")
 }

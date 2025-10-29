@@ -34,6 +34,14 @@ object NavigationErrorHandler {
             exception = exception
         )
         
+        // Track error in analytics
+        NavigationAnalytics.trackNavigationError(
+            route = route,
+            errorType = "INVALID_ARGUMENTS",
+            message = "Invalid navigation arguments detected",
+            exception = exception
+        )
+        
         // Navigate to fallback route
         try {
             navController.navigate(fallbackRoute)
@@ -64,6 +72,13 @@ object NavigationErrorHandler {
         NavigationLogger.logNavigationError(
             message = "Missing required navigation arguments: ${requiredArgs.joinToString(", ")}",
             route = route
+        )
+        
+        // Track error in analytics
+        NavigationAnalytics.trackNavigationError(
+            route = route,
+            errorType = "MISSING_ARGUMENTS",
+            message = "Missing required arguments: ${requiredArgs.joinToString(", ")}"
         )
         
         // Navigate to fallback route
@@ -99,6 +114,14 @@ object NavigationErrorHandler {
             exception = exception
         )
         
+        // Track error in analytics
+        NavigationAnalytics.trackNavigationError(
+            route = invalidRoute,
+            errorType = "INVALID_ROUTE",
+            message = "Attempted to navigate to invalid route",
+            exception = exception
+        )
+        
         // Navigate to fallback route
         try {
             navController.navigate(fallbackRoute)
@@ -125,6 +148,13 @@ object NavigationErrorHandler {
         NavigationLogger.logNavigationError(
             message = "Navigation failed",
             exception = exception
+        )
+        
+        // Track failure in analytics
+        NavigationAnalytics.trackNavigationFailure(
+            route = "unknown",
+            failureType = "GENERAL_FAILURE",
+            message = exception.message ?: "Navigation failed"
         )
         
         // Try to navigate to a safe fallback route
@@ -255,6 +285,14 @@ object NavigationErrorHandler {
                 message = "Failed to navigate to route",
                 route = route,
                 arguments = arguments,
+                exception = e
+            )
+            
+            // Track error in analytics
+            NavigationAnalytics.trackNavigationError(
+                route = route,
+                errorType = "NAVIGATION_EXCEPTION",
+                message = e.message ?: "Failed to navigate to route",
                 exception = e
             )
             
