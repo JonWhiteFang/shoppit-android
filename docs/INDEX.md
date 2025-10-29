@@ -41,6 +41,27 @@ Located in `docs/architecture/`
 - Coroutines and Flow usage
 - Testing architecture
 
+### Navigation Documentation
+
+Located in `docs/navigation/`
+
+| Document | Description | When to Read |
+|----------|-------------|--------------|
+| [Navigation README](navigation/README.md) | Complete navigation documentation index | When working with navigation |
+| [Navigation Architecture](navigation/NAVIGATION_ARCHITECTURE.md) | Navigation system overview and patterns | Understanding navigation |
+| [Deep Link Configuration](navigation/DEEP_LINK_CONFIGURATION.md) | Deep link setup and testing | Implementing deep links |
+| [Common Scenarios](navigation/COMMON_SCENARIOS.md) | Practical navigation examples | Daily navigation tasks |
+| [Navigation Patterns](navigation/NAVIGATION_PATTERNS.md) | State management patterns | State preservation |
+
+**Topics Covered:**
+- Type-safe navigation with sealed classes
+- Bottom navigation with state preservation
+- Deep link configuration and validation
+- Error handling and recovery strategies
+- Performance monitoring and optimization
+- Accessibility features
+- State management across navigation
+
 ### Development Guides
 
 Located in `docs/guides/`
@@ -119,6 +140,13 @@ Located in `docs/setup/`
 2. Check [State Management](architecture/state-management.md) for ViewModel patterns
 3. Use [Code Style Guide](guides/code-style.md) for composable conventions
 4. Review [Testing Guide](guides/testing.md) for UI testing
+
+#### Work with navigation
+1. Read [Navigation README](navigation/README.md) for overview
+2. Check [Navigation Architecture](navigation/NAVIGATION_ARCHITECTURE.md) for patterns
+3. Review [Common Scenarios](navigation/COMMON_SCENARIOS.md) for examples
+4. Use [Deep Link Configuration](navigation/DEEP_LINK_CONFIGURATION.md) for deep links
+5. Check [Navigation Patterns](navigation/NAVIGATION_PATTERNS.md) for state management
 
 #### Use Hilt DI
 1. Read [Dependency Injection Guide](guides/dependency-injection.md) for comprehensive guide
@@ -201,8 +229,9 @@ Located in `docs/setup/`
 **Essential Reading:**
 1. [Compose Patterns Guide](guides/compose-patterns.md) - Best practices
 2. [State Management](architecture/state-management.md) - ViewModel patterns
-3. [Code Style Guide](guides/code-style.md) - Composable conventions
-4. [Testing Guide](guides/testing.md) - UI testing
+3. [Navigation Architecture](navigation/NAVIGATION_ARCHITECTURE.md) - Navigation patterns
+4. [Code Style Guide](guides/code-style.md) - Composable conventions
+5. [Testing Guide](guides/testing.md) - UI testing
 
 **Quick References:**
 - [Hilt Quick Reference](reference/hilt-quick-reference.md)
@@ -262,7 +291,16 @@ Located in `docs/setup/`
 ### UI Development
 - [Compose Patterns Guide](guides/compose-patterns.md) - Best practices
 - [State Management](architecture/state-management.md) - ViewModel patterns
+- [Navigation Architecture](navigation/NAVIGATION_ARCHITECTURE.md) - Navigation patterns
+- [Navigation Patterns](navigation/NAVIGATION_PATTERNS.md) - State preservation
 - [Code Style Guide](guides/code-style.md) - Composable conventions
+
+### Navigation
+- [Navigation README](navigation/README.md) - Complete navigation index
+- [Navigation Architecture](navigation/NAVIGATION_ARCHITECTURE.md) - System overview
+- [Deep Link Configuration](navigation/DEEP_LINK_CONFIGURATION.md) - Deep link setup
+- [Common Scenarios](navigation/COMMON_SCENARIOS.md) - Practical examples
+- [Navigation Patterns](navigation/NAVIGATION_PATTERNS.md) - State management
 
 ### Data Layer
 - [Database Schema](reference/database-schema.md) - Room entities and DAOs
@@ -389,6 +427,7 @@ Our documentation aims to:
 | Code Style | ✅ Complete | 2024 |
 | Compose Patterns | ✅ Complete | 2024 |
 | MCP Usage | ✅ Complete | 2024 |
+| Navigation Documentation | ✅ Complete | 2024 |
 | Hilt Quick Reference | ✅ Complete | 2024 |
 | Database Schema | ✅ Complete | 2024 |
 | API Reference | ✅ Complete | 2024 |
