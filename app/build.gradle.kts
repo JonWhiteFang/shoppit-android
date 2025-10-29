@@ -124,6 +124,9 @@ dependencies {
     // ML Kit Barcode Scanning
     implementation(libs.mlkit.barcode.scanning)
     
+    // DataStore
+    implementation(libs.datastore.preferences)
+    
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
