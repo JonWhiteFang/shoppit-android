@@ -3,8 +3,11 @@ package com.shoppit.app.presentation.ui.meal
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.domain.usecase.DeleteMealUseCase
+import com.shoppit.app.domain.usecase.FilterMealsByTagsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
+import com.shoppit.app.domain.usecase.SearchMealsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +35,8 @@ import javax.inject.Inject
 class MealViewModel @Inject constructor(
     private val getMealsUseCase: GetMealsUseCase,
     private val deleteMealUseCase: DeleteMealUseCase,
+    private val searchMealsUseCase: SearchMealsUseCase,
+    private val filterMealsByTagsUseCase: FilterMealsByTagsUseCase,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -41,17 +46,20 @@ class MealViewModel @Inject constructor(
     // Public immutable state
     val uiState: StateFlow<MealListUiState> = _uiState.asStateFlow()
     
-    // Saved state for search query
+    // Search query state
     private val _searchQuery = MutableStateFlow(
         savedStateHandle.get<String>(KEY_SEARCH_QUERY) ?: ""
     )
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
     
-    // Saved state for filter options
-    private val _filterByIngredientCount = MutableStateFlow(
-        savedStateHandle.get<Boolean>(KEY_FILTER_BY_INGREDIENT_COUNT) ?: false
+    // Selected tags state
+    private val _selectedTags = MutableStateFlow<Set<MealTag>>(
+        savedStateHandle.get<Set<MealTag>>(KEY_SELECTED_TAGS) ?: emptySet()
     )
-    val filterByIngredientCount: StateFlow<Boolean> = _filterByIngredientCount.asStateFlow()
+    val selectedTags: StateFlow<Set<MealTag>> = _selectedTags.asStateFlow()
+    
+    // All meals from repository (unfiltered)
+    private var allMeals: List<com.shoppit.app.domain.model.Meal> = emptyList()
 
     init {
         loadMeals()
@@ -70,14 +78,17 @@ class MealViewModel @Inject constructor(
                     }
                 }
                 .collect { result ->
-                    _uiState.update {
-                        result.fold(
-                            onSuccess = { meals -> MealListUiState.Success(meals) },
-                            onFailure = { error -> 
+                    result.fold(
+                        onSuccess = { meals ->
+                            allMeals = meals
+                            applyFilters()
+                        },
+                        onFailure = { error -> 
+                            _uiState.update {
                                 MealListUiState.Error(error.message ?: "Failed to load meals")
                             }
-                        )
-                    }
+                        }
+                    )
                 }
         }
     }
@@ -106,26 +117,70 @@ class MealViewModel @Inject constructor(
     }
     
     /**
+     * Applies search and tag filters to the meal list.
+     * Updates UI state with filtered results and counts.
+     */
+    private fun applyFilters() {
+        val query = _searchQuery.value
+        val tags = _selectedTags.value
+        
+        // Apply search filter
+        val searchFiltered = searchMealsUseCase(allMeals, query)
+        
+        // Apply tag filter
+        val tagFiltered = filterMealsByTagsUseCase(searchFiltered, tags)
+        
+        _uiState.update { 
+            MealListUiState.Success(
+                meals = tagFiltered,
+                totalCount = allMeals.size,
+                filteredCount = tagFiltered.size,
+                isFiltered = query.isNotBlank() || tags.isNotEmpty()
+            )
+        }
+    }
+    
+    /**
      * Updates the search query and saves it to SavedStateHandle.
-     * Requirement 6.2: Save search state in ViewModel
+     * Applies filters to update the meal list.
      */
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
         savedStateHandle[KEY_SEARCH_QUERY] = query
+        applyFilters()
     }
     
     /**
-     * Toggles the filter by ingredient count and saves it to SavedStateHandle.
-     * Requirement 6.2: Save filter state in ViewModel
+     * Toggles a tag in the selected tags set.
+     * Adds the tag if not present, removes it if present.
+     * Saves state and applies filters.
      */
-    fun toggleFilterByIngredientCount() {
-        val newValue = !_filterByIngredientCount.value
-        _filterByIngredientCount.value = newValue
-        savedStateHandle[KEY_FILTER_BY_INGREDIENT_COUNT] = newValue
+    fun toggleTag(tag: MealTag) {
+        val currentTags = _selectedTags.value.toMutableSet()
+        if (currentTags.contains(tag)) {
+            currentTags.remove(tag)
+        } else {
+            currentTags.add(tag)
+        }
+        _selectedTags.value = currentTags
+        savedStateHandle[KEY_SELECTED_TAGS] = currentTags
+        applyFilters()
+    }
+    
+    /**
+     * Clears all filters (search query and selected tags).
+     * Resets state and applies filters to show all meals.
+     */
+    fun clearFilters() {
+        _searchQuery.value = ""
+        _selectedTags.value = emptySet()
+        savedStateHandle[KEY_SEARCH_QUERY] = ""
+        savedStateHandle[KEY_SELECTED_TAGS] = emptySet<MealTag>()
+        applyFilters()
     }
     
     companion object {
         private const val KEY_SEARCH_QUERY = "search_query"
-        private const val KEY_FILTER_BY_INGREDIENT_COUNT = "filter_by_ingredient_count"
+        private const val KEY_SELECTED_TAGS = "selected_tags"
     }
 }

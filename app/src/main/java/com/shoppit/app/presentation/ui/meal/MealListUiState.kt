@@ -15,8 +15,16 @@ sealed interface MealListUiState {
     /**
      * Success state - meals have been loaded successfully
      * @property meals List of meals to display
+     * @property totalCount Total number of meals in the library
+     * @property filteredCount Number of meals after applying filters
+     * @property isFiltered Whether any filters are currently active
      */
-    data class Success(val meals: List<Meal>) : MealListUiState
+    data class Success(
+        val meals: List<Meal>,
+        val totalCount: Int = meals.size,
+        val filteredCount: Int = meals.size,
+        val isFiltered: Boolean = false
+    ) : MealListUiState
     
     /**
      * Error state - an error occurred while loading meals

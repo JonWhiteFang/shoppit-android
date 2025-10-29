@@ -28,27 +28,27 @@
     - Update `Meal.toEntity()` to convert Set<MealTag> to tags string
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 4. Extend ViewModel with search and filter state
-  - [ ] 4.1 Add search query state management
+- [x] 4. Extend ViewModel with search and filter state
+  - [x] 4.1 Add search query state management
     - Add `searchQuery` StateFlow to ViewModel
     - Implement `updateSearchQuery()` function
     - Save search query to SavedStateHandle for state preservation
     - _Requirements: 1.1, 1.2, 1.5, 4.2, 4.3_
-  - [ ] 4.2 Add tag filter state management
+  - [x] 4.2 Add tag filter state management
     - Add `selectedTags` StateFlow to ViewModel
     - Implement `toggleTag()` function
     - Save selected tags to SavedStateHandle for state preservation
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 4.1_
-  - [ ] 4.3 Implement filter application logic
+  - [x] 4.3 Implement filter application logic
     - Create `applyFilters()` function to combine search and tag filters
     - Update UI state with filtered results
     - Track total count and filtered count
     - _Requirements: 1.1, 1.2, 1.5, 3.5, 4.3, 4.4_
-  - [ ] 4.4 Add clear filters functionality
+  - [x] 4.4 Add clear filters functionality
     - Implement `clearFilters()` function to reset search and tags
     - Update SavedStateHandle when clearing
     - _Requirements: 4.2, 4.3_
-  - [ ] 4.5 Update MealListUiState
+  - [x] 4.5 Update MealListUiState
     - Add `totalCount`, `filteredCount`, and `isFiltered` properties to Success state
     - _Requirements: 4.3, 4.4_
 
