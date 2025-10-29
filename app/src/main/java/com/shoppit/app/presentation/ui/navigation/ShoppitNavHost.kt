@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.navigation
 
+import android.os.Bundle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,6 +14,8 @@ import androidx.navigation.navArgument
 import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
+import com.shoppit.app.presentation.ui.navigation.util.NavigationErrorHandler
+import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
 import com.shoppit.app.presentation.ui.planner.MealPlannerScreen
 import com.shoppit.app.presentation.ui.shopping.ItemHistoryScreen
 import com.shoppit.app.presentation.ui.shopping.ShoppingListScreen
@@ -47,10 +50,19 @@ fun ShoppitNavHost(
         composable(Screen.MealList.route) {
             MealListScreen(
                 onMealClick = { mealId ->
-                    navController.navigate(Screen.MealDetail.createRoute(mealId))
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.MealDetail.createRoute(mealId),
+                        arguments = mapOf("mealId" to mealId),
+                        fallbackRoute = Screen.MealList.route
+                    )
                 },
                 onAddMealClick = {
-                    navController.navigate(Screen.AddMeal.route)
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.AddMeal.route,
+                        fallbackRoute = Screen.MealList.route
+                    )
                 }
             )
         }
@@ -63,17 +75,80 @@ fun ShoppitNavHost(
                     type = NavType.LongType
                 }
             )
-        ) {
+        ) { backStackEntry ->
+            // Validate arguments
+            val arguments = backStackEntry.arguments
+            val validationErrors = NavigationErrorHandler.validateArguments(
+                arguments = arguments,
+                requiredArgs = listOf("mealId")
+            )
+            
+            if (validationErrors.isNotEmpty()) {
+                NavigationLogger.logNavigationError(
+                    message = "Validation failed for MealDetail screen",
+                    route = Screen.MealDetail.route,
+                    arguments = arguments?.keyValueMap()
+                )
+                
+                // Handle missing arguments
+                NavigationErrorHandler.handleMissingArguments(
+                    navController = navController,
+                    route = Screen.MealDetail.route,
+                    requiredArgs = listOf("mealId"),
+                    fallbackRoute = Screen.MealList.route
+                )
+                return@composable
+            }
+            
+            val mealId = arguments?.getLong("mealId")
+            if (mealId == null || mealId <= 0) {
+                NavigationLogger.logNavigationError(
+                    message = "Invalid mealId argument",
+                    route = Screen.MealDetail.route,
+                    arguments = arguments?.keyValueMap()
+                )
+                
+                // Handle invalid arguments
+                NavigationErrorHandler.handleInvalidArguments(
+                    navController = navController,
+                    route = Screen.MealDetail.route,
+                    arguments = arguments?.keyValueMap() ?: emptyMap(),
+                    fallbackRoute = Screen.MealList.route
+                )
+                return@composable
+            }
+            
             MealDetailScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from MealDetail",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 },
                 onEditClick = { mealId ->
-                    navController.navigate(Screen.EditMeal.createRoute(mealId))
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.EditMeal.createRoute(mealId),
+                        arguments = mapOf("mealId" to mealId),
+                        fallbackRoute = Screen.MealList.route
+                    )
                 },
                 onDeleteClick = { mealId ->
-                    // After deletion, navigate back to meal list
-                    navController.popBackStack()
+                    try {
+                        // After deletion, navigate back to meal list
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to navigate back after meal deletion",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 }
             )
         }
@@ -82,10 +157,26 @@ fun ShoppitNavHost(
         composable(Screen.AddMeal.route) {
             AddEditMealScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from AddMeal",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 },
                 onMealSaved = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to navigate back after meal save",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 }
             )
         }
@@ -98,13 +189,71 @@ fun ShoppitNavHost(
                     type = NavType.LongType
                 }
             )
-        ) {
+        ) { backStackEntry ->
+            // Validate arguments
+            val arguments = backStackEntry.arguments
+            val validationErrors = NavigationErrorHandler.validateArguments(
+                arguments = arguments,
+                requiredArgs = listOf("mealId")
+            )
+            
+            if (validationErrors.isNotEmpty()) {
+                NavigationLogger.logNavigationError(
+                    message = "Validation failed for EditMeal screen",
+                    route = Screen.EditMeal.route,
+                    arguments = arguments?.keyValueMap()
+                )
+                
+                // Handle missing arguments
+                NavigationErrorHandler.handleMissingArguments(
+                    navController = navController,
+                    route = Screen.EditMeal.route,
+                    requiredArgs = listOf("mealId"),
+                    fallbackRoute = Screen.MealList.route
+                )
+                return@composable
+            }
+            
+            val mealId = arguments?.getLong("mealId")
+            if (mealId == null || mealId <= 0) {
+                NavigationLogger.logNavigationError(
+                    message = "Invalid mealId argument for EditMeal",
+                    route = Screen.EditMeal.route,
+                    arguments = arguments?.keyValueMap()
+                )
+                
+                // Handle invalid arguments
+                NavigationErrorHandler.handleInvalidArguments(
+                    navController = navController,
+                    route = Screen.EditMeal.route,
+                    arguments = arguments?.keyValueMap() ?: emptyMap(),
+                    fallbackRoute = Screen.MealList.route
+                )
+                return@composable
+            }
+            
             AddEditMealScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from EditMeal",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 },
                 onMealSaved = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to navigate back after meal edit save",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 }
             )
         }
@@ -113,7 +262,12 @@ fun ShoppitNavHost(
         composable(Screen.MealPlanner.route) {
             MealPlannerScreen(
                 onMealDetailClick = { mealId ->
-                    navController.navigate(Screen.MealDetail.createRoute(mealId))
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.MealDetail.createRoute(mealId),
+                        arguments = mapOf("mealId" to mealId),
+                        fallbackRoute = Screen.MealPlanner.route
+                    )
                 }
             )
         }
@@ -122,19 +276,40 @@ fun ShoppitNavHost(
         composable(Screen.ShoppingList.route) {
             ShoppingListScreen(
                 onMealDetailClick = { mealId ->
-                    navController.navigate(Screen.MealDetail.createRoute(mealId))
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.MealDetail.createRoute(mealId),
+                        arguments = mapOf("mealId" to mealId),
+                        fallbackRoute = Screen.ShoppingList.route
+                    )
                 },
                 onNavigateToHistory = {
-                    navController.navigate(Screen.ItemHistory.route)
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.ItemHistory.route,
+                        fallbackRoute = Screen.ShoppingList.route
+                    )
                 },
                 onNavigateToTemplates = {
-                    navController.navigate(Screen.TemplateManager.route)
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.TemplateManager.route,
+                        fallbackRoute = Screen.ShoppingList.route
+                    )
                 },
                 onNavigateToSectionEditor = {
-                    navController.navigate(Screen.StoreSectionEditor.route)
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.StoreSectionEditor.route,
+                        fallbackRoute = Screen.ShoppingList.route
+                    )
                 },
                 onNavigateToShoppingMode = {
-                    navController.navigate(Screen.ShoppingMode.route)
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.ShoppingMode.route,
+                        fallbackRoute = Screen.ShoppingList.route
+                    )
                 }
             )
         }
@@ -148,12 +323,28 @@ fun ShoppitNavHost(
                 historyItems = uiState.frequentItems,
                 isLoading = uiState.isLoadingHistory,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from ItemHistory",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 },
                 onItemClick = { historyItem ->
                     // Add item from history to shopping list
                     // This would need a method in ViewModel
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to navigate back from ItemHistory item click",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 }
             )
         }
@@ -167,7 +358,15 @@ fun ShoppitNavHost(
                 templates = uiState.templates,
                 isLoading = uiState.isLoadingTemplates,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from TemplateManager",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 },
                 onCreateTemplate = { name, description ->
                     // Create template - would need a method in ViewModel
@@ -190,7 +389,15 @@ fun ShoppitNavHost(
                 sections = uiState.storeSections,
                 isLoading = uiState.isLoading,
                 onNavigateBack = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from StoreSectionEditor",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 },
                 onReorderSections = { sections ->
                     // Update section order through repository
@@ -207,9 +414,28 @@ fun ShoppitNavHost(
         composable(Screen.ShoppingMode.route) {
             ShoppingModeScreen(
                 onExitShoppingMode = {
-                    navController.popBackStack()
+                    try {
+                        navController.popBackStack()
+                    } catch (e: Exception) {
+                        NavigationLogger.logNavigationError(
+                            message = "Failed to pop back stack from ShoppingMode",
+                            exception = e
+                        )
+                        NavigationErrorHandler.handleNavigationFailure(navController, e)
+                    }
                 }
             )
         }
     }
+}
+
+/**
+ * Extension function to convert Bundle to Map for logging purposes.
+ */
+private fun Bundle.keyValueMap(): Map<String, Any?> {
+    val map = mutableMapOf<String, Any?>()
+    for (key in this.keySet()) {
+        map[key] = this.get(key)
+    }
+    return map
 }

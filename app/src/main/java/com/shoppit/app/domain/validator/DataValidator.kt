@@ -96,7 +96,7 @@ fun ValidationResult.toResult(): Result<Unit> {
     return when (this) {
         is ValidationResult.Valid -> Result.success(Unit)
         is ValidationResult.Invalid -> {
-            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
+            val message = validationErrors.joinToString("; ") { "${it.field}: ${it.message}" }
             Result.failure(ValidationException(message))
         }
     }
@@ -116,7 +116,7 @@ inline fun <R> ValidationResult.fold(
     return when (this) {
         is ValidationResult.Valid -> onSuccess()
         is ValidationResult.Invalid -> {
-            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
+            val message = validationErrors.joinToString("; ") { "${it.field}: ${it.message}" }
             onFailure(ValidationException(message))
         }
     }

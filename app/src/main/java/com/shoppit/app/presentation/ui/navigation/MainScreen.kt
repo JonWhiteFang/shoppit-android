@@ -13,6 +13,8 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.shoppit.app.presentation.ui.navigation.util.NavigationErrorHandler
+import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
 
 /**
  * Main screen with bottom navigation bar.
@@ -37,15 +39,31 @@ fun MainScreen() {
                         label = { Text(item.title) },
                         selected = selected,
                         onClick = {
-                            navController.navigate(item.route) {
-                                // Pop up to the start destination to avoid building up a large stack
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                            try {
+                                navController.navigate(item.route) {
+                                    // Pop up to the start destination to avoid building up a large stack
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    // Avoid multiple copies of the same destination
+                                    launchSingleTop = true
+                                    // Restore state when reselecting a previously selected item
+                                    restoreState = true
                                 }
-                                // Avoid multiple copies of the same destination
-                                launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
+                                
+                                NavigationLogger.logNavigationSuccess(
+                                    route = item.route,
+                                    arguments = null
+                                )
+                            } catch (e: Exception) {
+                                NavigationLogger.logNavigationError(
+                                    message = "Failed to navigate to bottom navigation item",
+                                    route = item.route,
+                                    exception = e
+                                )
+                                
+                                // Handle navigation failure with recovery
+                                NavigationErrorHandler.handleNavigationFailure(navController, e)
                             }
                         }
                     )
