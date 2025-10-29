@@ -55,8 +55,9 @@ Follow these patterns strictly:
   - `[Feature]ViewModel.kt`: Extends `ViewModel`, exposes `StateFlow<UiState>`
   - `[Feature]UiState.kt`: Sealed class or data class for UI state
 - **common/**: Reusable composables (ErrorScreen, LoadingScreen, etc.)
-- **navigation/**: NavHost setup and navigation routes
+- **navigation/**: NavHost setup, navigation routes, and deep link configuration
 - **theme/**: Material3 theme configuration
+- **accessibility/**: Accessibility utilities and keyboard navigation handlers
 
 ### DI Layer (`di/`)
 - **DatabaseModule.kt**: Provides Room database and DAOs

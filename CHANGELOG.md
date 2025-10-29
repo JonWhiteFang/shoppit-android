@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Navigation system with bottom navigation
+  - Type-safe navigation with sealed classes
+  - Bottom navigation bar with Meals, Planner, and Shopping tabs
+  - State preservation across navigation
+  - Deep link support for all screens
+  - Comprehensive navigation documentation
+- Accessibility features
+  - TalkBack support with screen transition announcements
+  - Keyboard navigation with shortcuts (Alt+1/2/3, Escape)
+  - Content descriptions for all navigation elements
+  - Focus management and logical tab order
+  - Accessibility testing infrastructure
 - Meal planning feature documentation
   - Database schema updated to version 3 with MealPlanEntity
   - MealPlanDao with queries for weekly and daily meal plans
@@ -43,12 +55,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dependency Injection guide with Hilt patterns
   - Architecture overview with Clean Architecture principles
   - Detailed design documentation
+  - Navigation documentation (architecture, deep links, common scenarios, patterns)
+  - Accessibility documentation for navigation
   - Testing guide with unit, integration, and UI test patterns
   - Git workflow guide with branching and commit conventions
   - Code style guide with Kotlin conventions
   - Compose patterns guide with best practices
   - MCP usage guide for tool integration
-  - Quick reference guides for Hilt, database schema, API, and Gradle commands
+  - Quick reference guides for Hilt, database schema, API, meal planning, and Gradle commands
   - Updated README with accurate tech stack and project structure
   - Enhanced CONTRIBUTING guide with detailed workflow
 

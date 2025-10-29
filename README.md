@@ -5,10 +5,11 @@ An offline-first Android application for meal planning and automated shopping li
 ## Features
 
 - 📝 **Meal Management** - Save meals with ingredients ✅ Implemented
-- 📅 **Weekly Planning** - Plan meals for the week 🚧 In Progress
+- 📅 **Weekly Planning** - Plan meals for the week ✅ Implemented
 - 🛒 **Smart Shopping Lists** - Auto-generate shopping lists from meal plans 📋 Planned
 - 📱 **Offline-First** - Works without internet, syncs when available ✅ Implemented
-- 🎨 **Material Design 3** - Modern, beautiful UI ✅ Implemented
+- 🎨 **Material Design 3** - Modern, beautiful UI with bottom navigation ✅ Implemented
+- ♿ **Accessibility** - Full TalkBack and keyboard navigation support ✅ Implemented
 
 ## Tech Stack
 
@@ -131,6 +132,13 @@ Comprehensive documentation is available in the `docs/` directory:
   - [Detailed Design](docs/architecture/detailed-design.md) - Comprehensive architecture specification
   - [Data Flow](docs/architecture/data-flow.md) - Data movement patterns
   - [State Management](docs/architecture/state-management.md) - State handling patterns
+- **Navigation**
+  - [Navigation README](docs/navigation/README.md) - Complete navigation documentation
+  - [Navigation Architecture](docs/navigation/NAVIGATION_ARCHITECTURE.md) - Navigation patterns
+  - [Deep Link Configuration](docs/navigation/DEEP_LINK_CONFIGURATION.md) - Deep link setup
+  - [Common Scenarios](docs/navigation/COMMON_SCENARIOS.md) - Practical examples
+- **Accessibility**
+  - [Navigation Accessibility](docs/accessibility/NAVIGATION_ACCESSIBILITY.md) - TalkBack and keyboard support
 - **Development Guides**
   - [Dependency Injection](docs/guides/dependency-injection.md) - Hilt DI guide
   - [Testing Guide](docs/guides/testing.md) - Testing strategies and patterns
@@ -142,6 +150,7 @@ Comprehensive documentation is available in the `docs/` directory:
   - [Hilt Quick Reference](docs/reference/hilt-quick-reference.md) - DI patterns
   - [Database Schema](docs/reference/database-schema.md) - Room schema
   - [API Reference](docs/reference/api-reference.md) - Use cases and repositories
+  - [Meal Planning API](docs/reference/meal-planning-api.md) - Meal planning models
   - [Gradle Commands](docs/reference/gradle-commands.md) - Common commands
 
 ## Contributing
