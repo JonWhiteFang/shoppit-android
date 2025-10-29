@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.presentation.ui.common.LoadingScreen
+import com.shoppit.app.presentation.ui.navigation.util.UnsavedChangesBackHandler
 import com.shoppit.app.presentation.ui.theme.ShoppitTheme
 
 /**
@@ -53,6 +54,7 @@ import com.shoppit.app.presentation.ui.theme.ShoppitTheme
  * Requirements:
  * - 1.1: Create new meals with ingredient lists
  * - 4.1: Pre-populate form with existing meal data in edit mode
+ * - 5.3: Show confirmation when navigating back from forms with unsaved data
  *
  * @param onNavigateBack Callback when navigation back is requested
  * @param onMealSaved Callback when meal is successfully saved
@@ -78,6 +80,12 @@ fun AddEditMealScreen(
             }
         }
     }
+    
+    // Requirement 5.3: Handle back navigation with unsaved changes
+    UnsavedChangesBackHandler(
+        hasUnsavedChanges = uiState.hasUnsavedChanges(),
+        onConfirmBack = onNavigateBack
+    )
     
     AddEditMealContent(
         uiState = uiState,

@@ -3,6 +3,7 @@ package com.shoppit.app.presentation
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -13,8 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.shoppit.app.presentation.ui.navigation.MainScreen
+import com.shoppit.app.presentation.ui.navigation.util.BackPressHandler
 import com.shoppit.app.presentation.ui.navigation.util.DeepLinkHandler
 import com.shoppit.app.presentation.ui.theme.ShoppitTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,6 +28,8 @@ import dagger.hilt.android.AndroidEntryPoint
  * Handles deep links from external sources and notifications.
  *
  * Requirements:
+ * - 5.1: Back button pops navigation stack correctly on detail screens
+ * - 5.2: Exit app when back is pressed on main screens
  * - 8.1: Navigate directly to specified screen from deep links
  * - 8.4: Handle deep links while app is running
  * - 8.5: Support deep links from external sources and notifications
@@ -43,11 +48,24 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     var deepLinkIntent by remember { mutableStateOf(intent) }
                     
+                    // Get current route for back press handling
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+                    
                     // Handle deep link on initial launch
                     LaunchedEffect(deepLinkIntent) {
                         if (deepLinkIntent?.data != null) {
                             DeepLinkHandler.handleDeepLink(deepLinkIntent, navController)
                         }
+                    }
+                    
+                    // Requirement 5.1, 5.2: Consistent back button handling
+                    BackHandler {
+                        BackPressHandler.handleBackPress(
+                            navController = navController,
+                            currentRoute = currentRoute,
+                            onExitApp = { finish() }
+                        )
                     }
                     
                     MainScreen(navController = navController)
@@ -73,11 +91,24 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     
+                    // Get current route for back press handling
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
+                    
                     // Handle deep link from new intent
                     LaunchedEffect(intent) {
                         if (intent.data != null) {
                             DeepLinkHandler.handleDeepLink(intent, navController)
                         }
+                    }
+                    
+                    // Requirement 5.1, 5.2: Consistent back button handling
+                    BackHandler {
+                        BackPressHandler.handleBackPress(
+                            navController = navController,
+                            currentRoute = currentRoute,
+                            onExitApp = { finish() }
+                        )
                     }
                     
                     MainScreen(navController = navController)

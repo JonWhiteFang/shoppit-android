@@ -1,6 +1,6 @@
 package com.shoppit.app.presentation.ui.navigation.util
 
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
 import com.shoppit.app.domain.error.AppError
 import timber.log.Timber
@@ -8,20 +8,24 @@ import timber.log.Timber
 /**
  * Utility object for handling navigation errors and providing fallback mechanisms.
  * Implements error recovery strategies for common navigation issues.
+ * 
+ * Requirements:
+ * - 5.5: Prevent circular navigation loops
+ * - 10.5: Reset to default starting screen if back stack becomes corrupted
  */
 object NavigationErrorHandler {
     
     /**
      * Handles invalid navigation arguments by providing fallback navigation.
      *
-     * @param navController The NavController to use for navigation
+     * @param navController The NavHostController to use for navigation
      * @param route The route that failed
      * @param arguments The arguments that were invalid
      * @param fallbackRoute The route to navigate to as fallback
      * @param exception The exception that occurred (if available)
      */
     fun handleInvalidArguments(
-        navController: NavController,
+        navController: NavHostController,
         route: String,
         arguments: Map<String, Any?>,
         fallbackRoute: String,
@@ -58,13 +62,13 @@ object NavigationErrorHandler {
     /**
      * Handles missing required navigation arguments.
      *
-     * @param navController The NavController to use for navigation
+     * @param navController The NavHostController to use for navigation
      * @param route The route that is missing arguments
      * @param requiredArgs The list of required argument names
      * @param fallbackRoute The route to navigate to as fallback
      */
     fun handleMissingArguments(
-        navController: NavController,
+        navController: NavHostController,
         route: String,
         requiredArgs: List<String>,
         fallbackRoute: String
@@ -97,13 +101,13 @@ object NavigationErrorHandler {
     /**
      * Handles navigation to invalid or non-existent routes.
      *
-     * @param navController The NavController to use for navigation
+     * @param navController The NavHostController to use for navigation
      * @param invalidRoute The route that doesn't exist
      * @param fallbackRoute The route to navigate to as fallback
      * @param exception The exception that occurred (if available)
      */
     fun handleInvalidRoute(
-        navController: NavController,
+        navController: NavHostController,
         invalidRoute: String,
         fallbackRoute: String,
         exception: Throwable? = null
@@ -138,11 +142,11 @@ object NavigationErrorHandler {
     /**
      * Handles general navigation failures.
      *
-     * @param navController The NavController to use for navigation
+     * @param navController The NavHostController to use for navigation
      * @param exception The exception that occurred
      */
     fun handleNavigationFailure(
-        navController: NavController,
+        navController: NavHostController,
         exception: Throwable
     ) {
         NavigationLogger.logNavigationError(
@@ -189,12 +193,16 @@ object NavigationErrorHandler {
     
     /**
      * Handles corrupted back stack by attempting to recover.
+     * 
+     * Requirements:
+     * - 5.5: Validate back stack to prevent circular references
+     * - 10.5: Reset to default starting screen if back stack becomes corrupted
      *
-     * @param navController The NavController to use for navigation
+     * @param navController The NavHostController to use for navigation
      * @param exception The exception that indicated back stack corruption
      */
     fun handleCorruptedBackStack(
-        navController: NavController,
+        navController: NavHostController,
         exception: Throwable
     ) {
         NavigationLogger.logBackStackRecovery(
@@ -203,12 +211,32 @@ object NavigationErrorHandler {
         )
         
         try {
-            // Try to reset to a known good state
+            // Requirement 5.5: Validate and fix back stack issues
+            val validationResult = BackStackValidator.validateBackStack(navController)
+            
+            if (!validationResult.isValid) {
+                NavigationLogger.logNavigationError(
+                    message = "Back stack validation failed",
+                    arguments = mapOf("issues" to validationResult.issues.joinToString(", "))
+                )
+                
+                // Try to fix the issues
+                val fixed = BackStackValidator.fixBackStackIssues(navController)
+                
+                if (fixed) {
+                    NavigationLogger.logBackStackRecovery(
+                        message = "Successfully fixed back stack issues"
+                    )
+                    return
+                }
+            }
+            
+            // Requirement 10.5: Reset to default starting screen if back stack is corrupted
             val graph = navController.graph
             navController.navigate(graph.startDestinationId)
             
             NavigationLogger.logBackStackRecovery(
-                message = "Successfully recovered from corrupted back stack"
+                message = "Successfully recovered from corrupted back stack by resetting to start"
             )
         } catch (e: Exception) {
             NavigationLogger.logNavigationError(
@@ -255,21 +283,43 @@ object NavigationErrorHandler {
     
     /**
      * Safely navigates to a route with error handling and performance monitoring.
+     * 
+     * Requirements:
+     * - 5.5: Prevent circular navigation loops
      *
-     * @param navController The NavController to use for navigation
+     * @param navController The NavHostController to use for navigation
      * @param route The route to navigate to
      * @param arguments The arguments to pass (if any)
      * @param navOptions Configuration for the navigation
      * @param fallbackRoute Route to navigate to if this navigation fails
      */
     fun safeNavigate(
-        navController: NavController,
+        navController: NavHostController,
         route: String,
         arguments: Map<String, Any?>? = null,
         navOptions: (NavOptionsBuilder.() -> Unit)? = null,
         fallbackRoute: String = "meal_list" // Default fallback to meal list
     ) {
         try {
+            // Requirement 5.5: Check if navigation would create a circular loop
+            if (BackStackValidator.wouldCreateLoop(navController, route)) {
+                NavigationLogger.logNavigationError(
+                    message = "Prevented circular navigation loop",
+                    route = route,
+                    arguments = arguments
+                )
+                
+                // Track error in analytics
+                NavigationAnalytics.trackNavigationError(
+                    route = route,
+                    errorType = "CIRCULAR_LOOP_PREVENTED",
+                    message = "Navigation would create circular loop"
+                )
+                
+                // Don't navigate, just return
+                return
+            }
+            
             // Start comprehensive performance monitoring
             NavigationPerformanceAnalytics.startMonitoring(route)
             

@@ -1,7 +1,7 @@
 package com.shoppit.app.presentation.ui.navigation.util
 
 import android.os.Bundle
-import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import androidx.navigation.NavGraph
 import androidx.navigation.NavOptionsBuilder
 import io.mockk.every
@@ -14,7 +14,7 @@ import org.junit.Test
 
 class NavigationErrorHandlerTest {
     
-    private lateinit var navController: NavController
+    private lateinit var navController: NavHostController
     private lateinit var navGraph: NavGraph
     
     @Before

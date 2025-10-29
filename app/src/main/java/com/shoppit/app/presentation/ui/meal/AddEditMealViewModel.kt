@@ -73,6 +73,7 @@ class AddEditMealViewModel @Inject constructor(
                         _uiState.update { 
                             it.copy(
                                 meal = meal,
+                                originalMeal = meal, // Store original for change tracking
                                 isLoading = false,
                                 error = null
                             )
