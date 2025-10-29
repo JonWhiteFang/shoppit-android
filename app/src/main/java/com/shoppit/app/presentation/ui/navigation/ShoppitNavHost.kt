@@ -2,19 +2,26 @@ package com.shoppit.app.presentation.ui.navigation
 
 import android.os.Bundle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
+import com.shoppit.app.presentation.ui.navigation.util.FocusManagementEffect
 import com.shoppit.app.presentation.ui.navigation.util.NavigationErrorHandler
 import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
 import com.shoppit.app.presentation.ui.planner.MealPlannerScreen
@@ -42,10 +49,29 @@ fun ShoppitNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    // Announce screen transitions for accessibility
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    
+    // Manage focus during screen transitions
+    FocusManagementEffect(currentRoute)
+    
+    LaunchedEffect(currentRoute) {
+        currentRoute?.let { route ->
+            val screenName = getScreenNameFromRoute(route)
+            NavigationLogger.logNavigationSuccess(
+                route = route,
+                arguments = currentBackStackEntry?.arguments?.keyValueMap()
+            )
+        }
+    }
+    
     NavHost(
         navController = navController,
         startDestination = Screen.MealList.route,
-        modifier = modifier
+        modifier = modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        }
     ) {
         // Meal list screen - starting destination
         composable(Screen.MealList.route) {
@@ -468,4 +494,23 @@ private fun Bundle.keyValueMap(): Map<String, Any?> {
         map[key] = this.get(key)
     }
     return map
+}
+
+/**
+ * Helper function to get human-readable screen name from route for accessibility announcements.
+ */
+private fun getScreenNameFromRoute(route: String): String {
+    return when {
+        route.startsWith("meal_list") -> "Meal List"
+        route.startsWith("meal_detail") -> "Meal Detail"
+        route.startsWith("add_meal") -> "Add Meal"
+        route.startsWith("edit_meal") -> "Edit Meal"
+        route.startsWith("meal_planner") -> "Meal Planner"
+        route.startsWith("shopping_list") -> "Shopping List"
+        route.startsWith("item_history") -> "Item History"
+        route.startsWith("template_manager") -> "Template Manager"
+        route.startsWith("store_section_editor") -> "Store Section Editor"
+        route.startsWith("shopping_mode") -> "Shopping Mode"
+        else -> "Unknown Screen"
+    }
 }
