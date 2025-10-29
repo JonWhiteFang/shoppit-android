@@ -125,18 +125,22 @@ fun MealListContent(
     onDeleteMeal: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        modifier = modifier,
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddMealClick) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add meal"
-                )
+    MealListKeyboardHandler(
+        searchQuery = searchQuery,
+        onClearSearch = { onSearchQueryChange("") },
+        modifier = modifier
+    ) {
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(onClick = onAddMealClick) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Add meal"
+                    )
+                }
             }
-        }
-    ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding)) {
             // Search bar
             MealSearchBar(
                 query = searchQuery,
@@ -194,6 +198,7 @@ fun MealListContent(
                     )
                 }
             }
+        }
         }
     }
 }

@@ -96,24 +96,24 @@
     - Pass callbacks to child composables
     - Update all preview composables
 
-- [ ] 7. Add accessibility support
-  - [ ] 7.1 Add content descriptions to all interactive elements
+- [x] 7. Add accessibility support
+  - [x] 7.1 Add content descriptions to all interactive elements
     - Search bar and clear button
     - Filter chips with selected state
     - Clear filters button
     - _Requirements: 4.1, 4.2_
-  - [ ] 7.2 Add semantic properties for screen readers
+  - [x] 7.2 Add semantic properties for screen readers
     - Mark results count as live region
     - Add role descriptions for filter chips
     - Add state descriptions for selected filters
     - _Requirements: 4.3_
-  - [ ] 7.3 Implement keyboard navigation support
+  - [x] 7.3 Implement keyboard navigation support
     - Ensure tab order is logical (search → filters → list)
     - Support Enter key for filter chip selection
     - Support Escape key to clear search
     - _Requirements: 4.1, 4.2_
 
-- [ ] 8. Update dependency injection
+- [x] 8. Update dependency injection
   - Create or update Hilt modules to provide new use cases
   - Ensure SearchMealsUseCase and FilterMealsByTagsUseCase are injectable
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
