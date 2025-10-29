@@ -8,7 +8,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * Sealed class representing bottom navigation items.
- * Each item has a route, title, and icon.
+ * Each item has a route, title, icon, and optional badge support.
+ * 
+ * Requirements:
+ * - 1.5: Visual feedback for navigation state with badge support
  */
 sealed class BottomNavigationItem(
     val route: String,
