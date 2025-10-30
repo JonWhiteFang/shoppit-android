@@ -97,6 +97,9 @@ object DatabaseModule {
     fun provideStoreSectionDao(database: AppDatabase) = database.storeSectionDao()
     
     @Provides
+    fun provideSyncMetadataDao(database: AppDatabase) = database.syncMetadataDao()
+    
+    @Provides
     @Singleton
     fun provideTransactionManager(database: AppDatabase): TransactionManager {
         return TransactionManagerImpl(database)

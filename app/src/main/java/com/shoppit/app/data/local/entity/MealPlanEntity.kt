@@ -23,6 +23,8 @@ import androidx.room.PrimaryKey
  * @property date The date for which the meal is planned (stored as days since epoch)
  * @property mealType The type of meal (BREAKFAST, LUNCH, DINNER, SNACK)
  * @property createdAt Timestamp when the meal plan was created
+ * @property serverId Cloud backend ID (null if not yet synced)
+ * @property syncStatus Current sync status ("synced", "pending", "conflict", "error")
  */
 @Entity(
     tableName = "meal_plans",
@@ -54,5 +56,11 @@ data class MealPlanEntity(
     val mealType: String, // BREAKFAST, LUNCH, DINNER, SNACK
     
     @ColumnInfo(name = "created_at")
-    val createdAt: Long
+    val createdAt: Long,
+    
+    @ColumnInfo(name = "server_id")
+    val serverId: String? = null,
+    
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: String = "pending"
 )

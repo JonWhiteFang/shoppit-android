@@ -8,6 +8,7 @@ import com.shoppit.app.data.local.dao.MealDao
 import com.shoppit.app.data.local.dao.MealPlanDao
 import com.shoppit.app.data.local.dao.ShoppingListDao
 import com.shoppit.app.data.local.dao.StoreSectionDao
+import com.shoppit.app.data.local.dao.SyncMetadataDao
 import com.shoppit.app.data.local.dao.TemplateDao
 import com.shoppit.app.data.local.entity.ItemHistoryEntity
 import com.shoppit.app.data.local.entity.MealEntity
@@ -16,6 +17,8 @@ import com.shoppit.app.data.local.entity.PlaceholderEntity
 import com.shoppit.app.data.local.entity.ShoppingListItemEntity
 import com.shoppit.app.data.local.entity.ShoppingTemplateEntity
 import com.shoppit.app.data.local.entity.StoreSectionEntity
+import com.shoppit.app.data.local.entity.SyncMetadataEntity
+import com.shoppit.app.data.local.entity.SyncQueueEntity
 import com.shoppit.app.data.local.entity.TemplateItemEntity
 
 /**
@@ -23,6 +26,7 @@ import com.shoppit.app.data.local.entity.TemplateItemEntity
  * 
  * This database serves as the offline-first data persistence layer.
  * 
+ * Version 8: Added sync metadata and queue tables for cloud synchronization
  * Version 7: Added tags column to meals table for meal categorization and filtering
  * Version 6: Added management features to shopping list (item_history, shopping_templates, template_items, store_sections)
  * Version 5: Added shopping_list_items table for shopping list generation feature
@@ -40,9 +44,11 @@ import com.shoppit.app.data.local.entity.TemplateItemEntity
         ItemHistoryEntity::class,
         ShoppingTemplateEntity::class,
         TemplateItemEntity::class,
-        StoreSectionEntity::class
+        StoreSectionEntity::class,
+        SyncMetadataEntity::class,
+        SyncQueueEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 @TypeConverters(Converters::class, MealConverters::class)
@@ -53,4 +59,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun itemHistoryDao(): ItemHistoryDao
     abstract fun templateDao(): TemplateDao
     abstract fun storeSectionDao(): StoreSectionDao
+    abstract fun syncMetadataDao(): SyncMetadataDao
 }

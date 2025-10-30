@@ -60,5 +60,11 @@ data class ShoppingListItemEntity(
     val storeSection: String,
     
     @ColumnInfo(name = "last_modified_at")
-    val lastModifiedAt: Long
+    val lastModifiedAt: Long,
+    
+    @ColumnInfo(name = "server_id")
+    val serverId: String? = null,
+    
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: String = "pending"
 )

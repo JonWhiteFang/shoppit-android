@@ -6,7 +6,7 @@
   - Create User domain model and AuthState data classes
   - _Requirements: 1.1, 1.2, 1.4, 8.1, 8.2, 8.3_
 
-- [ ] 2. Create sync metadata database schema
+- [x] 2. Create sync metadata database schema
   - Add SyncMetadataEntity and SyncQueueEntity to Room database
   - Create SyncMetadataDao with queries for metadata and queue management
   - Implement database migration to add sync fields to existing entities (updatedAt, serverId, syncStatus)

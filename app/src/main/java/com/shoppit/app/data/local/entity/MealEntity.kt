@@ -21,6 +21,8 @@ import androidx.room.PrimaryKey
  * @property tags Comma-separated list of meal tags for categorization
  * @property createdAt Timestamp when the meal was created
  * @property updatedAt Timestamp when the meal was last updated
+ * @property serverId Cloud backend ID (null if not yet synced)
+ * @property syncStatus Current sync status ("synced", "pending", "conflict", "error")
  */
 @Entity(
     tableName = "meals",
@@ -50,5 +52,11 @@ data class MealEntity(
     val createdAt: Long,
     
     @ColumnInfo(name = "updated_at")
-    val updatedAt: Long
+    val updatedAt: Long,
+    
+    @ColumnInfo(name = "server_id")
+    val serverId: String? = null,
+    
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: String = "pending"
 )

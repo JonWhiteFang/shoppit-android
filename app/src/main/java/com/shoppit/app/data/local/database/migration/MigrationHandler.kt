@@ -58,7 +58,8 @@ class MigrationHandlerImpl : MigrationHandler {
             MIGRATION_3_4,
             MIGRATION_4_5,
             MIGRATION_5_6,
-            MIGRATION_6_7
+            MIGRATION_6_7,
+            MIGRATION_7_8
         )
     }
     
@@ -327,6 +328,99 @@ class MigrationHandlerImpl : MigrationHandler {
                 """.trimIndent())
                 
                 Timber.d("Migration 6->7 completed: tags column added to meals table")
+            }
+        }
+        
+        /**
+         * Migration from version 7 to 8: Add sync metadata and queue tables
+         * Adds support for cloud synchronization with offline-first architecture
+         * - Creates sync_metadata table for tracking sync state
+         * - Creates sync_queue table for queuing offline changes
+         * - Adds sync fields to existing entities (meals, meal_plans, shopping_list_items)
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Timber.d("Migrating database from version 7 to 8")
+                
+                // Create sync_metadata table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS sync_metadata (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        entity_type TEXT NOT NULL,
+                        entity_id INTEGER NOT NULL,
+                        server_id TEXT,
+                        last_synced_at INTEGER,
+                        local_updated_at INTEGER NOT NULL,
+                        sync_status TEXT NOT NULL,
+                        retry_count INTEGER NOT NULL DEFAULT 0,
+                        error_message TEXT
+                    )
+                """.trimIndent())
+                
+                // Create indices for sync_metadata
+                database.execSQL("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS index_sync_metadata_entity_type_entity_id 
+                    ON sync_metadata(entity_type, entity_id)
+                """.trimIndent())
+                
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_sync_metadata_sync_status 
+                    ON sync_metadata(sync_status)
+                """.trimIndent())
+                
+                // Create sync_queue table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS sync_queue (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        entity_type TEXT NOT NULL,
+                        entity_id INTEGER NOT NULL,
+                        operation TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        retry_count INTEGER NOT NULL DEFAULT 0,
+                        last_attempt_at INTEGER
+                    )
+                """.trimIndent())
+                
+                // Create indices for sync_queue
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_sync_queue_created_at 
+                    ON sync_queue(created_at)
+                """.trimIndent())
+                
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_sync_queue_entity_type_entity_id 
+                    ON sync_queue(entity_type, entity_id)
+                """.trimIndent())
+                
+                // Add sync fields to meals table
+                database.execSQL("""
+                    ALTER TABLE meals ADD COLUMN server_id TEXT
+                """.trimIndent())
+                
+                database.execSQL("""
+                    ALTER TABLE meals ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'
+                """.trimIndent())
+                
+                // Add sync fields to meal_plans table
+                database.execSQL("""
+                    ALTER TABLE meal_plans ADD COLUMN server_id TEXT
+                """.trimIndent())
+                
+                database.execSQL("""
+                    ALTER TABLE meal_plans ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'
+                """.trimIndent())
+                
+                // Add sync fields to shopping_list_items table
+                database.execSQL("""
+                    ALTER TABLE shopping_list_items ADD COLUMN server_id TEXT
+                """.trimIndent())
+                
+                database.execSQL("""
+                    ALTER TABLE shopping_list_items ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'
+                """.trimIndent())
+                
+                Timber.d("Migration 7->8 completed: sync metadata and queue tables created, sync fields added to entities")
             }
         }
     }
