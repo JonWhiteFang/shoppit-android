@@ -43,7 +43,11 @@ class SyncEngineImpl @Inject constructor(
     private val syncMetadataDao: SyncMetadataDao,
     private val syncApiService: SyncApiService,
     private val authRepository: AuthRepository,
-    private val gson: Gson
+    private val gson: Gson,
+    private val retryPolicy: RetryPolicy,
+    private val errorRecoveryStrategy: SyncErrorRecoveryStrategy,
+    private val errorLogger: SyncErrorLogger,
+    private val notificationHelper: SyncNotificationHelper
 ) : SyncEngine {
     
     // Current sync status
@@ -195,44 +199,74 @@ class SyncEngineImpl @Inject constructor(
             var failedCount = 0
             var conflictCount = 0
             
-            // Process each queued change
+            // Process each queued change with retry logic
             for (queuedChange in queuedChanges) {
-                try {
+                val context = SyncErrorContext(
+                    entityType = typeString,
+                    entityId = queuedChange.entityId,
+                    operation = queuedChange.operation
+                )
+                
+                val result = retryPolicy.executeWithRetryForEntity(
+                    entityType = typeString,
+                    entityId = queuedChange.entityId,
+                    operation = queuedChange.operation
+                ) {
                     // TODO: Implement actual API calls based on operation type
-                    // For now, just mark as synced
-                    
-                    // Update metadata to mark as synced
-                    val metadata = syncMetadataDao.getMetadata(typeString, queuedChange.entityId)
-                    if (metadata != null) {
-                        syncMetadataDao.updateMetadata(
-                            metadata.copy(
-                                syncStatus = "synced",
-                                lastSyncedAt = System.currentTimeMillis(),
-                                retryCount = 0,
-                                errorMessage = null
+                    // For now, just simulate sync
+                    Unit
+                }
+                
+                result.fold(
+                    onSuccess = {
+                        // Update metadata to mark as synced
+                        val metadata = syncMetadataDao.getMetadata(typeString, queuedChange.entityId)
+                        if (metadata != null) {
+                            syncMetadataDao.updateMetadata(
+                                metadata.copy(
+                                    syncStatus = "synced",
+                                    lastSyncedAt = System.currentTimeMillis(),
+                                    retryCount = 0,
+                                    errorMessage = null
+                                )
+                            )
+                        }
+                        
+                        // Remove from queue
+                        syncMetadataDao.removeFromQueue(queuedChange)
+                        
+                        syncedCount++
+                        Timber.d("Synced ${queuedChange.operation} for $typeString ${queuedChange.entityId}")
+                    },
+                    onFailure = { error ->
+                        errorLogger.logError(
+                            error as? com.shoppit.app.domain.error.SyncError 
+                                ?: com.shoppit.app.domain.error.SyncError.UnknownError(error.message ?: "Unknown error"),
+                            context.copy(attemptNumber = queuedChange.retryCount + 1)
+                        )
+                        
+                        // Update retry count and error message
+                        val metadata = syncMetadataDao.getMetadata(typeString, queuedChange.entityId)
+                        if (metadata != null) {
+                            syncMetadataDao.updateMetadata(
+                                metadata.copy(
+                                    syncStatus = "error",
+                                    retryCount = queuedChange.retryCount + 1,
+                                    errorMessage = error.message
+                                )
+                            )
+                        }
+                        
+                        syncMetadataDao.updateQueuedChange(
+                            queuedChange.copy(
+                                retryCount = queuedChange.retryCount + 1,
+                                lastAttemptAt = System.currentTimeMillis()
                             )
                         )
+                        
+                        failedCount++
                     }
-                    
-                    // Remove from queue
-                    syncMetadataDao.removeFromQueue(queuedChange)
-                    
-                    syncedCount++
-                    Timber.d("Synced ${queuedChange.operation} for $typeString ${queuedChange.entityId}")
-                    
-                } catch (e: Exception) {
-                    Timber.e(e, "Failed to sync ${queuedChange.operation} for $typeString ${queuedChange.entityId}")
-                    
-                    // Update retry count
-                    syncMetadataDao.updateQueuedChange(
-                        queuedChange.copy(
-                            retryCount = queuedChange.retryCount + 1,
-                            lastAttemptAt = System.currentTimeMillis()
-                        )
-                    )
-                    
-                    failedCount++
-                }
+                )
             }
             
             val result = SyncResult(
