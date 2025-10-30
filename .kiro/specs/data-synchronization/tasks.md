@@ -13,7 +13,7 @@
   - Update AppDatabase to include new tables and migration
   - _Requirements: 2.1, 2.2, 2.3, 2.5_
 
-- [ ] 3. Implement Retrofit API client for sync
+- [x] 3. Implement Retrofit API client for sync
   - Create SyncApiService interface with endpoints for meals, meal plans, and shopping lists
   - Define DTOs for sync requests and responses (MealDto, MealSyncRequest, MealSyncResponse, etc.)
   - Create ConflictDto for conflict resolution data
