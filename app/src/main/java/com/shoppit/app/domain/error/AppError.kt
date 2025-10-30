@@ -8,10 +8,7 @@ sealed class AppError : Exception() {
     /**
      * Network-related errors (connectivity, timeouts, etc.)
      */
-    data object NetworkError : AppError() {
-        override val message: String
-            get() = "Network connection failed"
-    }
+    data class NetworkError(override val message: String = "Network connection failed") : AppError()
 
     /**
      * Database-related errors (query failures, constraint violations, etc.)
@@ -20,6 +17,11 @@ sealed class AppError : Exception() {
         override val message: String
             get() = "Database error occurred"
     }
+
+    /**
+     * Authentication-related errors (invalid credentials, token expiration, etc.)
+     */
+    data class AuthenticationError(override val message: String) : AppError()
 
     /**
      * Validation errors with descriptive messages

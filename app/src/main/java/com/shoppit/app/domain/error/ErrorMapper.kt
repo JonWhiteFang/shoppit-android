@@ -66,10 +66,13 @@ object ErrorMapper {
     private fun mapAppError(error: AppError): String {
         return when (error) {
             is AppError.NetworkError -> 
-                "Network connection failed. Please check your internet connection."
+                error.message
             
             is AppError.DatabaseError -> 
                 "Database error occurred. Please try again."
+            
+            is AppError.AuthenticationError -> 
+                error.message
             
             is AppError.ValidationError -> 
                 error.message
