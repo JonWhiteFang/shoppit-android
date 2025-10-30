@@ -66,6 +66,104 @@ snyk_sca_scan(
 **Use for**: Terraform, CloudFormation, Kubernetes configs
 **When**: Managing cloud infrastructure
 
+## Security Documentation
+
+### SECURITY_ISSUES.md Maintenance
+
+**CRITICAL**: After every security scan, update `SECURITY_ISSUES.md` to reflect current security status.
+
+#### When to Update
+- After completing any Snyk scan (SAST or SCA)
+- After fixing security vulnerabilities
+- After accepting/documenting risks
+- Before committing code changes
+- During code reviews
+
+#### What to Document
+1. **Scan Results Summary**
+   - Date of scan
+   - Scan type (SAST/SCA)
+   - Total issues found by severity
+   - Issues fixed vs remaining
+
+2. **Active Vulnerabilities**
+   - Issue ID (CVE/CWE/Snyk ID)
+   - Severity level
+   - Affected component/file
+   - Brief description
+   - Status (Open/In Progress/Accepted Risk)
+
+3. **Fixed Issues**
+   - Issue ID
+   - Date fixed
+   - Fix description
+   - Commit reference
+
+4. **Accepted Risks**
+   - Issue ID
+   - Reason for acceptance
+   - Mitigation measures
+   - Review date
+   - Approver
+
+#### Update Process
+```kotlin
+// 1. Run scan
+snyk_code_scan(path = "/absolute/path/to/app/src")
+
+// 2. Review results and fix issues
+// 3. Update SECURITY_ISSUES.md with:
+//    - New scan date
+//    - Current vulnerability count
+//    - Fixed issues
+//    - Remaining issues
+//    - Any accepted risks
+
+// 4. Commit both code fixes and documentation
+git add SECURITY_ISSUES.md
+git commit -m "security: fix SQL injection vulnerability (SNYK-001)"
+```
+
+#### Template Structure
+```markdown
+# Security Issues
+
+Last Updated: YYYY-MM-DD
+Last Scan: YYYY-MM-DD
+
+## Summary
+- Critical: 0
+- High: 0
+- Medium: 2 (2 accepted risks)
+- Low: 5
+
+## Active Issues
+
+### Medium Severity
+
+#### [SNYK-KOTLIN-001] Potential Path Traversal
+- **Status**: Accepted Risk
+- **Location**: `app/src/main/java/com/shoppit/app/data/FileManager.kt`
+- **Reason**: Input is validated at UI layer, not user-facing
+- **Mitigation**: Additional validation added in v1.2.0
+- **Review Date**: 2025-12-31
+- **Approver**: Security Team
+
+## Recently Fixed
+
+### 2025-10-30
+- [CVE-2023-12345] Updated OkHttp to 4.12.0 (commit: abc123)
+- [SNYK-JAVA-002] Fixed SQL injection in MealDao (commit: def456)
+
+## Scan History
+
+### 2025-10-30 - SAST Scan
+- Total Issues: 7
+- Fixed: 2
+- Accepted: 2
+- Remaining: 3 (all low severity)
+```
+
 ## Workflow Integration
 
 ### Development Workflow
@@ -95,9 +193,16 @@ snyk_sca_scan(
    snyk_code_scan(path = "/absolute/path/to/modified/directory")
    ```
 
-6. **Repeat Until Clean**
-   - Continue fixing until no new issues
-   - Document any accepted risks
+6. **Update SECURITY_ISSUES.md**
+   - Document scan results
+   - List fixed issues
+   - Note any accepted risks
+
+7. **Commit Changes**
+   ```
+   git add SECURITY_ISSUES.md [fixed files]
+   git commit -m "security: [description]"
+   ```
 
 ### Dependency Update Workflow
 
@@ -125,6 +230,11 @@ snyk_sca_scan(
    ```
    snyk_sca_scan(path = "/absolute/path/to/project")
    ```
+
+6. **Update SECURITY_ISSUES.md**
+   - Document dependency updates
+   - List resolved CVEs
+   - Note any remaining vulnerabilities
 
 ## Common Security Issues in Android
 
@@ -227,13 +337,15 @@ snyk_open_learn_lesson(
 ## Best Practices Summary
 
 ### Do ✅
+- **Update SECURITY_ISSUES.md after every scan**
 - Scan all new/modified code before committing
 - Run SCA scans after dependency updates
 - Fix high/critical issues immediately
 - Use Snyk Learn to understand vulnerabilities
-- Document accepted risks in `.snyk` file
+- Document accepted risks in `.snyk` file and SECURITY_ISSUES.md
 - Keep Snyk CLI updated: `snyk_version()`
 - Scan with appropriate severity thresholds
+- Commit security documentation with code fixes
 
 ### Don't ❌
 - Commit code with unresolved high/critical issues

@@ -1,8 +1,9 @@
 # Security Vulnerabilities Report
 
-**Scan Date:** October 30, 2025  
+**Last Scan Date:** October 30, 2025  
+**Last Update:** October 30, 2025  
 **Project:** Shoppit Android  
-**Total Issues:** 14 vulnerabilities
+**Total Issues:** 14 vulnerabilities (mitigation in progress)
 
 ## Summary
 
@@ -148,6 +149,35 @@
 - **Remediation:** Upgrade to org.jetbrains.kotlin:kotlin-stdlib@2.1.0
 
 ---
+
+## Actions Taken (October 30, 2025)
+
+### ✅ Completed Updates
+
+1. **Updated Kotlin** (2.0.21 → 2.1.0)
+   - Fixes CVE-2020-29582 (Information Exposure)
+   - Status: ✅ Complete
+
+2. **Updated Hilt** (2.48 → 2.52)
+   - Transitively updates Guava to fix CVE-2023-2976
+   - Status: ✅ Complete
+
+3. **Updated KSP** (2.0.21-1.0.28 → 2.1.0-1.0.29)
+   - Required for Kotlin 2.1.0 compatibility
+   - Status: ✅ Complete
+
+4. **Updated CameraX** (1.3.0 → 1.4.1)
+   - May reduce transitive Netty/Protobuf vulnerabilities
+   - Status: ✅ Complete
+
+5. **Updated ML Kit Barcode Scanning** (17.2.0 → 17.3.0)
+   - May reduce transitive vulnerabilities
+   - Status: ✅ Complete
+
+### 🔄 Next Steps Required
+
+**Note:** Full verification scan blocked by JAVA_HOME environment issue with Snyk CLI.
+Manual verification needed after resolving environment configuration.
 
 ## Recommended Actions
 
