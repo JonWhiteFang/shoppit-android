@@ -7,8 +7,8 @@
   - Create `MealPlanHistory` data class for tracking meal planning patterns
   - _Requirements: 1.1, 6.1_
 
-- [ ] 2. Implement suggestion scoring logic
-  - [ ] 2.1 Create `CalculateSuggestionScoreUseCase` with pure scoring function
+- [x] 2. Implement suggestion scoring logic
+  - [x] 2.1 Create `CalculateSuggestionScoreUseCase` with pure scoring function
     - Implement base score calculation (100 points)
     - Implement meal type match bonus (+100 for matching tag)
     - Implement frequency penalty (0-50 based on plan count in 30 days)
@@ -16,7 +16,7 @@
     - Return `SuggestionScore` with breakdown
     - _Requirements: 3.1-3.5, 4.1-4.3, 6.1-6.4_
   
-  - [ ] 2.2 Write unit tests for scoring logic
+  - [x] 2.2 Write unit tests for scoring logic
     - Test base score calculation
     - Test meal type bonus application
     - Test frequency penalty tiers (0, 1-2, 3-4, 5+ times)
