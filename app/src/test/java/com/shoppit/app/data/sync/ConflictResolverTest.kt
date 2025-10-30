@@ -1,260 +1,349 @@
 package com.shoppit.app.data.sync
 
-import com.shoppit.app.domain.model.Ingredient
-import com.shoppit.app.domain.model.Meal
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for ConflictResolver.
  *
- * Tests the Last-Write-Wins conflict resolution strategy including:
- * - Local version wins when newer
- * - Remote version wins when newer
- * - Server version preferred when timestamps are equal
- * - Conflict detection logic
+ * Tests cover:
+ * - Last-Write-Wins resolution logic
+ * - Timestamp comparison (local newer, remote newer, equal)
+ * - Conflict detection
  * - Batch conflict resolution
+ * - Conflict logging
  */
 class ConflictResolverTest {
-    
+
     private lateinit var conflictResolver: ConflictResolver
-    
+
     @Before
     fun setup() {
         conflictResolver = ConflictResolver()
     }
-    
-    // ========== Single Conflict Resolution Tests ==========
-    
+
+    // ========== Last-Write-Wins Resolution Tests ==========
+
     @Test
-    fun `resolve returns UseLocal when local version is newer`() {
+    fun `resolve returns UseLocal when local timestamp is newer`() {
         // Given
-        val localMeal = createMeal(id = 1, updatedAt = 2000L)
-        val remoteMeal = createMeal(id = 1, updatedAt = 1000L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
+        val localTimestamp = System.currentTimeMillis()
+        val remoteTimestamp = localTimestamp - 1000 // 1 second older
+
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = localTimestamp
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = remoteTimestamp
+        )
+
         // When
         val resolution = conflictResolver.resolve(local, remote)
-        
+
         // Then
         assertTrue(resolution is ConflictResolution.UseLocal)
         assertEquals(local, (resolution as ConflictResolution.UseLocal).entity)
     }
-    
+
     @Test
-    fun `resolve returns UseRemote when remote version is newer`() {
+    fun `resolve returns UseRemote when remote timestamp is newer`() {
         // Given
-        val localMeal = createMeal(id = 1, updatedAt = 1000L)
-        val remoteMeal = createMeal(id = 1, updatedAt = 2000L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
+        val remoteTimestamp = System.currentTimeMillis()
+        val localTimestamp = remoteTimestamp - 1000 // 1 second older
+
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = localTimestamp
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = remoteTimestamp
+        )
+
         // When
         val resolution = conflictResolver.resolve(local, remote)
-        
+
         // Then
         assertTrue(resolution is ConflictResolution.UseRemote)
         assertEquals(remote, (resolution as ConflictResolution.UseRemote).entity)
     }
-    
+
     @Test
-    fun `resolve returns UseRemote when timestamps are equal - server preference`() {
-        // Given - identical timestamps
-        val timestamp = 1000L
-        val localMeal = createMeal(id = 1, updatedAt = timestamp)
-        val remoteMeal = createMeal(id = 1, updatedAt = timestamp)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
+    fun `resolve returns UseRemote when timestamps are equal`() {
+        // Given
+        val timestamp = System.currentTimeMillis()
+
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = timestamp
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = timestamp
+        )
+
         // When
         val resolution = conflictResolver.resolve(local, remote)
-        
-        // Then - server version should be preferred
+
+        // Then
         assertTrue(resolution is ConflictResolution.UseRemote)
         assertEquals(remote, (resolution as ConflictResolution.UseRemote).entity)
     }
-    
+
     @Test
     fun `resolve handles large timestamp differences`() {
-        // Given - very large timestamp difference
-        val localMeal = createMeal(id = 1, updatedAt = Long.MAX_VALUE)
-        val remoteMeal = createMeal(id = 1, updatedAt = 0L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
+        // Given
+        val localTimestamp = System.currentTimeMillis()
+        val remoteTimestamp = localTimestamp - 86400000 // 1 day older
+
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = localTimestamp
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = remoteTimestamp
+        )
+
         // When
         val resolution = conflictResolver.resolve(local, remote)
-        
+
         // Then
         assertTrue(resolution is ConflictResolution.UseLocal)
     }
-    
-    // ========== Conflict Detection Tests ==========
-    
+
     @Test
-    fun `hasConflict returns true when both versions modified after last sync`() {
+    fun `resolve handles entities with null serverId`() {
         // Given
-        val lastSyncTime = 1000L
-        val localMeal = createMeal(id = 1, updatedAt = 1500L)
-        val remoteMeal = createMeal(id = 1, updatedAt = 1600L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
+        val localTimestamp = System.currentTimeMillis()
+        val remoteTimestamp = localTimestamp - 1000
+
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = null,
+            updatedAt = localTimestamp
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = remoteTimestamp
+        )
+
         // When
-        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
-        
+        val resolution = conflictResolver.resolve(local, remote)
+
         // Then
-        assertTrue(hasConflict)
+        assertTrue(resolution is ConflictResolution.UseLocal)
     }
-    
-    @Test
-    fun `hasConflict returns false when only local version modified`() {
-        // Given
-        val lastSyncTime = 1000L
-        val localMeal = createMeal(id = 1, updatedAt = 1500L)
-        val remoteMeal = createMeal(id = 1, updatedAt = 900L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
-        // When
-        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
-        
-        // Then
-        assertFalse(hasConflict)
-    }
-    
-    @Test
-    fun `hasConflict returns false when only remote version modified`() {
-        // Given
-        val lastSyncTime = 1000L
-        val localMeal = createMeal(id = 1, updatedAt = 900L)
-        val remoteMeal = createMeal(id = 1, updatedAt = 1500L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
-        // When
-        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
-        
-        // Then
-        assertFalse(hasConflict)
-    }
-    
-    @Test
-    fun `hasConflict returns false when neither version modified`() {
-        // Given
-        val lastSyncTime = 1000L
-        val localMeal = createMeal(id = 1, updatedAt = 900L)
-        val remoteMeal = createMeal(id = 1, updatedAt = 800L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
-        // When
-        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
-        
-        // Then
-        assertFalse(hasConflict)
-    }
-    
-    @Test
-    fun `hasConflict returns false when lastSyncTime is null`() {
-        // Given - first sync, no previous sync time
-        val localMeal = createMeal(id = 1, updatedAt = 1500L)
-        val remoteMeal = createMeal(id = 1, updatedAt = 1600L)
-        
-        val local = SyncableMeal.from(localMeal, serverId = "server-1")
-        val remote = SyncableMeal.from(remoteMeal, serverId = "server-1")
-        
-        // When
-        val hasConflict = conflictResolver.hasConflict(local, remote, null)
-        
-        // Then - no conflict on first sync
-        assertFalse(hasConflict)
-    }
-    
+
     // ========== Batch Resolution Tests ==========
-    
+
     @Test
     fun `resolveBatch resolves multiple conflicts correctly`() {
-        // Given - 3 conflicts with different outcomes
-        val conflicts = listOf(
-            // Local wins
-            SyncableMeal.from(createMeal(id = 1, updatedAt = 2000L), "server-1") to
-                    SyncableMeal.from(createMeal(id = 1, updatedAt = 1000L), "server-1"),
-            // Remote wins
-            SyncableMeal.from(createMeal(id = 2, updatedAt = 1000L), "server-2") to
-                    SyncableMeal.from(createMeal(id = 2, updatedAt = 2000L), "server-2"),
-            // Equal timestamps - server wins
-            SyncableMeal.from(createMeal(id = 3, updatedAt = 1500L), "server-3") to
-                    SyncableMeal.from(createMeal(id = 3, updatedAt = 1500L), "server-3")
-        )
+        // Given
+        val now = System.currentTimeMillis()
         
+        val conflicts = listOf(
+            // Conflict 1: Local wins
+            TestSyncableEntity(1, "s1", now) to TestSyncableEntity(1, "s1", now - 1000),
+            // Conflict 2: Remote wins
+            TestSyncableEntity(2, "s2", now - 1000) to TestSyncableEntity(2, "s2", now),
+            // Conflict 3: Equal timestamps, remote wins
+            TestSyncableEntity(3, "s3", now) to TestSyncableEntity(3, "s3", now)
+        )
+
         // When
         val resolutions = conflictResolver.resolveBatch(conflicts)
-        
+
         // Then
         assertEquals(3, resolutions.size)
         assertTrue(resolutions[1L] is ConflictResolution.UseLocal)
         assertTrue(resolutions[2L] is ConflictResolution.UseRemote)
         assertTrue(resolutions[3L] is ConflictResolution.UseRemote)
     }
-    
+
     @Test
     fun `resolveBatch handles empty list`() {
         // Given
-        val conflicts = emptyList<Pair<SyncableMeal, SyncableMeal>>()
-        
+        val conflicts = emptyList<Pair<TestSyncableEntity, TestSyncableEntity>>()
+
         // When
         val resolutions = conflictResolver.resolveBatch(conflicts)
-        
+
         // Then
         assertTrue(resolutions.isEmpty())
     }
-    
+
     @Test
     fun `resolveBatch handles single conflict`() {
         // Given
+        val now = System.currentTimeMillis()
         val conflicts = listOf(
-            SyncableMeal.from(createMeal(id = 1, updatedAt = 2000L), "server-1") to
-                    SyncableMeal.from(createMeal(id = 1, updatedAt = 1000L), "server-1")
+            TestSyncableEntity(1, "s1", now) to TestSyncableEntity(1, "s1", now - 1000)
         )
-        
+
         // When
         val resolutions = conflictResolver.resolveBatch(conflicts)
-        
+
         // Then
         assertEquals(1, resolutions.size)
         assertTrue(resolutions[1L] is ConflictResolution.UseLocal)
     }
-    
-    // ========== Helper Methods ==========
-    
-    private fun createMeal(
-        id: Long,
-        name: String = "Test Meal",
-        updatedAt: Long
-    ): Meal {
-        return Meal(
-            id = id,
-            name = name,
-            ingredients = listOf(
-                Ingredient(name = "Test Ingredient", quantity = "1", unit = "cup")
-            ),
-            notes = "Test notes",
-            tags = emptySet(),
-            createdAt = updatedAt - 1000, // Created before updated
-            updatedAt = updatedAt
+
+    // ========== Conflict Detection Tests ==========
+
+    @Test
+    fun `hasConflict returns true when both versions modified after last sync`() {
+        // Given
+        val lastSyncTime = System.currentTimeMillis() - 10000 // 10 seconds ago
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime + 5000 // Modified 5 seconds ago
         )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime + 3000 // Modified 7 seconds ago
+        )
+
+        // When
+        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
+
+        // Then
+        assertTrue(hasConflict)
     }
+
+    @Test
+    fun `hasConflict returns false when only local modified`() {
+        // Given
+        val lastSyncTime = System.currentTimeMillis() - 10000
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime + 5000 // Modified after sync
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime - 1000 // Modified before sync
+        )
+
+        // When
+        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
+
+        // Then
+        assertFalse(hasConflict)
+    }
+
+    @Test
+    fun `hasConflict returns false when only remote modified`() {
+        // Given
+        val lastSyncTime = System.currentTimeMillis() - 10000
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime - 1000 // Modified before sync
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime + 5000 // Modified after sync
+        )
+
+        // When
+        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
+
+        // Then
+        assertFalse(hasConflict)
+    }
+
+    @Test
+    fun `hasConflict returns false when neither modified after sync`() {
+        // Given
+        val lastSyncTime = System.currentTimeMillis() - 10000
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime - 5000
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime - 3000
+        )
+
+        // When
+        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
+
+        // Then
+        assertFalse(hasConflict)
+    }
+
+    @Test
+    fun `hasConflict returns false when lastSyncTime is null`() {
+        // Given
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = System.currentTimeMillis()
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = System.currentTimeMillis()
+        )
+
+        // When
+        val hasConflict = conflictResolver.hasConflict(local, remote, null)
+
+        // Then
+        assertFalse(hasConflict)
+    }
+
+    @Test
+    fun `hasConflict handles edge case where timestamps equal lastSyncTime`() {
+        // Given
+        val lastSyncTime = System.currentTimeMillis()
+        val local = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime // Exactly at sync time
+        )
+        val remote = TestSyncableEntity(
+            id = 1,
+            serverId = "server_1",
+            updatedAt = lastSyncTime // Exactly at sync time
+        )
+
+        // When
+        val hasConflict = conflictResolver.hasConflict(local, remote, lastSyncTime)
+
+        // Then
+        assertFalse(hasConflict) // Not modified AFTER sync
+    }
+
+    // ========== Test Helper Class ==========
+
+    /**
+     * Test implementation of SyncableEntity for testing purposes.
+     */
+    private data class TestSyncableEntity(
+        override val id: Long,
+        override val serverId: String?,
+        override val updatedAt: Long
+    ) : SyncableEntity
 }
