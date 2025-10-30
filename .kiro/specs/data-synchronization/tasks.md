@@ -27,7 +27,7 @@
   - Implement sync status Flow for UI observation
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 5. Implement conflict resolution
+- [x] 5. Implement conflict resolution
   - Create ConflictResolver class with Last-Write-Wins strategy
   - Implement conflict detection logic comparing local and remote timestamps
   - Add conflict logging for user review

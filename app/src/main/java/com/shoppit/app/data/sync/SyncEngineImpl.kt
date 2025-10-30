@@ -75,7 +75,7 @@ class SyncEngineImpl @Inject constructor(
         if (!isNetworkAvailable()) {
             Timber.w("Sync aborted: No network connectivity")
             _syncStatus.value = SyncStatus.OFFLINE
-            return Result.failure(AppError.NoInternetError)
+            return Result.failure(AppError.NetworkError("No internet connection"))
         }
         
         // Update status to syncing
@@ -391,8 +391,7 @@ class SyncEngineImpl @Inject constructor(
         return when (e) {
             is AppError -> e
             else -> AppError.UnknownError(
-                message = e.message ?: "An unexpected error occurred during sync",
-                cause = e
+                message = e.message ?: "An unexpected error occurred during sync"
             )
         }
     }
