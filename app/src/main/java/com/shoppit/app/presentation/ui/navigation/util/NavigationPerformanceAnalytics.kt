@@ -1,350 +1,181 @@
 package com.shoppit.app.presentation.ui.navigation.util
 
-import android.content.Context
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import timber.log.Timber
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Aggregates all navigation performance metrics and provides comprehensive analytics.
- * Combines timing, frame rate, and memory metrics for complete performance monitoring.
+ * Utility object for monitoring navigation performance.
+ * Tracks navigation timing, memory usage, and performance metrics.
  *
  * Requirements:
- * - 7.1: Complete navigation transitions within 300ms
- * - 7.2: Display smooth animations without frame drops
- * - 7.5: Monitor navigation performance metrics
+ * - 9.3: Collect navigation performance metrics
+ * - 9.4: Monitor navigation timing and latency
+ * - 9.5: Track memory usage during navigation
  */
 object NavigationPerformanceAnalytics {
     
-    private val _performanceScore = MutableStateFlow<PerformanceScore>(PerformanceScore())
-    val performanceScore: StateFlow<PerformanceScore> = _performanceScore.asStateFlow()
-    
-    private val performanceIssues = mutableListOf<PerformanceIssue>()
-    private const val MAX_ISSUES_HISTORY = 50
+    private val navigationStartTimes = ConcurrentHashMap<String, Long>()
+    private val navigationMetrics = ConcurrentHashMap<String, NavigationMetrics>()
     
     /**
-     * Starts comprehensive performance monitoring for a navigation transition.
-     * @param route The destination route being navigated to
+     * Data class to hold navigation performance metrics.
+     */
+    data class NavigationMetrics(
+        val route: String,
+        val startTime: Long,
+        val endTime: Long,
+        val duration: Long,
+        val memoryUsedBytes: Long? = null,
+        val success: Boolean = true
+    )
+    
+    /**
+     * Starts monitoring navigation performance for a route.
+     *
+     * @param route The route being navigated to
      */
     fun startMonitoring(route: String) {
-        NavigationPerformanceMonitor.startTransition(route)
-        NavigationFrameRateMonitor.startMonitoring()
-        NavigationMemoryMonitor.startMonitoring()
+        val startTime = System.currentTimeMillis()
+        navigationStartTimes[route] = startTime
         
-        Timber.d("Comprehensive performance monitoring started for: $route")
+        Timber.d("Started performance monitoring for route: $route")
     }
     
     /**
-     * Stops monitoring and analyzes all metrics.
-     * @param route The destination route that was navigated to
+     * Stops monitoring and records navigation performance metrics.
+     *
+     * @param route The route that was navigated to
+     * @param success Whether the navigation was successful
      */
-    fun stopMonitoring(route: String) {
-        NavigationPerformanceMonitor.endTransition(route)
-        NavigationFrameRateMonitor.stopMonitoring()
-        NavigationMemoryMonitor.stopMonitoring()
+    fun stopMonitoring(route: String, success: Boolean = true) {
+        val startTime = navigationStartTimes.remove(route)
+        if (startTime == null) {
+            Timber.w("No start time found for route: $route")
+            return
+        }
         
-        analyzePerformance(route)
+        val endTime = System.currentTimeMillis()
+        val duration = endTime - startTime
         
-        Timber.d("Comprehensive performance monitoring stopped for: $route")
-    }
-    
-    /**
-     * Analyzes all performance metrics and calculates a performance score.
-     */
-    private fun analyzePerformance(route: String) {
-        val timingMetrics = NavigationPerformanceMonitor.metrics.value
-        val frameMetrics = NavigationFrameRateMonitor.metrics.value
-        val memoryMetrics = NavigationMemoryMonitor.metrics.value
+        // Get memory usage (optional)
+        val memoryUsed = try {
+            val runtime = Runtime.getRuntime()
+            runtime.totalMemory() - runtime.freeMemory()
+        } catch (e: Exception) {
+            Timber.w(e, "Failed to get memory usage")
+            null
+        }
         
-        // Calculate individual scores (0-100)
-        val timingScore = calculateTimingScore(timingMetrics.averageTransitionTimeMs)
-        val frameRateScore = calculateFrameRateScore(frameMetrics.averageFps, frameMetrics.frameDropPercentage)
-        val memoryScore = calculateMemoryScore(memoryMetrics.memoryUsagePercentage)
-        
-        // Overall score is weighted average
-        val overallScore = (timingScore * 0.4 + frameRateScore * 0.4 + memoryScore * 0.2).toInt()
-        
-        _performanceScore.value = PerformanceScore(
-            overallScore = overallScore,
-            timingScore = timingScore,
-            frameRateScore = frameRateScore,
-            memoryScore = memoryScore,
-            rating = getPerformanceRating(overallScore)
+        val metrics = NavigationMetrics(
+            route = route,
+            startTime = startTime,
+            endTime = endTime,
+            duration = duration,
+            memoryUsedBytes = memoryUsed,
+            success = success
         )
         
-        // Detect and record performance issues
-        detectPerformanceIssues(route, timingMetrics, frameMetrics, memoryMetrics)
+        navigationMetrics[route] = metrics
+        
+        Timber.d("Navigation performance for '$route': ${duration}ms, success=$success")
+        
+        // Log warning if navigation took too long
+        if (duration > 1000) {
+            Timber.w("Slow navigation detected: $route took ${duration}ms")
+        }
+        
+        // TODO: Send to analytics service
+        // Example:
+        // firebaseAnalytics.logEvent("navigation_performance") {
+        //     param("route", route)
+        //     param("duration_ms", duration)
+        //     param("success", success.toString())
+        //     memoryUsed?.let { param("memory_bytes", it) }
+        // }
     }
     
     /**
-     * Calculates timing score based on average transition time.
+     * Gets the performance metrics for a specific route.
+     *
+     * @param route The route to get metrics for
+     * @return The navigation metrics, or null if not found
      */
-    private fun calculateTimingScore(avgTimeMs: Double): Int {
-        return when {
-            avgTimeMs <= 200 -> 100
-            avgTimeMs <= 300 -> 90
-            avgTimeMs <= 400 -> 75
-            avgTimeMs <= 500 -> 60
-            avgTimeMs <= 700 -> 40
-            else -> 20
-        }
+    fun getMetrics(route: String): NavigationMetrics? {
+        return navigationMetrics[route]
     }
     
     /**
-     * Calculates frame rate score based on FPS and drop rate.
+     * Gets all recorded navigation metrics.
+     *
+     * @return Map of route to navigation metrics
      */
-    private fun calculateFrameRateScore(avgFps: Double, dropRate: Float): Int {
-        val fpsScore = when {
-            avgFps >= 58 -> 100
-            avgFps >= 55 -> 90
-            avgFps >= 50 -> 75
-            avgFps >= 45 -> 60
-            avgFps >= 40 -> 40
-            else -> 20
-        }
-        
-        val dropPenalty = (dropRate * 2).toInt() // 2 points per 1% drop rate
-        
-        return (fpsScore - dropPenalty).coerceIn(0, 100)
+    fun getAllMetrics(): Map<String, NavigationMetrics> {
+        return navigationMetrics.toMap()
     }
     
     /**
-     * Calculates memory score based on usage percentage.
+     * Clears all recorded metrics.
      */
-    private fun calculateMemoryScore(usagePercentage: Float): Int {
-        return when {
-            usagePercentage <= 50 -> 100
-            usagePercentage <= 60 -> 90
-            usagePercentage <= 70 -> 75
-            usagePercentage <= 80 -> 60
-            usagePercentage <= 90 -> 40
-            else -> 20
-        }
+    fun clearMetrics() {
+        navigationStartTimes.clear()
+        navigationMetrics.clear()
+        Timber.d("Cleared all navigation performance metrics")
     }
     
     /**
-     * Gets performance rating based on overall score.
+     * Gets the average navigation duration across all routes.
+     *
+     * @return Average duration in milliseconds, or null if no metrics
      */
-    private fun getPerformanceRating(score: Int): PerformanceRating {
-        return when {
-            score >= 90 -> PerformanceRating.EXCELLENT
-            score >= 75 -> PerformanceRating.GOOD
-            score >= 60 -> PerformanceRating.FAIR
-            score >= 40 -> PerformanceRating.POOR
-            else -> PerformanceRating.CRITICAL
-        }
+    fun getAverageDuration(): Long? {
+        val metrics = navigationMetrics.values
+        if (metrics.isEmpty()) return null
+        
+        return metrics.map { it.duration }.average().toLong()
     }
     
     /**
-     * Detects and records performance issues.
+     * Gets the slowest navigation route.
+     *
+     * @return The slowest navigation metrics, or null if no metrics
      */
-    private fun detectPerformanceIssues(
-        route: String,
-        timingMetrics: NavigationMetrics,
-        frameMetrics: FrameRateMetrics,
-        memoryMetrics: MemoryMetrics
-    ) {
-        val issues = mutableListOf<PerformanceIssue>()
-        
-        // Check timing issues
-        if (timingMetrics.averageTransitionTimeMs > 300) {
-            issues.add(
-                PerformanceIssue(
-                    route = route,
-                    type = IssueType.SLOW_TRANSITION,
-                    severity = if (timingMetrics.averageTransitionTimeMs > 500) IssueSeverity.HIGH else IssueSeverity.MEDIUM,
-                    description = "Slow transition: ${"%.0f".format(timingMetrics.averageTransitionTimeMs)}ms (target: 300ms)",
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        }
-        
-        // Check frame rate issues
-        if (frameMetrics.averageFps < 55) {
-            issues.add(
-                PerformanceIssue(
-                    route = route,
-                    type = IssueType.LOW_FRAME_RATE,
-                    severity = if (frameMetrics.averageFps < 45) IssueSeverity.HIGH else IssueSeverity.MEDIUM,
-                    description = "Low frame rate: ${"%.1f".format(frameMetrics.averageFps)} fps (target: 60 fps)",
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        }
-        
-        if (frameMetrics.frameDropPercentage > 5.0f) {
-            issues.add(
-                PerformanceIssue(
-                    route = route,
-                    type = IssueType.FRAME_DROPS,
-                    severity = if (frameMetrics.frameDropPercentage > 10.0f) IssueSeverity.HIGH else IssueSeverity.MEDIUM,
-                    description = "High frame drop rate: ${"%.1f".format(frameMetrics.frameDropPercentage)}%",
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        }
-        
-        // Check memory issues
-        if (memoryMetrics.memoryUsagePercentage > 80f) {
-            issues.add(
-                PerformanceIssue(
-                    route = route,
-                    type = IssueType.HIGH_MEMORY_USAGE,
-                    severity = if (memoryMetrics.memoryUsagePercentage > 90f) IssueSeverity.HIGH else IssueSeverity.MEDIUM,
-                    description = "High memory usage: ${"%.1f".format(memoryMetrics.memoryUsagePercentage)}%",
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        }
-        
-        val memoryDeltaMB = memoryMetrics.memoryDeltaBytes / (1024.0 * 1024.0)
-        if (memoryDeltaMB > 50) {
-            issues.add(
-                PerformanceIssue(
-                    route = route,
-                    type = IssueType.MEMORY_LEAK,
-                    severity = if (memoryDeltaMB > 100) IssueSeverity.HIGH else IssueSeverity.MEDIUM,
-                    description = "Large memory increase: ${"%.2f".format(memoryDeltaMB)} MB",
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        }
-        
-        // Record issues
-        performanceIssues.addAll(issues)
-        
-        // Keep history size manageable
-        while (performanceIssues.size > MAX_ISSUES_HISTORY) {
-            performanceIssues.removeAt(0)
-        }
-        
-        // Log issues
-        issues.forEach { issue ->
-            when (issue.severity) {
-                IssueSeverity.HIGH -> Timber.e("Performance Issue [${issue.type}]: ${issue.description}")
-                IssueSeverity.MEDIUM -> Timber.w("Performance Issue [${issue.type}]: ${issue.description}")
-                IssueSeverity.LOW -> Timber.i("Performance Issue [${issue.type}]: ${issue.description}")
-            }
-        }
+    fun getSlowestNavigation(): NavigationMetrics? {
+        return navigationMetrics.values.maxByOrNull { it.duration }
     }
     
     /**
-     * Gets recent performance issues.
+     * Gets the success rate of navigations.
+     *
+     * @return Success rate as a percentage (0-100), or null if no metrics
      */
-    fun getRecentIssues(count: Int = 10): List<PerformanceIssue> {
-        return performanceIssues.takeLast(count)
-    }
-    
-    /**
-     * Gets issues for a specific route.
-     */
-    fun getIssuesForRoute(route: String): List<PerformanceIssue> {
-        return performanceIssues.filter { it.route == route }
-    }
-    
-    /**
-     * Gets comprehensive performance report.
-     */
-    fun getComprehensiveReport(context: Context? = null): String {
-        val score = _performanceScore.value
+    fun getSuccessRate(): Double? {
+        val metrics = navigationMetrics.values
+        if (metrics.isEmpty()) return null
         
-        return buildString {
-            appendLine("=================================")
-            appendLine("Navigation Performance Analytics")
-            appendLine("=================================")
-            appendLine()
-            appendLine("Overall Performance Score: ${score.overallScore}/100 (${score.rating})")
-            appendLine("  - Timing Score: ${score.timingScore}/100")
-            appendLine("  - Frame Rate Score: ${score.frameRateScore}/100")
-            appendLine("  - Memory Score: ${score.memoryScore}/100")
-            appendLine()
-            appendLine(NavigationPerformanceMonitor.getPerformanceReport())
-            appendLine()
-            appendLine(NavigationFrameRateMonitor.getFrameRateReport())
-            appendLine()
-            appendLine(NavigationMemoryMonitor.getMemoryReport(context))
-            appendLine()
-            appendLine(NavigationPreloader.getStatistics())
-            appendLine()
-            
-            if (performanceIssues.isNotEmpty()) {
-                appendLine("Recent Performance Issues:")
-                appendLine("==========================")
-                getRecentIssues(5).forEach { issue ->
-                    appendLine("[${issue.severity}] ${issue.type}: ${issue.description}")
-                }
-            } else {
-                appendLine("No performance issues detected")
-            }
+        val successCount = metrics.count { it.success }
+        return (successCount.toDouble() / metrics.size) * 100
+    }
+    
+    /**
+     * Logs a summary of navigation performance.
+     */
+    fun logPerformanceSummary() {
+        val metrics = navigationMetrics.values
+        if (metrics.isEmpty()) {
+            Timber.i("No navigation performance metrics available")
+            return
         }
-    }
-    
-    /**
-     * Clears all performance data.
-     */
-    fun clearAllData() {
-        NavigationPerformanceMonitor.clearMetrics()
-        NavigationFrameRateMonitor.clearMetrics()
-        NavigationMemoryMonitor.clearMetrics()
-        NavigationPreloader.clearData()
-        performanceIssues.clear()
-        _performanceScore.value = PerformanceScore()
         
-        Timber.d("All performance analytics data cleared")
+        val avgDuration = getAverageDuration()
+        val slowest = getSlowestNavigation()
+        val successRate = getSuccessRate()
+        
+        Timber.i("""
+            Navigation Performance Summary:
+            - Total navigations: ${metrics.size}
+            - Average duration: ${avgDuration}ms
+            - Slowest navigation: ${slowest?.route} (${slowest?.duration}ms)
+            - Success rate: ${"%.2f".format(successRate)}%
+        """.trimIndent())
     }
-}
-
-/**
- * Overall performance score with breakdown.
- */
-data class PerformanceScore(
-    val overallScore: Int = 0,
-    val timingScore: Int = 0,
-    val frameRateScore: Int = 0,
-    val memoryScore: Int = 0,
-    val rating: PerformanceRating = PerformanceRating.UNKNOWN
-)
-
-/**
- * Performance rating categories.
- */
-enum class PerformanceRating {
-    EXCELLENT,
-    GOOD,
-    FAIR,
-    POOR,
-    CRITICAL,
-    UNKNOWN
-}
-
-/**
- * Represents a detected performance issue.
- */
-data class PerformanceIssue(
-    val route: String,
-    val type: IssueType,
-    val severity: IssueSeverity,
-    val description: String,
-    val timestamp: Long
-)
-
-/**
- * Types of performance issues.
- */
-enum class IssueType {
-    SLOW_TRANSITION,
-    LOW_FRAME_RATE,
-    FRAME_DROPS,
-    HIGH_MEMORY_USAGE,
-    MEMORY_LEAK
-}
-
-/**
- * Severity levels for performance issues.
- */
-enum class IssueSeverity {
-    LOW,
-    MEDIUM,
-    HIGH
 }
