@@ -41,7 +41,7 @@
   - Implement retry logic with exponential backoff
   - _Requirements: 2.4, 4.1, 4.2, 4.4_
 
-- [ ] 7. Enhance repositories with sync hooks
+- [x] 7. Enhance repositories with sync hooks
   - Update MealRepositoryImpl to queue changes on create/update/delete
   - Update MealPlanRepositoryImpl to queue changes on create/update/delete
   - Update ShoppingListRepositoryImpl to queue changes on create/update/delete

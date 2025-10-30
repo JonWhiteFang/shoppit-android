@@ -11,8 +11,11 @@ import android.database.sqlite.SQLiteConstraintException
 import com.shoppit.app.data.error.PersistenceError
 import com.shoppit.app.data.error.PersistenceLogger
 import com.shoppit.app.data.error.ValidationError
+import com.shoppit.app.domain.model.EntityType
 import com.shoppit.app.domain.model.Meal
+import com.shoppit.app.domain.model.SyncOperation
 import com.shoppit.app.domain.repository.MealRepository
+import com.shoppit.app.domain.repository.SyncEngine
 import com.shoppit.app.domain.validator.MealValidator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -37,7 +40,8 @@ class MealRepositoryImpl @Inject constructor(
     private val mealDao: MealDao,
     @MealListCache private val mealListCache: CacheManager<String, List<Meal>>,
     @MealDetailCache private val mealDetailCache: CacheManager<Long, Meal>,
-    private val mealValidator: MealValidator
+    private val mealValidator: MealValidator,
+    private val syncEngine: SyncEngine
 ) : MealRepository {
     
     companion object {
@@ -136,6 +140,10 @@ class MealRepositoryImpl @Inject constructor(
             // Invalidate meal list cache since we added a new meal
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
             PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.MEAL, id, SyncOperation.CREATE)
+            
             PersistenceLogger.logOperationSuccess("addMeal", 0)
             Result.success(id)
         } catch (e: SQLiteConstraintException) {
@@ -178,6 +186,10 @@ class MealRepositoryImpl @Inject constructor(
             mealDetailCache.invalidate(meal.id)
             PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
             PersistenceLogger.logCacheInvalidation("meal_${meal.id}")
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.MEAL, meal.id, SyncOperation.UPDATE)
+            
             PersistenceLogger.logOperationSuccess("updateMeal", 0)
             Result.success(Unit)
         } catch (e: SQLiteConstraintException) {
@@ -206,6 +218,10 @@ class MealRepositoryImpl @Inject constructor(
             mealDetailCache.invalidate(mealId)
             PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
             PersistenceLogger.logCacheInvalidation("meal_$mealId")
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.MEAL, mealId, SyncOperation.DELETE)
+            
             PersistenceLogger.logOperationSuccess("deleteMeal", 0)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -252,6 +268,12 @@ class MealRepositoryImpl @Inject constructor(
             // Invalidate meal list cache since we added new meals
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
             PersistenceLogger.logCacheInvalidation(MEAL_LIST_CACHE_KEY)
+            
+            // Queue changes for sync
+            ids.forEach { id ->
+                syncEngine.queueChange(EntityType.MEAL, id, SyncOperation.CREATE)
+            }
+            
             PersistenceLogger.logOperationSuccess("addMeals", 0)
             Result.success(ids)
         } catch (e: SQLiteConstraintException) {

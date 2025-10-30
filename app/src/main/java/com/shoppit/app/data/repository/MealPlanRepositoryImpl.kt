@@ -6,8 +6,11 @@ import com.shoppit.app.data.error.PersistenceLogger
 import com.shoppit.app.data.local.dao.MealPlanDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
+import com.shoppit.app.domain.model.EntityType
 import com.shoppit.app.domain.model.MealPlan
+import com.shoppit.app.domain.model.SyncOperation
 import com.shoppit.app.domain.repository.MealPlanRepository
+import com.shoppit.app.domain.repository.SyncEngine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -24,7 +27,8 @@ import javax.inject.Inject
  * @property mealPlanDao The Room DAO for meal plan database operations
  */
 class MealPlanRepositoryImpl @Inject constructor(
-    private val mealPlanDao: MealPlanDao
+    private val mealPlanDao: MealPlanDao,
+    private val syncEngine: SyncEngine
 ) : MealPlanRepository {
     
     /**
@@ -112,6 +116,10 @@ class MealPlanRepositoryImpl @Inject constructor(
         
         return try {
             val id = mealPlanDao.insertMealPlan(mealPlan.toEntity())
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.MEAL_PLAN, id, SyncOperation.CREATE)
+            
             PersistenceLogger.logOperationSuccess("addMealPlan", 0)
             Result.success(id)
         } catch (e: SQLiteConstraintException) {
@@ -135,6 +143,10 @@ class MealPlanRepositoryImpl @Inject constructor(
         
         return try {
             mealPlanDao.updateMealPlan(mealPlan.toEntity())
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.MEAL_PLAN, mealPlan.id, SyncOperation.UPDATE)
+            
             PersistenceLogger.logOperationSuccess("updateMealPlan", 0)
             Result.success(Unit)
         } catch (e: SQLiteConstraintException) {
@@ -157,6 +169,10 @@ class MealPlanRepositoryImpl @Inject constructor(
         
         return try {
             mealPlanDao.deleteMealPlanById(mealPlanId)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.MEAL_PLAN, mealPlanId, SyncOperation.DELETE)
+            
             PersistenceLogger.logOperationSuccess("deleteMealPlan", 0)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -199,6 +215,12 @@ class MealPlanRepositoryImpl @Inject constructor(
         return try {
             val entities = mealPlans.map { it.toEntity() }
             val ids = mealPlanDao.insertMealPlans(entities)
+            
+            // Queue changes for sync
+            ids.forEach { id ->
+                syncEngine.queueChange(EntityType.MEAL_PLAN, id, SyncOperation.CREATE)
+            }
+            
             PersistenceLogger.logOperationSuccess("addMealPlans", 0)
             Result.success(ids)
         } catch (e: SQLiteConstraintException) {

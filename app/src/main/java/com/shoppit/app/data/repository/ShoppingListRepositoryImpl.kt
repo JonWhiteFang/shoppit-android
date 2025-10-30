@@ -5,8 +5,11 @@ import com.shoppit.app.data.local.dao.ShoppingListDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
 import com.shoppit.app.domain.model.BudgetSummary
+import com.shoppit.app.domain.model.EntityType
 import com.shoppit.app.domain.model.ShoppingListItem
+import com.shoppit.app.domain.model.SyncOperation
 import com.shoppit.app.domain.repository.ShoppingListRepository
+import com.shoppit.app.domain.repository.SyncEngine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -14,7 +17,8 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class ShoppingListRepositoryImpl @Inject constructor(
-    private val shoppingListDao: ShoppingListDao
+    private val shoppingListDao: ShoppingListDao,
+    private val syncEngine: SyncEngine
 ) : ShoppingListRepository {
     
     override fun getShoppingList(): Flow<Result<List<ShoppingListItem>>> {
@@ -44,6 +48,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun addShoppingListItem(item: ShoppingListItem): Result<Long> {
         return try {
             val id = shoppingListDao.insertItem(item.toEntity())
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, id, SyncOperation.CREATE)
+            
             Result.success(id)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("insertItem", e))
@@ -53,6 +61,12 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun addShoppingListItems(items: List<ShoppingListItem>): Result<List<Long>> {
         return try {
             val ids = shoppingListDao.insertItems(items.map { it.toEntity() })
+            
+            // Queue changes for sync
+            ids.forEach { id ->
+                syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, id, SyncOperation.CREATE)
+            }
+            
             Result.success(ids)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("insertItems", e))
@@ -62,6 +76,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun updateShoppingListItem(item: ShoppingListItem): Result<Unit> {
         return try {
             shoppingListDao.updateItem(item.toEntity())
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, item.id, SyncOperation.UPDATE)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("updateItem", e))
@@ -71,6 +89,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun deleteShoppingListItem(id: Long): Result<Unit> {
         return try {
             shoppingListDao.deleteItemById(id)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, id, SyncOperation.DELETE)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("deleteItemById", e))
@@ -109,6 +131,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun updateItemNotes(itemId: Long, notes: String): Result<Unit> {
         return try {
             shoppingListDao.updateItemNotes(itemId, notes)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, itemId, SyncOperation.UPDATE)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("updateItemNotes", e))
@@ -118,6 +144,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun toggleItemPriority(itemId: Long, isPriority: Boolean): Result<Unit> {
         return try {
             shoppingListDao.updateItemPriority(itemId, isPriority)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, itemId, SyncOperation.UPDATE)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("toggleItemPriority", e))
@@ -127,6 +157,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun updateItemOrder(itemId: Long, newOrder: Int): Result<Unit> {
         return try {
             shoppingListDao.updateItemOrder(itemId, newOrder)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, itemId, SyncOperation.UPDATE)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("updateItemOrder", e))
@@ -136,6 +170,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun updateItemPrice(itemId: Long, price: Double?): Result<Unit> {
         return try {
             shoppingListDao.updateItemPrice(itemId, price)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, itemId, SyncOperation.UPDATE)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("updateItemPrice", e))
@@ -145,6 +183,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
     override suspend fun moveItemToSection(itemId: Long, section: String): Result<Unit> {
         return try {
             shoppingListDao.updateItemSection(itemId, section)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, itemId, SyncOperation.UPDATE)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("moveItemToSection", e))
@@ -173,6 +215,10 @@ class ShoppingListRepositoryImpl @Inject constructor(
             )
             
             val newId = shoppingListDao.insertItem(duplicateItem)
+            
+            // Queue change for sync
+            syncEngine.queueChange(EntityType.SHOPPING_LIST_ITEM, newId, SyncOperation.CREATE)
+            
             Result.success(newId)
         } catch (e: Exception) {
             Result.failure(PersistenceError.WriteFailed("duplicateItem", e))
