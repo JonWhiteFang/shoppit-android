@@ -92,7 +92,7 @@ class AppResultTest {
     @Test
     fun `toResult converts AppError to failure result`() {
         // Given
-        val error = AppError.NetworkError
+        val error = AppError.NetworkError("Connection failed")
 
         // When
         val result: AppResult<String> = error.toResult()

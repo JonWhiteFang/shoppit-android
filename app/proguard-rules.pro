@@ -161,6 +161,11 @@
 -keep class javax.crypto.** { *; }
 -keep class java.security.** { *; }
 
+# Ignore missing Google API client classes (not used in this project)
+-dontwarn com.google.api.client.**
+-dontwarn com.google.api.client.http.**
+-dontwarn com.google.api.client.http.javanet.**
+
 # ================================================================================================
 # PARCELABLE
 # ================================================================================================
