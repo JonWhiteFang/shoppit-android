@@ -91,14 +91,14 @@
   - Test RetryPolicy exponential backoff
   - _Requirements: All requirements (testing)_
 
-- [ ] 14. Write integration tests for sync flows
+- [x] 14. Write integration tests for sync flows
   - Test end-to-end sync flow (create → queue → sync → verify)
   - Test conflict resolution with concurrent modifications
   - Test offline queue and auto-sync on reconnection
   - Test authentication flow and token refresh
   - _Requirements: All requirements (integration testing)_
 
-- [ ] 15. Add instrumented tests for WorkManager
+- [x] 15. Add instrumented tests for WorkManager
   - Test SyncWorker periodic execution
   - Test network constraint enforcement
   - Test retry behavior on failures

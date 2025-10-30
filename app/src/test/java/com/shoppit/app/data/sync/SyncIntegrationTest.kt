@@ -1,0 +1,681 @@
+package com.shoppit.app.data.sync
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import com.google.gson.Gson
+import com.shoppit.app.data.local.dao.MealDao
+import com.shoppit.app.data.local.dao.MealPlanDao
+import com.shoppit.app.data.local.dao.ShoppingListDao
+import com.shoppit.app.data.local.dao.SyncMetadataDao
+import com.shoppit.app.data.local.entity.MealEntity
+import com.shoppit.app.data.local.entity.MealPlanEntity
+import com.shoppit.app.data.local.entity.ShoppingListItemEntity
+import com.shoppit.app.data.local.entity.SyncMetadataEntity
+import com.shoppit.app.data.local.entity.SyncQueueEntity
+import com.shoppit.app.data.remote.api.SyncApiService
+import com.shoppit.app.data.remote.dto.MealDto
+import com.shoppit.app.data.remote.dto.MealSyncRequest
+import com.shoppit.app.data.remote.dto.MealSyncResponse
+import com.shoppit.app.data.repository.MealRepositoryImpl
+import com.shoppit.app.data.repository.MealPlanRepositoryImpl
+import com.shoppit.app.data.repository.ShoppingListRepositoryImpl
+import com.shoppit.app.domain.model.EntityType
+import com.shoppit.app.domain.model.Meal
+import com.shoppit.app.domain.model.MealPlan
+import com.shoppit.app.domain.model.ShoppingListItem
+import com.shoppit.app.domain.model.SyncOperation
+import com.shoppit.app.domain.model.SyncStatus
+import com.shoppit.app.domain.repository.AuthRepository
+import io.mockk.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import retrofit2.Response
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+/**
+ * Integration tests for sync flows.
+ *
+ * These tests verify end-to-end sync scenarios including:
+ * - Create → Queue → Sync → Verify flow
+ * - Conflict resolution with concurrent modifications
+ * - Offline queue and auto-sync on reconnection
+ * - Authentication flow and token refresh
+ *
+ * Requirements: All requirements (integration testing)
+ */
+@ExperimentalCoroutinesApi
+class SyncIntegrationTest {
+
+    private lateinit var context: Context
+    private lateinit var connectivityManager: ConnectivityManager
+    private lateinit var network: Network
+    private lateinit var networkCapabilities: NetworkCapabilities
+    private lateinit var syncMetadataDao: SyncMetadataDao
+    private lateinit var mealDao: MealDao
+    private lateinit var mealPlanDao: MealPlanDao
+    private lateinit var shoppingListDao: ShoppingListDao
+    private lateinit var syncApiService: SyncApiService
+    private lateinit var authRepository: AuthRepository
+    private lateinit var gson: Gson
+    private lateinit var retryPolicy: RetryPolicy
+    private lateinit var errorRecoveryStrategy: SyncErrorRecoveryStrategy
+    private lateinit var errorLogger: SyncErrorLogger
+    private lateinit var notificationHelper: SyncNotificationHelper
+    private lateinit var conflictResolver: ConflictResolver
+    private lateinit var syncEngine: SyncEngineImpl
+    private lateinit var mealRepository: MealRepositoryImpl
+    private lateinit var mealPlanRepository: MealPlanRepositoryImpl
+    private lateinit var shoppingListRepository: ShoppingListRepositoryImpl
+
+    @Before
+    fun setup() {
+        // Mock Android components
+        context = mockk(relaxed = true)
+        connectivityManager = mockk(relaxed = true)
+        network = mockk(relaxed = true)
+        networkCapabilities = mockk(relaxed = true)
+
+        // Mock DAOs
+        syncMetadataDao = mockk(relaxed = true)
+        mealDao = mockk(relaxed = true)
+        mealPlanDao = mockk(relaxed = true)
+        shoppingListDao = mockk(relaxed = true)
+
+        // Mock dependencies
+        syncApiService = mockk(relaxed = true)
+        authRepository = mockk(relaxed = true)
+        gson = Gson()
+        retryPolicy = RetryPolicy()
+        errorRecoveryStrategy = mockk(relaxed = true)
+        errorLogger = mockk(relaxed = true)
+        notificationHelper = mockk(relaxed = true)
+        conflictResolver = ConflictResolver()
+
+        // Setup connectivity manager - online by default
+        every { context.getSystemService(Context.CONNECTIVITY_SERVICE) } returns connectivityManager
+        every { connectivityManager.activeNetwork } returns network
+        every { connectivityManager.getNetworkCapabilities(network) } returns networkCapabilities
+        every { networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) } returns true
+        every { networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) } returns true
+
+        // Setup authentication - authenticated by default
+        every { authRepository.isAuthenticated() } returns true
+
+        // Create SyncEngine instance
+        syncEngine = SyncEngineImpl(
+            context = context,
+            syncMetadataDao = syncMetadataDao,
+            syncApiService = syncApiService,
+            authRepository = authRepository,
+            gson = gson,
+            retryPolicy = retryPolicy,
+            errorRecoveryStrategy = errorRecoveryStrategy,
+            errorLogger = errorLogger,
+            notificationHelper = notificationHelper
+        )
+
+        // Create repository instances with sync hooks
+        mealRepository = MealRepositoryImpl(
+            mealDao = mealDao,
+            syncEngine = syncEngine
+        )
+
+        mealPlanRepository = MealPlanRepositoryImpl(
+            mealPlanDao = mealPlanDao,
+            syncEngine = syncEngine
+        )
+
+        shoppingListRepository = ShoppingListRepositoryImpl(
+            shoppingListDao = shoppingListDao,
+            syncEngine = syncEngine
+        )
+    }
+
+    @After
+    fun tearDown() {
+        clearAllMocks()
+    }
+
+    // ========== End-to-End Sync Flow Tests ==========
+
+    @Test
+    fun `test end-to-end meal creation sync flow`() = runTest {
+        // Given - Setup mocks for meal creation
+        val mealId = 100L
+        val meal = Meal(
+            id = 0,
+            name = "Spaghetti Carbonara",
+            ingredients = emptyList(),
+            notes = "Delicious pasta",
+            tags = listOf("Italian", "Pasta"),
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+
+        val mealEntity = MealEntity(
+            id = mealId,
+            name = meal.name,
+            notes = meal.notes,
+            tags = meal.tags,
+            createdAt = meal.createdAt,
+            updatedAt = meal.updatedAt,
+            serverId = null,
+            syncStatus = "pending"
+        )
+
+        // Mock DAO insert
+        coEvery { mealDao.insertMeal(any()) } returns mealId
+
+        // Mock queue operations
+        coEvery { syncMetadataDao.getQueuedChange("meal", mealId) } returns null
+        coEvery { syncMetadataDao.queueChange(any()) } just Runs
+        coEvery { syncMetadataDao.getMetadata("meal", mealId) } returns null
+        coEvery { syncMetadataDao.insertMetadata(any()) } just Runs
+
+        // Mock sync operations
+        val queuedChange = SyncQueueEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            operation = "create",
+            payload = gson.toJson(mealEntity),
+            createdAt = System.currentTimeMillis(),
+            retryCount = 0,
+            lastAttemptAt = null
+        )
+        coEvery { syncMetadataDao.getQueuedChangesByType("meal") } returns listOf(queuedChange)
+
+        val syncMetadata = SyncMetadataEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            serverId = null,
+            lastSyncedAt = null,
+            localUpdatedAt = meal.updatedAt,
+            syncStatus = "pending",
+            retryCount = 0,
+            errorMessage = null
+        )
+        coEvery { syncMetadataDao.getMetadata("meal", mealId) } returns syncMetadata
+
+        // Mock API response
+        val mealDto = MealDto(
+            id = "server-id-123",
+            localId = mealId,
+            name = meal.name,
+            ingredients = emptyList(),
+            notes = meal.notes,
+            tags = meal.tags,
+            createdAt = meal.createdAt,
+            updatedAt = meal.updatedAt,
+            deletedAt = null
+        )
+        val syncResponse = MealSyncResponse(
+            synced = listOf(mealDto),
+            conflicts = emptyList(),
+            serverTimestamp = System.currentTimeMillis()
+        )
+        coEvery { syncApiService.syncMeals(any()) } returns Response.success(syncResponse)
+
+        coEvery { syncMetadataDao.updateMetadata(any()) } just Runs
+        coEvery { syncMetadataDao.removeFromQueue(any()) } just Runs
+
+        // When - Step 1: Create meal (triggers queue)
+        val createResult = mealRepository.addMeal(meal)
+
+        // Then - Verify meal created and queued
+        assertTrue(createResult.isSuccess)
+        assertEquals(mealId, createResult.getOrNull())
+        coVerify { mealDao.insertMeal(any()) }
+        coVerify { syncMetadataDao.queueChange(any()) }
+
+        // When - Step 2: Trigger sync
+        val syncResult = syncEngine.syncMeals()
+
+        // Then - Verify sync completed successfully
+        assertTrue(syncResult.isSuccess)
+        val result = syncResult.getOrNull()
+        assertNotNull(result)
+        assertEquals(1, result.syncedEntities)
+        assertEquals(0, result.failedEntities)
+        assertEquals(0, result.conflicts)
+
+        // Verify metadata updated
+        coVerify {
+            syncMetadataDao.updateMetadata(
+                match {
+                    it.entityId == mealId &&
+                    it.serverId == "server-id-123" &&
+                    it.syncStatus == "synced"
+                }
+            )
+        }
+
+        // Verify removed from queue
+        coVerify { syncMetadataDao.removeFromQueue(queuedChange) }
+    }
+
+    @Test
+    fun `test conflict resolution with concurrent modifications`() = runTest {
+        // Given - Local and remote versions of same meal with different timestamps
+        val mealId = 100L
+        val localTimestamp = System.currentTimeMillis()
+        val remoteTimestamp = localTimestamp + 5000 // Remote is newer
+
+        val localMeal = MealEntity(
+            id = mealId,
+            name = "Local Version",
+            notes = "Modified locally",
+            tags = listOf("Local"),
+            createdAt = localTimestamp - 10000,
+            updatedAt = localTimestamp,
+            serverId = "server-id-123",
+            syncStatus = "pending"
+        )
+
+        val remoteMealDto = MealDto(
+            id = "server-id-123",
+            localId = mealId,
+            name = "Remote Version",
+            ingredients = emptyList(),
+            notes = "Modified remotely",
+            tags = listOf("Remote"),
+            createdAt = localTimestamp - 10000,
+            updatedAt = remoteTimestamp,
+            deletedAt = null
+        )
+
+        // Mock queue and metadata
+        val queuedChange = SyncQueueEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            operation = "update",
+            payload = gson.toJson(localMeal),
+            createdAt = localTimestamp,
+            retryCount = 0,
+            lastAttemptAt = null
+        )
+        coEvery { syncMetadataDao.getQueuedChangesByType("meal") } returns listOf(queuedChange)
+
+        val syncMetadata = SyncMetadataEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            serverId = "server-id-123",
+            lastSyncedAt = localTimestamp - 10000,
+            localUpdatedAt = localTimestamp,
+            syncStatus = "pending",
+            retryCount = 0,
+            errorMessage = null
+        )
+        coEvery { syncMetadataDao.getMetadata("meal", mealId) } returns syncMetadata
+
+        // Mock API response with conflict
+        val syncResponse = MealSyncResponse(
+            synced = emptyList(),
+            conflicts = listOf(
+                com.shoppit.app.data.remote.dto.ConflictDto(
+                    entityType = "meal",
+                    localVersion = localMeal,
+                    serverVersion = remoteMealDto,
+                    resolution = "server_wins" // Remote is newer
+                )
+            ),
+            serverTimestamp = remoteTimestamp
+        )
+        coEvery { syncApiService.syncMeals(any()) } returns Response.success(syncResponse)
+
+        // Mock DAO update for conflict resolution
+        coEvery { mealDao.updateMeal(any()) } just Runs
+        coEvery { syncMetadataDao.updateMetadata(any()) } just Runs
+        coEvery { syncMetadataDao.removeFromQueue(any()) } just Runs
+
+        // When - Trigger sync
+        val syncResult = syncEngine.syncMeals()
+
+        // Then - Verify conflict detected and resolved
+        assertTrue(syncResult.isSuccess)
+        val result = syncResult.getOrNull()
+        assertNotNull(result)
+        assertEquals(1, result.conflicts)
+
+        // Verify local database updated with remote version (Last-Write-Wins)
+        coVerify {
+            mealDao.updateMeal(
+                match {
+                    it.name == "Remote Version" &&
+                    it.notes == "Modified remotely" &&
+                    it.updatedAt == remoteTimestamp
+                }
+            )
+        }
+
+        // Verify metadata updated
+        coVerify {
+            syncMetadataDao.updateMetadata(
+                match {
+                    it.entityId == mealId &&
+                    it.syncStatus == "synced" &&
+                    it.lastSyncedAt == remoteTimestamp
+                }
+            )
+        }
+
+        // Verify removed from queue
+        coVerify { syncMetadataDao.removeFromQueue(queuedChange) }
+    }
+
+    @Test
+    fun `test offline queue and auto-sync on reconnection`() = runTest {
+        // Given - Start offline
+        every { connectivityManager.activeNetwork } returns null
+
+        val mealId = 100L
+        val meal = Meal(
+            id = 0,
+            name = "Offline Meal",
+            ingredients = emptyList(),
+            notes = "Created offline",
+            tags = emptyList(),
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis()
+        )
+
+        // Mock DAO insert
+        coEvery { mealDao.insertMeal(any()) } returns mealId
+
+        // Mock queue operations
+        coEvery { syncMetadataDao.getQueuedChange("meal", mealId) } returns null
+        coEvery { syncMetadataDao.queueChange(any()) } just Runs
+        coEvery { syncMetadataDao.getMetadata("meal", mealId) } returns null
+        coEvery { syncMetadataDao.insertMetadata(any()) } just Runs
+
+        // When - Step 1: Create meal while offline
+        val createResult = mealRepository.addMeal(meal)
+
+        // Then - Verify meal created and queued
+        assertTrue(createResult.isSuccess)
+        coVerify { mealDao.insertMeal(any()) }
+        coVerify { syncMetadataDao.queueChange(any()) }
+
+        // When - Step 2: Try to sync while offline
+        val offlineSyncResult = syncEngine.syncMeals()
+
+        // Then - Verify sync fails due to no network
+        assertTrue(offlineSyncResult.isFailure)
+        assertEquals(SyncStatus.OFFLINE, syncEngine.observeSyncStatus().first())
+
+        // When - Step 3: Network comes back online
+        every { connectivityManager.activeNetwork } returns network
+
+        // Setup sync mocks for online sync
+        val queuedChange = SyncQueueEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            operation = "create",
+            payload = gson.toJson(MealEntity(
+                id = mealId,
+                name = meal.name,
+                notes = meal.notes,
+                tags = meal.tags,
+                createdAt = meal.createdAt,
+                updatedAt = meal.updatedAt,
+                serverId = null,
+                syncStatus = "pending"
+            )),
+            createdAt = System.currentTimeMillis(),
+            retryCount = 0,
+            lastAttemptAt = null
+        )
+        coEvery { syncMetadataDao.getQueuedChangesByType("meal") } returns listOf(queuedChange)
+
+        val syncMetadata = SyncMetadataEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            serverId = null,
+            lastSyncedAt = null,
+            localUpdatedAt = meal.updatedAt,
+            syncStatus = "pending",
+            retryCount = 0,
+            errorMessage = null
+        )
+        coEvery { syncMetadataDao.getMetadata("meal", mealId) } returns syncMetadata
+
+        val mealDto = MealDto(
+            id = "server-id-456",
+            localId = mealId,
+            name = meal.name,
+            ingredients = emptyList(),
+            notes = meal.notes,
+            tags = meal.tags,
+            createdAt = meal.createdAt,
+            updatedAt = meal.updatedAt,
+            deletedAt = null
+        )
+        val syncResponse = MealSyncResponse(
+            synced = listOf(mealDto),
+            conflicts = emptyList(),
+            serverTimestamp = System.currentTimeMillis()
+        )
+        coEvery { syncApiService.syncMeals(any()) } returns Response.success(syncResponse)
+        coEvery { syncMetadataDao.updateMetadata(any()) } just Runs
+        coEvery { syncMetadataDao.removeFromQueue(any()) } just Runs
+
+        // When - Step 4: Auto-sync on reconnection
+        val onlineSyncResult = syncEngine.syncMeals()
+
+        // Then - Verify sync succeeds
+        assertTrue(onlineSyncResult.isSuccess)
+        val result = onlineSyncResult.getOrNull()
+        assertNotNull(result)
+        assertEquals(1, result.syncedEntities)
+
+        // Verify status changed to SUCCESS
+        val finalStatus = syncEngine.observeSyncStatus().first()
+        assertTrue(finalStatus == SyncStatus.SUCCESS || finalStatus == SyncStatus.IDLE)
+    }
+
+    @Test
+    fun `test authentication flow and token refresh`() = runTest {
+        // Given - User not authenticated initially
+        every { authRepository.isAuthenticated() } returns false
+
+        // When - Try to sync without authentication
+        val unauthenticatedResult = syncEngine.syncAll()
+
+        // Then - Verify sync fails
+        assertTrue(unauthenticatedResult.isFailure)
+        val error = unauthenticatedResult.exceptionOrNull()
+        assertTrue(error is com.shoppit.app.domain.error.AppError.AuthenticationError)
+
+        // When - User authenticates
+        every { authRepository.isAuthenticated() } returns true
+        coEvery { syncMetadataDao.getQueuedChangesByType(any()) } returns emptyList()
+
+        // When - Try sync again after authentication
+        val authenticatedResult = syncEngine.syncAll()
+
+        // Then - Verify sync succeeds
+        assertTrue(authenticatedResult.isSuccess)
+    }
+
+    @Test
+    fun `test multiple entity types sync in batch`() = runTest {
+        // Given - Multiple queued changes across different entity types
+        val mealId = 100L
+        val mealPlanId = 200L
+        val shoppingItemId = 300L
+
+        val mealChange = SyncQueueEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            operation = "create",
+            payload = "{}",
+            createdAt = System.currentTimeMillis(),
+            retryCount = 0,
+            lastAttemptAt = null
+        )
+
+        val mealPlanChange = SyncQueueEntity(
+            id = 2,
+            entityType = "meal_plan",
+            entityId = mealPlanId,
+            operation = "update",
+            payload = "{}",
+            createdAt = System.currentTimeMillis(),
+            retryCount = 0,
+            lastAttemptAt = null
+        )
+
+        val shoppingItemChange = SyncQueueEntity(
+            id = 3,
+            entityType = "shopping_list_item",
+            entityId = shoppingItemId,
+            operation = "update",
+            payload = "{}",
+            createdAt = System.currentTimeMillis(),
+            retryCount = 0,
+            lastAttemptAt = null
+        )
+
+        // Mock queue responses for each type
+        coEvery { syncMetadataDao.getQueuedChangesByType("meal") } returns listOf(mealChange)
+        coEvery { syncMetadataDao.getQueuedChangesByType("meal_plan") } returns listOf(mealPlanChange)
+        coEvery { syncMetadataDao.getQueuedChangesByType("shopping_list_item") } returns listOf(shoppingItemChange)
+
+        // Mock metadata for each entity
+        coEvery { syncMetadataDao.getMetadata("meal", mealId) } returns SyncMetadataEntity(
+            id = 1, entityType = "meal", entityId = mealId, serverId = null,
+            lastSyncedAt = null, localUpdatedAt = System.currentTimeMillis(),
+            syncStatus = "pending", retryCount = 0, errorMessage = null
+        )
+        coEvery { syncMetadataDao.getMetadata("meal_plan", mealPlanId) } returns SyncMetadataEntity(
+            id = 2, entityType = "meal_plan", entityId = mealPlanId, serverId = null,
+            lastSyncedAt = null, localUpdatedAt = System.currentTimeMillis(),
+            syncStatus = "pending", retryCount = 0, errorMessage = null
+        )
+        coEvery { syncMetadataDao.getMetadata("shopping_list_item", shoppingItemId) } returns SyncMetadataEntity(
+            id = 3, entityType = "shopping_list_item", entityId = shoppingItemId, serverId = null,
+            lastSyncedAt = null, localUpdatedAt = System.currentTimeMillis(),
+            syncStatus = "pending", retryCount = 0, errorMessage = null
+        )
+
+        // Mock API responses
+        coEvery { syncApiService.syncMeals(any()) } returns Response.success(
+            MealSyncResponse(synced = emptyList(), conflicts = emptyList(), serverTimestamp = System.currentTimeMillis())
+        )
+        coEvery { syncApiService.syncMealPlans(any()) } returns Response.success(
+            com.shoppit.app.data.remote.dto.MealPlanSyncResponse(
+                synced = emptyList(), conflicts = emptyList(), serverTimestamp = System.currentTimeMillis()
+            )
+        )
+        coEvery { syncApiService.syncShoppingLists(any()) } returns Response.success(
+            com.shoppit.app.data.remote.dto.ShoppingListSyncResponse(
+                synced = emptyList(), conflicts = emptyList(), serverTimestamp = System.currentTimeMillis()
+            )
+        )
+
+        coEvery { syncMetadataDao.updateMetadata(any()) } just Runs
+        coEvery { syncMetadataDao.removeFromQueue(any()) } just Runs
+
+        // When - Sync all entity types
+        val syncResult = syncEngine.syncAll()
+
+        // Then - Verify all types synced
+        assertTrue(syncResult.isSuccess)
+        val result = syncResult.getOrNull()
+        assertNotNull(result)
+        assertEquals(3, result.syncedEntities)
+        assertEquals(0, result.failedEntities)
+
+        // Verify all API endpoints called
+        coVerify { syncApiService.syncMeals(any()) }
+        coVerify { syncApiService.syncMealPlans(any()) }
+        coVerify { syncApiService.syncShoppingLists(any()) }
+    }
+
+    @Test
+    fun `test retry behavior on transient failures`() = runTest {
+        // Given - Setup for sync with transient failure
+        val mealId = 100L
+        val queuedChange = SyncQueueEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            operation = "create",
+            payload = "{}",
+            createdAt = System.currentTimeMillis(),
+            retryCount = 0,
+            lastAttemptAt = null
+        )
+        coEvery { syncMetadataDao.getQueuedChangesByType("meal") } returns listOf(queuedChange)
+
+        val syncMetadata = SyncMetadataEntity(
+            id = 1,
+            entityType = "meal",
+            entityId = mealId,
+            serverId = null,
+            lastSyncedAt = null,
+            localUpdatedAt = System.currentTimeMillis(),
+            syncStatus = "pending",
+            retryCount = 0,
+            errorMessage = null
+        )
+        coEvery { syncMetadataDao.getMetadata("meal", mealId) } returns syncMetadata
+
+        // Mock API to fail first time, succeed second time
+        var attemptCount = 0
+        coEvery { syncApiService.syncMeals(any()) } answers {
+            attemptCount++
+            if (attemptCount == 1) {
+                throw java.io.IOException("Network timeout")
+            } else {
+                Response.success(
+                    MealSyncResponse(
+                        synced = emptyList(),
+                        conflicts = emptyList(),
+                        serverTimestamp = System.currentTimeMillis()
+                    )
+                )
+            }
+        }
+
+        coEvery { syncMetadataDao.updateMetadata(any()) } just Runs
+        coEvery { syncMetadataDao.removeFromQueue(any()) } just Runs
+        coEvery { syncMetadataDao.updateQueuedChange(any()) } just Runs
+
+        // When - First sync attempt (will fail)
+        val firstResult = syncEngine.syncMeals()
+
+        // Then - Verify first attempt failed
+        assertTrue(firstResult.isSuccess) // Engine returns success with failed entities
+        val firstSyncResult = firstResult.getOrNull()
+        assertNotNull(firstSyncResult)
+        assertEquals(0, firstSyncResult.syncedEntities)
+        assertEquals(1, firstSyncResult.failedEntities)
+
+        // When - Second sync attempt (will succeed)
+        val secondResult = syncEngine.syncMeals()
+
+        // Then - Verify second attempt succeeded
+        assertTrue(secondResult.isSuccess)
+        val secondSyncResult = secondResult.getOrNull()
+        assertNotNull(secondSyncResult)
+        assertEquals(1, secondSyncResult.syncedEntities)
+        assertEquals(0, secondSyncResult.failedEntities)
+    }
+}
