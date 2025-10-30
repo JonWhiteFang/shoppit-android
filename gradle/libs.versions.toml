@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.1.0"
 compose-bom = "2023.10.01"
-hilt = "2.54"
+hilt = "2.56"
 room = "2.6.0"
 retrofit = "2.9.0"
 okhttp = "4.12.0"
