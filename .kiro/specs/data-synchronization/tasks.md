@@ -55,14 +55,14 @@
   - Add error logging and user notifications
   - _Requirements: 4.4, 8.5_
 
-- [ ] 9. Create authentication UI
+- [x] 9. Create authentication UI
   - Build AuthScreen composable with sign-in and sign-up forms
   - Create AuthViewModel to manage authentication state
   - Add "Skip" option for users who want offline-only mode
   - Implement form validation and error display
   - _Requirements: 1.1, 1.2, 1.4, 1.5_
 
-- [ ] 10. Build sync status UI components
+- [x] 10. Build sync status UI components
   - Create SyncStatusIndicator composable showing current sync state
   - Add sync status to app bar or bottom navigation
   - Implement manual sync trigger button
@@ -70,7 +70,7 @@
   - Show last sync time and success/error states
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 11. Integrate sync with navigation
+- [x] 11. Integrate sync with navigation
   - Add authentication check on app startup
   - Navigate to AuthScreen if not authenticated (with skip option)
   - Initialize SyncWorker after successful authentication

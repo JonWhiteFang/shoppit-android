@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.shoppit.app.presentation.ui.auth.AuthScreen
 import com.shoppit.app.presentation.ui.meal.AddEditMealScreen
 import com.shoppit.app.presentation.ui.meal.MealDetailScreen
 import com.shoppit.app.presentation.ui.meal.MealListScreen
@@ -103,6 +104,28 @@ fun ShoppitNavHost(
             liveRegion = LiveRegionMode.Polite
         }
     ) {
+        // Authentication screen
+        composable(Screen.Auth.route) {
+            AuthScreen(
+                onAuthenticationComplete = {
+                    // Navigate to meal list after successful authentication
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.MealList.route,
+                        fallbackRoute = Screen.MealList.route
+                    )
+                },
+                onSkip = {
+                    // Navigate to meal list in offline mode
+                    NavigationErrorHandler.safeNavigate(
+                        navController = navController,
+                        route = Screen.MealList.route,
+                        fallbackRoute = Screen.MealList.route
+                    )
+                }
+            )
+        }
+        
         // Meal list screen - starting destination
         composable(Screen.MealList.route) {
             MealListScreen(

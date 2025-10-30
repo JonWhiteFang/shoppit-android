@@ -3,6 +3,8 @@ package com.shoppit.app.presentation.ui.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -11,15 +13,21 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -30,6 +38,9 @@ import com.shoppit.app.presentation.ui.navigation.util.NavigationLogger
 import com.shoppit.app.presentation.ui.navigation.util.NavigationPerformanceAnalytics
 import com.shoppit.app.presentation.ui.navigation.util.SetupKeyboardNavigation
 import com.shoppit.app.presentation.ui.navigation.util.keyboardNavigationShortcuts
+import com.shoppit.app.presentation.ui.sync.SyncStatusIndicator
+import com.shoppit.app.presentation.ui.sync.SyncStatusSnackbar
+import com.shoppit.app.presentation.ui.sync.SyncViewModel
 
 /**
  * Main screen with bottom navigation bar.
@@ -50,11 +61,24 @@ import com.shoppit.app.presentation.ui.navigation.util.keyboardNavigationShortcu
 @Composable
 fun MainScreen(
     navController: NavHostController = rememberNavController(),
-    getBadgeCount: (String) -> Int? = { null }
+    getBadgeCount: (String) -> Int? = { null },
+    syncViewModel: SyncViewModel = hiltViewModel()
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
+    
+    // Sync state
+    val syncState by syncViewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Sync status snackbar
+    SyncStatusSnackbar(
+        syncState = syncState,
+        onDismissSuccess = syncViewModel::dismissSuccessMessage,
+        onDismissError = syncViewModel::dismissErrorMessage,
+        snackbarHostState = snackbarHostState
+    )
     
     // Requirement 1.5: Determine if bottom bar should be visible
     // Show on main section screens, hide on detail/edit screens
@@ -85,6 +109,36 @@ fun MainScreen(
     
     Scaffold(
         modifier = Modifier.keyboardNavigationShortcuts(navController),
+        topBar = {
+            // Show sync status in top bar on main screens
+            if (shouldShowBottomBar) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = when (currentRoute) {
+                                Screen.MealList.route -> "Meals"
+                                Screen.MealPlanner.route -> "Planner"
+                                Screen.ShoppingList.route -> "Shopping"
+                                else -> "Shoppit"
+                            }
+                        )
+                    },
+                    actions = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            SyncStatusIndicator(
+                                syncState = syncState,
+                                onManualSync = syncViewModel::triggerManualSync,
+                                showText = false
+                            )
+                            Spacer(modifier = Modifier.padding(horizontal = 8.dp))
+                        }
+                    }
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
             // Requirement 1.5: Smooth show/hide animations for bottom bar
             AnimatedVisibility(

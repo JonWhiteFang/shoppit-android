@@ -75,4 +75,9 @@ sealed class Screen(val route: String) {
      * Navigation analytics dashboard - displays navigation metrics and performance data
      */
     data object AnalyticsDashboard : Screen("analytics_dashboard")
+    
+    /**
+     * Authentication screen - sign in or sign up
+     */
+    data object Auth : Screen("auth")
 }
