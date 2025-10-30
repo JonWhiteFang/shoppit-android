@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Create domain models for meal suggestions
+- [x] 1. Create domain models for meal suggestions
   - Create `MealSuggestion` data class with meal, score, reasons, and metadata
   - Create `SuggestionContext` data class with target date, meal type, filters, and search query
   - Create `SuggestionScore` data class with score breakdown (base, bonuses, penalties)
