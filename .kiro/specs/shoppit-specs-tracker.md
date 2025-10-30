@@ -18,7 +18,7 @@
 
 ## Phase 4: Advanced Features
 - [x] **data-synchronization** - Cloud sync and backup → [archived](archived/data-synchronization)
-- [ ] **meal-suggestions** - Smart recommendations
+- [x] **meal-suggestions** - Smart recommendations
 
 ## Phase 5: Polish and Enhancement
 - [ ] **error-handling-and-validation** - Robust error management
