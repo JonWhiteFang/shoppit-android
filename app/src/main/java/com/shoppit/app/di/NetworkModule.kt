@@ -15,7 +15,17 @@ import javax.inject.Singleton
 
 /**
  * Hilt module providing network-related dependencies.
- * Configures Retrofit, OkHttp, and API services for data synchronization.
+ * 
+ * This module configures:
+ * - Retrofit: REST API client for sync operations
+ * - OkHttp: HTTP client with authentication and logging
+ * - SyncApiService: API interface for data synchronization
+ * - AuthInterceptor: Adds authentication tokens to requests
+ * 
+ * Requirements:
+ * - 2.4: Network client for uploading queued changes
+ * - 3.1, 3.2: API client for downloading remote data
+ * - 8.4: Authentication interceptor for secure API requests
  */
 @Module
 @InstallIn(SingletonComponent::class)

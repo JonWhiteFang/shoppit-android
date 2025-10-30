@@ -11,7 +11,14 @@ import javax.inject.Singleton
 
 /**
  * Hilt module for authentication dependencies.
- * Provides authentication repository and token storage.
+ * 
+ * This module provides:
+ * - AuthRepository: Manages user authentication and session
+ * - TokenStorage: Securely stores authentication tokens
+ * 
+ * Requirements:
+ * - 1.1, 1.2: Authentication service for sign-in/sign-up
+ * - 8.1, 8.2, 8.3: Secure token storage and management
  */
 @Module
 @InstallIn(SingletonComponent::class)

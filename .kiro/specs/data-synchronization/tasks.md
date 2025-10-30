@@ -77,7 +77,7 @@
   - Add sync status to main navigation screens
   - _Requirements: 1.1, 1.3, 1.5_
 
-- [ ] 12. Create Hilt modules for sync components
+- [x] 12. Create Hilt modules for sync components
   - Create SyncModule providing SyncEngine, AuthService, and SyncApiService
   - Create NetworkModule providing Retrofit with authentication interceptor
   - Update existing modules to inject sync dependencies
