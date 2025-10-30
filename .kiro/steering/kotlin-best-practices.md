@@ -188,6 +188,8 @@ fun complexCalculation(): Int {
 - Use `//` for single-line comments
 - Use `/* */` for multi-line block comments
 - Prefer KDoc (`/** */`) for public API documentation
+- Avoid obvious comments (code should be self-documenting)
+- Comment "why", not "what"
 
 ```kotlin
 val value = 9999 // End-of-line comment
@@ -204,3 +206,21 @@ val value = 9999 // End-of-line comment
  */
 fun process(x: Int): Int = x * 2
 ```
+
+## Quick Reference
+
+### Declarations
+- Use `val` over `var` (immutability)
+- Use expression bodies for simple functions
+- Use trailing commas in multi-line lists
+- Explicit types for public APIs, infer for private
+
+### Validation
+- `require()` for argument validation
+- `check()` for state validation
+- `TODO()` for unimplemented code
+
+### Naming
+- Avoid redundant type information in names
+- Use simple, descriptive names
+- Follow Kotlin conventions (not Java)

@@ -648,14 +648,16 @@ composeTestRule.onNodeWithTag("meal_name").assertTextEquals("Pasta")
 
 ### Avoid
 - Creating new lambdas in composable body without `remember`
-- Mutating state directly (use `_state.update { }`)
+- Mutating state directly (always use `_state.update { }`)
 - Heavy computations without `remember` or `derivedStateOf`
-- Accessing ViewModel state directly (use `collectAsState()`)
+- Accessing ViewModel state directly (always use `collectAsState()`)
 - Nested LazyColumns (use single LazyColumn with different item types)
+- Recreating modifiers inside composables
 
 ### Prefer
 - Stateless composables with hoisted state
-- Immutable data classes for state
-- Stable keys for LazyColumn items
+- Immutable data classes for state (`@Immutable` or `@Stable`)
+- Stable keys for LazyColumn items (use unique IDs)
 - Single source of truth in ViewModel
 - Separation of screen (stateful) and content (stateless) composables
+- Expression bodies for simple composables

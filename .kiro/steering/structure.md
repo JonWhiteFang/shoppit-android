@@ -137,14 +137,15 @@ DataSource → Repository (Flow) → ViewModel (StateFlow) → UI (collectAsStat
 
 ## Feature Implementation Checklist
 
-When adding a new feature:
-1. Define domain model in `domain/model/`
-2. Create repository interface in `domain/repository/`
-3. Implement use cases in `domain/usecase/`
-4. Create Room entity and DAO in `data/local/`
-5. Implement repository in `data/repository/`
-6. Create ViewModel with UiState in `ui/[feature]/`
-7. Build Compose screen in `ui/[feature]/`
-8. Add navigation route in `ui/navigation/`
-9. Wire up DI in appropriate modules
-10. Write unit tests for use cases and ViewModel
+When adding a new feature, follow this order:
+
+1. **Domain Layer**: Define model in `domain/model/`
+2. **Domain Layer**: Create repository interface in `domain/repository/`
+3. **Domain Layer**: Implement use cases in `domain/usecase/`
+4. **Data Layer**: Create Room entity and DAO in `data/local/`
+5. **Data Layer**: Implement repository in `data/repository/`
+6. **UI Layer**: Create ViewModel with UiState in `ui/[feature]/`
+7. **UI Layer**: Build Compose screen in `ui/[feature]/`
+8. **UI Layer**: Add navigation route in `ui/navigation/`
+9. **DI Layer**: Wire up dependencies in appropriate modules
+10. **Testing**: Write unit tests for use cases and ViewModel

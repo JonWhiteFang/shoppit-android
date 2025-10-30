@@ -34,14 +34,14 @@ inclusion: always
 
 ## Common Gradle Commands
 
-**Build & Install**
+### Build & Install
 ```bash
 ./gradlew assembleDebug          # Build debug APK
 ./gradlew installDebug            # Install on device
 ./gradlew clean                   # Clean build
 ```
 
-**Testing**
+### Testing
 ```bash
 ./gradlew test                    # All unit tests
 ./gradlew testDebugUnitTest       # Debug unit tests only
@@ -49,13 +49,13 @@ inclusion: always
 ./gradlew test --tests "ClassName" # Specific test class
 ```
 
-**Code Quality**
+### Code Quality
 ```bash
 ./gradlew lint                    # Run lint checks
 ./gradlew lintDebug               # Generate lint report
 ```
 
-**Development**
+### Development
 ```bash
 ./gradlew kspDebugKotlin          # Generate Room/Hilt sources
 ./gradlew dependencies            # Check dependency tree

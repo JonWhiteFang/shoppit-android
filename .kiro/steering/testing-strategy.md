@@ -465,7 +465,7 @@ androidTest/
 Use descriptive names that explain the scenario:
 
 ```kotlin
-// Good
+// Good - Describes behavior and context
 @Test
 fun `loads meals successfully when repository returns data`()
 
@@ -475,10 +475,22 @@ fun `displays error message when network request fails`()
 @Test
 fun `aggregates ingredients from multiple meals in shopping list`()
 
-// Avoid
+// Avoid - Generic or unclear names
 @Test
 fun testLoadMeals()
 
 @Test
 fun test1()
+
+@Test
+fun testSuccess()
 ```
+
+## Key Principles
+
+- Write tests that describe behavior, not implementation
+- Keep tests fast and isolated
+- Use meaningful test data (avoid magic numbers)
+- Follow the Arrange-Act-Assert pattern
+- One assertion concept per test
+- Make tests readable as documentation

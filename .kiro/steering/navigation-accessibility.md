@@ -294,6 +294,24 @@ fun AccessibleNavigationItem(
 }
 ```
 
+## Key Principles
+
+### Navigation
+- Always use type-safe routes (sealed classes)
+- Preserve state across configuration changes
+- Handle back stack properly (avoid duplicate destinations)
+- Support deep links for all major screens
+- Test navigation flows end-to-end
+
+### Accessibility
+- Every interactive element needs a content description
+- Announce state changes for screen readers
+- Support keyboard navigation with shortcuts
+- Maintain logical focus order
+- Test with TalkBack enabled
+- Ensure minimum touch target size (48dp)
+- Provide sufficient color contrast (WCAG AA)
+
 ## Documentation References
 
 - [Navigation Architecture](../docs/navigation/NAVIGATION_ARCHITECTURE.md)

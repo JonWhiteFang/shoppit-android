@@ -22,12 +22,12 @@ Shoppit is an offline-first Android meal planning app that generates smart shopp
 
 ## User Capabilities
 
-1. **Meal Library**: Create, edit, delete meals with ingredient lists ✅ Implemented
-2. **Weekly Planner**: Assign meals to specific dates and meal types ✅ Implemented
-3. **Shopping List**: View aggregated ingredients, check off items while shopping 📋 Planned
-4. **Offline Operation**: Full functionality without network; sync when available ✅ Implemented
-5. **Navigation**: Bottom navigation between Meals, Planner, and Shopping sections ✅ Implemented
-6. **Accessibility**: TalkBack and keyboard navigation support ✅ Implemented
+1. **Meal Library**: Create, edit, delete meals with ingredient lists ✅
+2. **Weekly Planner**: Assign meals to specific dates and meal types ✅
+3. **Shopping List**: View aggregated ingredients, check off items while shopping 📋
+4. **Offline Operation**: Full functionality without network; sync when available ✅
+5. **Navigation**: Bottom navigation between Meals, Planner, and Shopping sections ✅
+6. **Accessibility**: TalkBack and keyboard navigation support ✅
 
 ## UI/UX Principles
 

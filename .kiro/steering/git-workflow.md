@@ -490,3 +490,23 @@ git push --force-with-lease
 
 # This fails if remote has commits you don't have locally
 ```
+
+## Quick Reference
+
+### Branch Naming
+- `feature/123-short-description` - New features
+- `bugfix/456-short-description` - Bug fixes
+- `hotfix/1.2.1-short-description` - Production fixes
+- `release/1.3.0` - Release preparation
+
+### Commit Types
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation
+- `refactor` - Code refactoring
+- `test` - Tests
+- `chore` - Maintenance
+
+### Common Scopes
+- `meal`, `planner`, `shopping` - Features
+- `data`, `domain`, `ui` - Layers
