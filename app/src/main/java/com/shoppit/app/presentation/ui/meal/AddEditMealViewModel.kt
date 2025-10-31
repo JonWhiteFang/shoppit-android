@@ -115,6 +115,8 @@ class AddEditMealViewModel @Inject constructor(
     /**
      * Updates the meal name in the UI state.
      * Clears any validation errors for the name field.
+     * 
+     * Requirement 4.3: Clear field errors when user updates that field
      *
      * @param name The new meal name
      */
@@ -145,6 +147,8 @@ class AddEditMealViewModel @Inject constructor(
     /**
      * Adds an ingredient to the meal's ingredient list.
      * Clears any validation errors for the ingredients field.
+     * 
+     * Requirement 4.3: Clear field errors when user updates that field
      *
      * @param ingredient The ingredient to add
      */
@@ -161,16 +165,79 @@ class AddEditMealViewModel @Inject constructor(
     }
 
     /**
+     * Updates an ingredient at a specific index.
+     * Clears validation errors for the updated ingredient fields.
+     * 
+     * Requirement 4.3: Clear field errors when user updates that field
+     *
+     * @param index The index of the ingredient to update
+     * @param ingredient The updated ingredient
+     */
+    fun updateIngredient(index: Int, ingredient: Ingredient) {
+        _uiState.update { state ->
+            val newIngredients = state.meal.ingredients.toMutableList()
+            if (index in newIngredients.indices) {
+                newIngredients[index] = ingredient
+                
+                // Clear validation errors for this ingredient's fields
+                val newValidationErrors = state.validationErrors
+                    .filterKeys { key ->
+                        !key.startsWith("ingredients[$index]")
+                    }
+                
+                state.copy(
+                    meal = state.meal.copy(ingredients = newIngredients),
+                    validationErrors = newValidationErrors,
+                    error = null
+                )
+            } else {
+                state
+            }
+        }
+    }
+
+    /**
      * Removes an ingredient from the meal's ingredient list by index.
+     * Clears validation errors for the removed ingredient and adjusts indices for remaining ingredients.
+     * 
+     * Requirement 4.3: Clear field errors when user updates that field
      *
      * @param index The index of the ingredient to remove
      */
     fun removeIngredient(index: Int) {
         _uiState.update { state ->
+            // Remove the ingredient
+            val newIngredients = state.meal.ingredients.filterIndexed { i, _ -> i != index }
+            
+            // Clear validation errors for the removed ingredient and adjust indices
+            val newValidationErrors = state.validationErrors
+                .filterKeys { key ->
+                    // Remove errors for the deleted ingredient
+                    !key.startsWith("ingredients[$index]")
+                }
+                .mapKeys { (key, _) ->
+                    // Adjust indices for ingredients after the removed one
+                    if (key.startsWith("ingredients[")) {
+                        val ingredientIndexMatch = "ingredients\\[(\\d+)\\]".toRegex().find(key)
+                        if (ingredientIndexMatch != null) {
+                            val ingredientIndex = ingredientIndexMatch.groupValues[1].toInt()
+                            if (ingredientIndex > index) {
+                                // Decrement the index
+                                key.replace("ingredients[$ingredientIndex]", "ingredients[${ingredientIndex - 1}]")
+                            } else {
+                                key
+                            }
+                        } else {
+                            key
+                        }
+                    } else {
+                        key
+                    }
+                }
+            
             state.copy(
-                meal = state.meal.copy(
-                    ingredients = state.meal.ingredients.filterIndexed { i, _ -> i != index }
-                ),
+                meal = state.meal.copy(ingredients = newIngredients),
+                validationErrors = newValidationErrors,
                 error = null
             )
         }
@@ -179,11 +246,20 @@ class AddEditMealViewModel @Inject constructor(
     /**
      * Saves the meal (either creates a new meal or updates an existing one).
      * Validates the meal data and displays validation errors if any.
-     * On success, the UI should navigate away (handled by the screen).
+     * On success, emits a success event and the UI should navigate away.
+     * 
+     * Requirements:
+     * - 3.1, 3.2, 3.3, 3.4: Validate meal name and ingredients
+     * - 3.5, 3.6, 3.7: Validate individual ingredient fields
+     * - 4.1, 4.2, 4.3, 4.4: Display field-specific validation errors inline
+     * - 9.1, 9.2: Emit success message on successful save/update
+     * - 10.1, 10.2, 10.3, 10.4, 10.5: Log errors with context
      */
     fun saveMeal() {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, validationErrors = emptyMap()) }
+            
+            val operationName = if (mealId == null) "addMeal" else "updateMeal"
             
             val result = if (mealId == null) {
                 // Add new meal
@@ -197,13 +273,32 @@ class AddEditMealViewModel @Inject constructor(
             result.fold(
                 onSuccess = {
                     _uiState.update { it.copy(isSaving = false) }
+                    
+                    // Emit success event (Requirement 9.1, 9.2)
+                    val successMessage = if (mealId == null) {
+                        "Meal saved successfully"
+                    } else {
+                        "Meal updated successfully"
+                    }
+                    _errorEvent.emit(ErrorEvent.Success(successMessage))
+                    
                     // Navigation is handled by the screen observing the state
                 },
                 onFailure = { error ->
-                    // Handle validation errors
+                    // Log error with context (Requirement 10.1, 10.2, 10.3, 10.4, 10.5)
+                    errorLogger.logError(
+                        error = error,
+                        context = "AddEditMealViewModel.$operationName",
+                        additionalData = mapOf(
+                            "mealId" to (mealId?.toString() ?: "new"),
+                            "mealName" to uiState.value.meal.name
+                        )
+                    )
+                    
+                    // Extract field-specific validation errors (Requirements 3.1-3.7, 4.1-4.4)
                     val validationErrors = when (error) {
                         is ValidationException -> {
-                            parseValidationError(error.message ?: "")
+                            extractFieldErrors(error.message ?: "")
                         }
                         else -> emptyMap()
                     }
@@ -211,29 +306,63 @@ class AddEditMealViewModel @Inject constructor(
                     _uiState.update { 
                         it.copy(
                             isSaving = false,
-                            error = error.message ?: "Failed to save meal",
+                            error = if (validationErrors.isEmpty()) {
+                                error.message ?: "Failed to save meal"
+                            } else {
+                                null // Don't show general error if we have field-specific errors
+                            },
                             validationErrors = validationErrors
                         )
                     }
+                    
+                    // Emit error event for snackbar display
+                    _errorEvent.emit(
+                        ErrorEvent.Error(
+                            if (validationErrors.isEmpty()) {
+                                error.message ?: "Failed to save meal"
+                            } else {
+                                "Please correct the errors in the form"
+                            }
+                        )
+                    )
                 }
             )
         }
     }
 
     /**
-     * Parses validation error messages to extract field-specific errors.
-     * Maps error messages to field names for inline display.
+     * Extracts field-specific errors from validation error message.
+     * The ValidationException message format is: "field1: message1; field2: message2"
+     * 
+     * This method parses that format and creates a map of field names to error messages
+     * for inline display in the UI.
      *
-     * @param errorMessage The validation error message
+     * Requirements:
+     * - 3.1, 3.2, 3.3, 3.4: Extract meal-level validation errors
+     * - 3.5, 3.6, 3.7: Extract ingredient-level validation errors with indexed field names
+     * - 4.1, 4.2, 4.3: Map errors to specific form fields
+     *
+     * @param errorMessage The validation error message from ValidationException
      * @return Map of field names to error messages
      */
-    private fun parseValidationError(errorMessage: String): Map<String, String> {
-        return when {
-            errorMessage.contains("name", ignoreCase = true) -> 
-                mapOf("name" to errorMessage)
-            errorMessage.contains("ingredient", ignoreCase = true) -> 
-                mapOf("ingredients" to errorMessage)
-            else -> emptyMap()
+    private fun extractFieldErrors(errorMessage: String): Map<String, String> {
+        val errors = mutableMapOf<String, String>()
+        
+        // Split by semicolon to get individual field errors
+        val fieldErrors = errorMessage.split(";")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+        
+        for (fieldError in fieldErrors) {
+            // Each error is in format "field: message"
+            val parts = fieldError.split(":", limit = 2)
+            if (parts.size == 2) {
+                val field = parts[0].trim()
+                val message = parts[1].trim()
+                errors[field] = message
+            }
         }
+        
+        return errors
     }
 }
