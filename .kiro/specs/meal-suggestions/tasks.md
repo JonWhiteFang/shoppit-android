@@ -66,8 +66,8 @@
     - Test error handling from repositories
     - _Requirements: 1.1-1.5, 2.1-2.5, 5.1-5.5, 6.1-6.5_
 
-- [ ] 5. Create UI state management in ViewModel
-  - [ ] 5.1 Enhance `MealPlannerViewModel` with suggestion state
+- [x] 5. Create UI state management in ViewModel
+  - [x] 5.1 Enhance `MealPlannerViewModel` with suggestion state
     - Add `SuggestionUiState` sealed interface (Hidden, Loading, Success, Error, Empty)
     - Add `EmptyReason` enum (NO_MEALS, NO_MATCHES, ALL_PLANNED)
     - Add `_suggestionState` MutableStateFlow
@@ -83,7 +83,7 @@
     - Handle loading, success, error, and empty states
     - _Requirements: 1.1-1.5, 2.1-2.5, 5.1-5.5, 7.1-7.5, 8.1-8.5, 9.1-9.5_
   
-  - [ ] 5.2 Write unit tests for ViewModel suggestion logic
+  - [x] 5.2 Write unit tests for ViewModel suggestion logic
     - Test showing suggestions updates state
     - Test tag filter updates
     - Test search query updates

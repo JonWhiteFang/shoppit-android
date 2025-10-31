@@ -2,7 +2,9 @@ package com.shoppit.app.presentation.ui.planner
 
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealPlan
+import com.shoppit.app.domain.model.MealSuggestion
 import com.shoppit.app.domain.model.MealType
+import com.shoppit.app.domain.model.SuggestionContext
 import com.shoppit.app.domain.model.WeekPlanData
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -30,3 +32,64 @@ data class MealSlot(
     val mealType: MealType,
     val existingPlan: MealPlan? = null
 )
+
+/**
+ * UI state for meal suggestions.
+ * Manages the display of the suggestions bottom sheet.
+ */
+sealed interface SuggestionUiState {
+    /**
+     * Suggestions are hidden (bottom sheet not shown).
+     */
+    data object Hidden : SuggestionUiState
+
+    /**
+     * Loading suggestions from the use case.
+     */
+    data object Loading : SuggestionUiState
+
+    /**
+     * Successfully loaded suggestions.
+     *
+     * @property suggestions List of meal suggestions with scores
+     * @property context The context used to generate these suggestions
+     */
+    data class Success(
+        val suggestions: List<MealSuggestion>,
+        val context: SuggestionContext
+    ) : SuggestionUiState
+
+    /**
+     * Error occurred while loading suggestions.
+     *
+     * @property message Error message to display
+     */
+    data class Error(val message: String) : SuggestionUiState
+
+    /**
+     * No suggestions available.
+     *
+     * @property reason The reason why no suggestions are available
+     */
+    data class Empty(val reason: EmptyReason) : SuggestionUiState
+}
+
+/**
+ * Reasons why suggestions might be empty.
+ */
+enum class EmptyReason {
+    /**
+     * User has no meals in their library.
+     */
+    NO_MEALS,
+
+    /**
+     * No meals match the current filters/search.
+     */
+    NO_MATCHES,
+
+    /**
+     * All meals are already planned for the week.
+     */
+    ALL_PLANNED
+}

@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealPlan
+import com.shoppit.app.domain.model.MealSuggestion
+import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.domain.model.MealType
 import com.shoppit.app.domain.usecase.AssignMealToPlanUseCase
 import com.shoppit.app.domain.usecase.ClearDayPlansUseCase
@@ -13,11 +15,14 @@ import com.shoppit.app.domain.usecase.FakeMealPlanRepository
 import com.shoppit.app.domain.usecase.FakeMealRepository
 import com.shoppit.app.domain.usecase.GenerateShoppingListUseCase
 import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
+import com.shoppit.app.domain.usecase.GetMealSuggestionsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.UpdateMealPlanUseCase
 import com.shoppit.app.util.ViewModelTest
+import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -47,6 +52,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
     private lateinit var copyDayPlansUseCase: CopyDayPlansUseCase
     private lateinit var clearDayPlansUseCase: ClearDayPlansUseCase
     private lateinit var generateShoppingListUseCase: GenerateShoppingListUseCase
+    private lateinit var getMealSuggestionsUseCase: GetMealSuggestionsUseCase
     private lateinit var viewModel: MealPlannerViewModel
 
     @Before
@@ -66,6 +72,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
             mealPlanRepository = mealPlanRepository,
             mealRepository = mealRepository
         )
+        getMealSuggestionsUseCase = mockk(relaxed = true)
     }
 
     @Test
@@ -374,6 +381,298 @@ class MealPlannerViewModelTest : ViewModelTest() {
         assertEquals("Salad", state.availableMeals[1].name)
     }
 
+    // Suggestion Tests
+
+    @Test
+    fun `showSuggestions updates state to Loading then Success`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")), tags = setOf(MealTag.LUNCH))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Perfect for lunch"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+
+        // When
+        viewModel.showSuggestions(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        // Then
+        val state = viewModel.suggestionState.value
+        assertTrue(state is SuggestionUiState.Success)
+        assertEquals(1, (state as SuggestionUiState.Success).suggestions.size)
+        assertEquals("Pasta", state.suggestions[0].meal.name)
+    }
+
+    @Test
+    fun `showSuggestions displays Empty state when no meals exist`() = runTest {
+        // Given
+        mealRepository.setMeals(emptyList())
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(emptyList()))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // When
+        viewModel.showSuggestions(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle()
+
+        // Then
+        val state = viewModel.suggestionState.value
+        assertTrue(state is SuggestionUiState.Empty)
+        assertEquals(EmptyReason.NO_MEALS, (state as SuggestionUiState.Empty).reason)
+    }
+
+    @Test
+    fun `showSuggestions displays Empty state when no matches found`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(emptyList()))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // Set a filter
+        viewModel.updateTagFilter(MealTag.VEGETARIAN)
+
+        // When
+        viewModel.showSuggestions(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle()
+
+        // Then
+        val state = viewModel.suggestionState.value
+        assertTrue(state is SuggestionUiState.Empty)
+        assertEquals(EmptyReason.NO_MATCHES, (state as SuggestionUiState.Empty).reason)
+    }
+
+    @Test
+    fun `showSuggestions displays Error state on failure`() = runTest {
+        // Given
+        mealRepository.setMeals(emptyList())
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.failure(Exception("Test error")))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        // When
+        viewModel.showSuggestions(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle()
+
+        // Then
+        val state = viewModel.suggestionState.value
+        assertTrue(state is SuggestionUiState.Error)
+        assertEquals("Test error", (state as SuggestionUiState.Error).message)
+    }
+
+    @Test
+    fun `updateTagFilter toggles tag selection`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")), tags = setOf(MealTag.VEGETARIAN))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Vegetarian"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.showSuggestions(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle()
+
+        // When - Add tag
+        viewModel.updateTagFilter(MealTag.VEGETARIAN)
+        advanceUntilIdle()
+
+        // Then - Tag should be selected and suggestions refreshed
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Success)
+
+        // When - Remove tag
+        viewModel.updateTagFilter(MealTag.VEGETARIAN)
+        advanceUntilIdle()
+
+        // Then - Tag should be deselected and suggestions refreshed
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Success)
+    }
+
+    @Test
+    fun `updateSearchQuery refreshes suggestions`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.showSuggestions(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle()
+
+        // When
+        viewModel.updateSearchQuery("Pasta")
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Success)
+    }
+
+    @Test
+    fun `selectSuggestion adds meal to plan and hides suggestions`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+        viewModel.showSuggestions(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        // When
+        viewModel.selectSuggestion(meal)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Hidden)
+        val plans = mealPlanRepository.getMealPlansList()
+        assertEquals(1, plans.size)
+        assertEquals(1L, plans[0].mealId)
+        assertEquals(date, plans[0].date)
+        assertEquals(MealType.LUNCH, plans[0].mealType)
+    }
+
+    @Test
+    fun `selectSuggestion updates existing plan`() = runTest {
+        // Given
+        val meal1 = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val meal2 = Meal(id = 2, name = "Salad", ingredients = listOf(Ingredient(name = "Lettuce")))
+        val suggestion = MealSuggestion(
+            meal = meal2,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal1, meal2))
+
+        val date = LocalDate.now()
+        val existingPlan = MealPlan(id = 1, mealId = 1, date = date, mealType = MealType.LUNCH)
+        mealPlanRepository.setMealPlans(listOf(existingPlan))
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.showSuggestions(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        // When
+        viewModel.selectSuggestion(meal2)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Hidden)
+        val plans = mealPlanRepository.getMealPlansList()
+        assertEquals(1, plans.size)
+        assertEquals(2L, plans[0].mealId) // Updated to meal2
+    }
+
+    @Test
+    fun `selectSuggestion clears search query after success`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updateSearchQuery("Pasta")
+        viewModel.showSuggestions(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle()
+
+        // When
+        viewModel.selectSuggestion(meal)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Hidden)
+    }
+
+    @Test
+    fun `hideSuggestions updates state to Hidden`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.showSuggestions(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle()
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Success)
+
+        // When
+        viewModel.hideSuggestions()
+
+        // Then
+        assertTrue(viewModel.suggestionState.value is SuggestionUiState.Hidden)
+    }
+
     private fun createViewModel(): MealPlannerViewModel {
         return MealPlannerViewModel(
             getMealPlansForWeekUseCase,
@@ -384,6 +683,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
             copyDayPlansUseCase,
             clearDayPlansUseCase,
             generateShoppingListUseCase,
+            getMealSuggestionsUseCase,
             SavedStateHandle()
         )
     }
