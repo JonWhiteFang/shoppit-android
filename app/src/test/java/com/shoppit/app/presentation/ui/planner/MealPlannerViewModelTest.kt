@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import androidx.lifecycle.SavedStateHandle
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealPlan
@@ -24,11 +25,13 @@ import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
 import com.shoppit.app.domain.usecase.GetMealSuggestionsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.UpdateMealPlanUseCase
+import com.shoppit.app.presentation.ui.common.ErrorEvent
 import com.shoppit.app.util.ViewModelTest
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -60,6 +63,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
     private lateinit var generateShoppingListUseCase: GenerateShoppingListUseCase
     private lateinit var getMealSuggestionsUseCase: GetMealSuggestionsUseCase
     private lateinit var getMealPlanHistoryUseCase: GetMealPlanHistoryUseCase
+    private lateinit var errorLogger: ErrorLogger
     private lateinit var viewModel: MealPlannerViewModel
 
     @Before
@@ -81,6 +85,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
         )
         getMealSuggestionsUseCase = mockk(relaxed = true)
         getMealPlanHistoryUseCase = mockk(relaxed = true)
+        errorLogger = mockk(relaxed = true)
     }
 
     @Test
@@ -706,7 +711,296 @@ class MealPlannerViewModelTest : ViewModelTest() {
             generateShoppingListUseCase,
             getMealSuggestionsUseCase,
             getMealPlanHistoryUseCase,
+            errorLogger,
             SavedStateHandle()
         )
     }
+
+    // Error Handling Tests
+
+    @Test
+    fun `onMealSelected emits error event on failure`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        mealPlanRepository.setShouldFail(true, Exception("Database error"))
+        
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+        viewModel.onSlotClick(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        val events = mutableListOf<ErrorEvent>()
+        val job = launch {
+            viewModel.errorEvent.collect { events.add(it) }
+        }
+
+        // When
+        viewModel.onMealSelected(1L)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(events.any { it is ErrorEvent.Error })
+        val errorEvent = events.first { it is ErrorEvent.Error } as ErrorEvent.Error
+        assertTrue(errorEvent.message.contains("Database error"))
+        job.cancel()
+    }
+
+    @Test
+    fun `onMealSelected emits success event on success`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+        viewModel.onSlotClick(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        val events = mutableListOf<ErrorEvent>()
+        val job = launch {
+            viewModel.errorEvent.collect { events.add(it) }
+        }
+
+        // When
+        viewModel.onMealSelected(1L)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(events.any { it is ErrorEvent.Success })
+        val successEvent = events.first { it is ErrorEvent.Success } as ErrorEvent.Success
+        assertEquals("Meal added to plan", successEvent.message)
+        job.cancel()
+    }
+
+    @Test
+    fun `onMealSelected logs error with context on failure`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        mealPlanRepository.setShouldFail(true, Exception("Database error"))
+        
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+        viewModel.onSlotClick(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        // When
+        viewModel.onMealSelected(1L)
+        advanceUntilIdle()
+
+        // Then
+        io.mockk.verify {
+            errorLogger.logError(
+                error = any(),
+                context = "MealPlannerViewModel.onMealSelected",
+                additionalData = any()
+            )
+        }
+    }
+
+    @Test
+    fun `deleteMealPlan emits error event on failure`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        mealRepository.setMeals(listOf(meal))
+        val plan = MealPlan(id = 1, mealId = 1, date = LocalDate.now(), mealType = MealType.LUNCH)
+        mealPlanRepository.setMealPlans(listOf(plan))
+        
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        mealPlanRepository.setShouldFail(true, Exception("Delete failed"))
+
+        val events = mutableListOf<ErrorEvent>()
+        val job = launch {
+            viewModel.errorEvent.collect { events.add(it) }
+        }
+
+        // When
+        viewModel.deleteMealPlan(1L)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(events.any { it is ErrorEvent.Error })
+        job.cancel()
+    }
+
+    @Test
+    fun `deleteMealPlan emits success event on success`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        mealRepository.setMeals(listOf(meal))
+        val plan = MealPlan(id = 1, mealId = 1, date = LocalDate.now(), mealType = MealType.LUNCH)
+        mealPlanRepository.setMealPlans(listOf(plan))
+        
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val events = mutableListOf<ErrorEvent>()
+        val job = launch {
+            viewModel.errorEvent.collect { events.add(it) }
+        }
+
+        // When
+        viewModel.deleteMealPlan(1L)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(events.any { it is ErrorEvent.Success })
+        val successEvent = events.first { it is ErrorEvent.Success } as ErrorEvent.Success
+        assertEquals("Meal removed from plan", successEvent.message)
+        job.cancel()
+    }
+
+    @Test
+    fun `deleteMealPlan logs error with context on failure`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        mealRepository.setMeals(listOf(meal))
+        val plan = MealPlan(id = 1, mealId = 1, date = LocalDate.now(), mealType = MealType.LUNCH)
+        mealPlanRepository.setMealPlans(listOf(plan))
+        
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        mealPlanRepository.setShouldFail(true, Exception("Delete failed"))
+
+        // When
+        viewModel.deleteMealPlan(1L)
+        advanceUntilIdle()
+
+        // Then
+        io.mockk.verify {
+            errorLogger.logError(
+                error = any(),
+                context = "MealPlannerViewModel.deleteMealPlan",
+                additionalData = any()
+            )
+        }
+    }
+
+    @Test
+    fun `selectSuggestion emits error event on failure`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+        viewModel.showSuggestions(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        mealPlanRepository.setShouldFail(true, Exception("Assignment failed"))
+
+        val events = mutableListOf<ErrorEvent>()
+        val job = launch {
+            viewModel.errorEvent.collect { events.add(it) }
+        }
+
+        // When
+        viewModel.selectSuggestion(meal)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(events.any { it is ErrorEvent.Error })
+        job.cancel()
+    }
+
+    @Test
+    fun `selectSuggestion emits success event on success`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+        viewModel.showSuggestions(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        val events = mutableListOf<ErrorEvent>()
+        val job = launch {
+            viewModel.errorEvent.collect { events.add(it) }
+        }
+
+        // When
+        viewModel.selectSuggestion(meal)
+        advanceUntilIdle()
+
+        // Then
+        assertTrue(events.any { it is ErrorEvent.Success })
+        val successEvent = events.first { it is ErrorEvent.Success } as ErrorEvent.Success
+        assertEquals("Meal added to plan", successEvent.message)
+        job.cancel()
+    }
+
+    @Test
+    fun `selectSuggestion logs error with context on failure`() = runTest {
+        // Given
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Great choice"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
+        mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val date = LocalDate.now()
+        viewModel.showSuggestions(date, MealType.LUNCH)
+        advanceUntilIdle()
+
+        mealPlanRepository.setShouldFail(true, Exception("Assignment failed"))
+
+        // When
+        viewModel.selectSuggestion(meal)
+        advanceUntilIdle()
+
+        // Then
+        io.mockk.verify {
+            errorLogger.logError(
+                error = any(),
+                context = "MealPlannerViewModel.selectSuggestion",
+                additionalData = any()
+            )
+        }
+    }
 }
+

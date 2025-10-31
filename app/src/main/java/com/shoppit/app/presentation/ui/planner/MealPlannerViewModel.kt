@@ -7,6 +7,7 @@ import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.domain.model.MealType
 import com.shoppit.app.domain.model.SuggestionContext
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.usecase.AssignMealToPlanUseCase
 import com.shoppit.app.domain.usecase.ClearDayPlansUseCase
 import com.shoppit.app.domain.usecase.CopyDayPlansUseCase
@@ -17,9 +18,13 @@ import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
 import com.shoppit.app.domain.usecase.GetMealSuggestionsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.UpdateMealPlanUseCase
+import com.shoppit.app.presentation.ui.common.ErrorEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
@@ -48,6 +53,7 @@ class MealPlannerViewModel @Inject constructor(
     private val generateShoppingListUseCase: GenerateShoppingListUseCase,
     private val getMealSuggestionsUseCase: GetMealSuggestionsUseCase,
     private val getMealPlanHistoryUseCase: GetMealPlanHistoryUseCase,
+    private val errorLogger: ErrorLogger,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -60,6 +66,10 @@ class MealPlannerViewModel @Inject constructor(
         MealPlannerUiState(currentWeekStart = initialWeekStart)
     )
     val uiState: StateFlow<MealPlannerUiState> = _uiState.asStateFlow()
+
+    // Error events for snackbar display (one-time events)
+    private val _errorEvent = MutableSharedFlow<ErrorEvent>()
+    val errorEvent: SharedFlow<ErrorEvent> = _errorEvent.asSharedFlow()
 
     // Suggestion state management
     private val _suggestionState = MutableStateFlow<SuggestionUiState>(SuggestionUiState.Hidden)
@@ -184,6 +194,11 @@ class MealPlannerViewModel @Inject constructor(
     /**
      * Handles meal selection from the dialog.
      * Assigns a new meal or updates an existing plan.
+     * 
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 9.3: Display success message when meal is added to plan
+     * - 10.1: Log errors with context
      */
     fun onMealSelected(mealId: Long) {
         viewModelScope.launch {
@@ -203,15 +218,35 @@ class MealPlannerViewModel @Inject constructor(
                             selectedSlot = null
                         )
                     }
+                    // Emit success event (Requirement 9.3)
+                    _errorEvent.emit(ErrorEvent.Success("Meal added to plan"))
                     // Invalidate suggestion cache when plans change
                     invalidateSuggestionCache()
                     // Trigger shopping list regeneration after meal plan change
                     regenerateShoppingList()
                 },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "MealPlannerViewModel.onMealSelected",
+                        additionalData = mapOf(
+                            "mealId" to mealId.toString(),
+                            "date" to slot.date.toString(),
+                            "mealType" to slot.mealType.name,
+                            "isUpdate" to (slot.existingPlan != null).toString()
+                        )
+                    )
+                    
+                    // Update UI state with error
                     _uiState.update {
                         it.copy(error = error.message ?: "Failed to assign meal")
                     }
+                    
+                    // Emit error event for snackbar (Requirement 1.1)
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to assign meal")
+                    )
                 }
             )
         }
@@ -231,20 +266,41 @@ class MealPlannerViewModel @Inject constructor(
 
     /**
      * Deletes a meal plan.
+     * 
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 10.1: Log errors with context
      */
     fun deleteMealPlan(mealPlanId: Long) {
         viewModelScope.launch {
             deleteMealPlanUseCase(mealPlanId).fold(
                 onSuccess = {
+                    // Emit success event
+                    _errorEvent.emit(ErrorEvent.Success("Meal removed from plan"))
                     // Invalidate suggestion cache when plans change
                     invalidateSuggestionCache()
                     // Trigger shopping list regeneration after deletion
                     regenerateShoppingList()
                 },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "MealPlannerViewModel.deleteMealPlan",
+                        additionalData = mapOf(
+                            "mealPlanId" to mealPlanId.toString()
+                        )
+                    )
+                    
+                    // Update UI state with error
                     _uiState.update {
                         it.copy(error = error.message ?: "Failed to delete meal plan")
                     }
+                    
+                    // Emit error event for snackbar (Requirement 1.1)
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to delete meal plan")
+                    )
                 }
             )
         }
@@ -252,20 +308,43 @@ class MealPlannerViewModel @Inject constructor(
 
     /**
      * Copies all meal plans from one day to another.
+     * 
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 10.1: Log errors with context
      */
     fun copyDay(sourceDate: LocalDate, targetDate: LocalDate, replace: Boolean) {
         viewModelScope.launch {
             copyDayPlansUseCase(sourceDate, targetDate, replace).fold(
                 onSuccess = {
+                    // Emit success event
+                    _errorEvent.emit(ErrorEvent.Success("Day copied successfully"))
                     // Invalidate suggestion cache when plans change
                     invalidateSuggestionCache()
                     // Trigger shopping list regeneration after copy
                     regenerateShoppingList()
                 },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "MealPlannerViewModel.copyDay",
+                        additionalData = mapOf(
+                            "sourceDate" to sourceDate.toString(),
+                            "targetDate" to targetDate.toString(),
+                            "replace" to replace.toString()
+                        )
+                    )
+                    
+                    // Update UI state with error
                     _uiState.update {
                         it.copy(error = error.message ?: "Failed to copy day")
                     }
+                    
+                    // Emit error event for snackbar (Requirement 1.1)
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to copy day")
+                    )
                 }
             )
         }
@@ -273,20 +352,41 @@ class MealPlannerViewModel @Inject constructor(
 
     /**
      * Clears all meal plans for a specific day.
+     * 
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 10.1: Log errors with context
      */
     fun clearDay(date: LocalDate) {
         viewModelScope.launch {
             clearDayPlansUseCase(date).fold(
                 onSuccess = {
+                    // Emit success event
+                    _errorEvent.emit(ErrorEvent.Success("Day cleared successfully"))
                     // Invalidate suggestion cache when plans change
                     invalidateSuggestionCache()
                     // Trigger shopping list regeneration after clear
                     regenerateShoppingList()
                 },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "MealPlannerViewModel.clearDay",
+                        additionalData = mapOf(
+                            "date" to date.toString()
+                        )
+                    )
+                    
+                    // Update UI state with error
                     _uiState.update {
                         it.copy(error = error.message ?: "Failed to clear day")
                     }
+                    
+                    // Emit error event for snackbar (Requirement 1.1)
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to clear day")
+                    )
                 }
             )
         }
@@ -398,6 +498,11 @@ class MealPlannerViewModel @Inject constructor(
     /**
      * Selects a suggested meal and adds it to the plan.
      * Requirements: 1.5, 10.3
+     * 
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 9.3: Display success message when meal is added to plan
+     * - 10.1: Log errors with context
      */
     fun selectSuggestion(meal: Meal) {
         viewModelScope.launch {
@@ -417,6 +522,8 @@ class MealPlannerViewModel @Inject constructor(
                 onSuccess = {
                     // Clear search query after successful selection
                     _searchQuery.value = ""
+                    // Emit success event (Requirement 9.3)
+                    _errorEvent.emit(ErrorEvent.Success("Meal added to plan"))
                     // Invalidate suggestion cache when plans change
                     invalidateSuggestionCache()
                     // Hide suggestions
@@ -425,9 +532,28 @@ class MealPlannerViewModel @Inject constructor(
                     regenerateShoppingList()
                 },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "MealPlannerViewModel.selectSuggestion",
+                        additionalData = mapOf(
+                            "mealId" to meal.id.toString(),
+                            "mealName" to meal.name,
+                            "date" to context.targetDate.toString(),
+                            "mealType" to context.targetMealType.name,
+                            "isUpdate" to (existingPlan != null).toString()
+                        )
+                    )
+                    
+                    // Update suggestion state with error (Requirement 1.1)
                     _suggestionState.update {
                         SuggestionUiState.Error(error.message ?: "Failed to add meal to plan")
                     }
+                    
+                    // Emit error event for snackbar
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to add meal to plan")
+                    )
                 }
             )
         }
