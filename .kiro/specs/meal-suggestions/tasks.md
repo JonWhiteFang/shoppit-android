@@ -40,7 +40,7 @@
     - Test empty history handling
     - _Requirements: 3.1-3.5_
 
-- [-] 4. Implement main suggestion generation use case
+- [x] 4. Implement main suggestion generation use case
   - [x] 4.1 Create `GetMealSuggestionsUseCase` with orchestration logic
     - Inject `MealRepository`, `MealPlanRepository`, scoring and history use cases
     - Fetch all meals from repository as Flow
@@ -56,7 +56,7 @@
     - Return as Flow for reactive updates
     - _Requirements: 1.1-1.5, 2.1-2.5, 3.1-3.5, 4.1-4.5, 5.1-5.5, 6.1-6.5_
   
-  - [ ] 4.2 Write unit tests for suggestion generation
+  - [x] 4.2 Write unit tests for suggestion generation
     - Test filtering by tags
     - Test filtering by search query
     - Test excluding already planned meals
