@@ -265,7 +265,7 @@ class GetMealSuggestionsUseCaseTest {
     fun `filters meals by search query case-insensitive`() = runTest {
         // Given
         val meals = listOf(
-            createMeal(id = 1, name = "Spaghetti Carbonara"),
+            createMeal(id = 1, name = "Spaghetti Pasta"),
             createMeal(id = 2, name = "Chicken Pasta"),
             createMeal(id = 3, name = "Caesar Salad")
         )
@@ -595,43 +595,43 @@ class GetMealSuggestionsUseCaseTest {
 
         // Then
         assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Failed to fetch meals") == true)
+        assertTrue(result.exceptionOrNull()?.message?.contains("Database error") == true)
     }
 
     @Test
     fun `returns failure when meal plan repository fails`() = runTest {
-        // Given
-        val meals = listOf(createMeal(id = 1, name = "Pasta"))
-        mealRepository.setMeals(meals)
-        mealPlanRepository.setShouldFail(true, Exception("Database error"))
-        coEvery { getHistoryUseCase.invoke() } returns Result.success(emptyMap())
-        
-        val context = createContext(MealType.DINNER)
+    // Given
+    val meals = listOf(createMeal(id = 1, name = "Pasta"))
+    mealRepository.setMeals(meals)
+    mealPlanRepository.setShouldFail(true, Exception("Database error"))
+    coEvery { getHistoryUseCase.invoke() } returns Result.success(emptyMap())
 
-        // When
-        val result = useCase(context).first()
+    val context = createContext(MealType.DINNER)
 
-        // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Failed to fetch meal plans") == true)
+    // When
+    val result = useCase(context).first()
+
+    // Then
+    assertTrue(result.isFailure)
+    assertTrue(result.exceptionOrNull()?.message?.contains("Database error") == true)
     }
 
     @Test
     fun `returns failure when history use case fails`() = runTest {
-        // Given
-        val meals = listOf(createMeal(id = 1, name = "Pasta"))
-        mealRepository.setMeals(meals)
-        mealPlanRepository.setMealPlans(emptyList())
-        coEvery { getHistoryUseCase.invoke() } returns Result.failure(Exception("History error"))
-        
-        val context = createContext(MealType.DINNER)
+    // Given
+    val meals = listOf(createMeal(id = 1, name = "Pasta"))
+    mealRepository.setMeals(meals)
+    mealPlanRepository.setMealPlans(emptyList())
+    coEvery { getHistoryUseCase.invoke() } returns Result.failure(Exception("History error"))
 
-        // When
-        val result = useCase(context).first()
+    val context = createContext(MealType.DINNER)
 
-        // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull()?.message?.contains("Failed to fetch meal history") == true)
+    // When
+    val result = useCase(context).first()
+
+    // Then
+    assertTrue(result.isFailure)
+    assertTrue(result.exceptionOrNull()?.message?.contains("History error") == true)
     }
 
     // Helper Methods

@@ -31,6 +31,10 @@ class FakeMealPlanRepository : MealPlanRepository {
      */
     fun setMealPlans(planList: List<MealPlan>) {
         mealPlans.value = planList
+        // Update nextId to be greater than any existing ID
+        if (planList.isNotEmpty()) {
+            nextId = planList.maxOf { it.id } + 1
+        }
     }
 
     /**

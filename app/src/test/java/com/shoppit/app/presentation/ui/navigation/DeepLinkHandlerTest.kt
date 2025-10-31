@@ -6,10 +6,14 @@ import android.content.Intent
 import android.net.Uri
 import androidx.navigation.NavController
 import androidx.navigation.NavOptions
+import androidx.navigation.NavOptionsBuilder
 import com.shoppit.app.presentation.ui.navigation.util.DeepLinkHandler
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.Runs
 import io.mockk.verify
+import io.mockk.verifySequence
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -33,6 +37,9 @@ class DeepLinkHandlerTest {
         navController = mockk(relaxed = true)
         every { navController.graph } returns mockk(relaxed = true)
         every { navController.graph.startDestinationId } returns 1
+        every { navController.navigate(any<String>(), any<NavOptions>()) } just Runs
+        every { navController.navigate(any<String>(), any<NavOptionsBuilder.() -> Unit>()) } just Runs
+        every { navController.navigate(any<String>()) } just Runs
     }
     
     @Test
@@ -147,8 +154,10 @@ class DeepLinkHandlerTest {
         val result = DeepLinkHandler.handleDeepLink(intent, navController)
         
         assertTrue(result)
-        verify { navController.navigate(Screen.MealList.route, any<NavOptions>()) }
-        verify { navController.navigate(Screen.MealDetail.createRoute(123)) }
+        verifySequence {
+            navController.navigate(Screen.MealList.route, any<NavOptionsBuilder.() -> Unit>())
+            navController.navigate(Screen.MealDetail.createRoute(123))
+        }
     }
     
     @Test
@@ -160,7 +169,7 @@ class DeepLinkHandlerTest {
         val result = DeepLinkHandler.handleDeepLink(intent, navController)
         
         assertTrue(result)
-        verify { navController.navigate(Screen.MealPlanner.route, any<NavOptions>()) }
+        verify(exactly = 1) { navController.navigate(Screen.MealPlanner.route, any<NavOptionsBuilder.() -> Unit>()) }
     }
     
     @Test
@@ -172,7 +181,7 @@ class DeepLinkHandlerTest {
         val result = DeepLinkHandler.handleDeepLink(intent, navController)
         
         assertTrue(result)
-        verify { navController.navigate(Screen.ShoppingList.route, any<NavOptions>()) }
+        verify(exactly = 1) { navController.navigate(Screen.ShoppingList.route, any<NavOptionsBuilder.() -> Unit>()) }
     }
     
     @Test
@@ -184,8 +193,10 @@ class DeepLinkHandlerTest {
         val result = DeepLinkHandler.handleDeepLink(intent, navController)
         
         assertTrue(result)
-        verify { navController.navigate(Screen.ShoppingList.route, any<NavOptions>()) }
-        verify { navController.navigate(Screen.ShoppingMode.route) }
+        verifySequence {
+            navController.navigate(Screen.ShoppingList.route, any<NavOptionsBuilder.() -> Unit>())
+            navController.navigate(Screen.ShoppingMode.route)
+        }
     }
     
     @Test
@@ -197,7 +208,7 @@ class DeepLinkHandlerTest {
         val result = DeepLinkHandler.handleDeepLink(intent, navController)
         
         assertFalse(result)
-        verify { navController.navigate(Screen.MealList.route, any<NavOptions>()) }
+        verify(exactly = 1) { navController.navigate(Screen.MealList.route, any<NavOptionsBuilder.() -> Unit>()) }
     }
     
     @Test
@@ -209,6 +220,6 @@ class DeepLinkHandlerTest {
         val result = DeepLinkHandler.handleDeepLink(intent, navController)
         
         assertFalse(result)
-        verify { navController.navigate(Screen.MealList.route, any<NavOptions>()) }
+        verify(exactly = 1) { navController.navigate(Screen.MealList.route, any<NavOptionsBuilder.() -> Unit>()) }
     }
 }
