@@ -9,7 +9,13 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -30,7 +36,7 @@ import com.shoppit.app.presentation.ui.theme.ShoppitTheme
  * @param onTagToggle Callback when a tag is toggled
  * @param modifier Optional modifier
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SuggestionFilters(
     availableTags: List<MealTag>,
@@ -71,10 +77,25 @@ fun SuggestionFilters(
                         style = MaterialTheme.typography.labelMedium
                     )
                 },
-                modifier = Modifier.semantics {
-                    contentDescription = chipDescription
-                    stateDescription = if (isSelected) "Selected" else "Not selected"
-                }
+                modifier = Modifier
+                    .semantics {
+                        contentDescription = chipDescription
+                        stateDescription = if (isSelected) "Selected" else "Not selected"
+                    }
+                    .onKeyEvent { keyEvent ->
+                        // Handle Enter/Space key for toggling
+                        if (keyEvent.type == KeyEventType.KeyDown) {
+                            when (keyEvent.key) {
+                                Key.Enter, Key.Spacebar -> {
+                                    onTagToggle(tag)
+                                    true
+                                }
+                                else -> false
+                            }
+                        } else {
+                            false
+                        }
+                    }
             )
         }
     }

@@ -32,7 +32,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -71,7 +79,7 @@ import java.time.LocalDate
  * @param onDismiss Callback when the bottom sheet is dismissed
  * @param modifier Optional modifier
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 fun MealSuggestionsBottomSheet(
     uiState: SuggestionUiState,
@@ -89,6 +97,7 @@ fun MealSuggestionsBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     var searchActive by remember { mutableStateOf(false) }
 
     // Announce state changes for screen readers
@@ -113,10 +122,29 @@ fun MealSuggestionsBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        modifier = modifier.semantics {
-            liveRegion = LiveRegionMode.Polite
-            contentDescription = stateAnnouncement
-        }
+        modifier = modifier
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = stateAnnouncement
+            }
+            .onKeyEvent { keyEvent ->
+                // Handle keyboard navigation
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.Escape -> {
+                            onDismiss()
+                            true
+                        }
+                        Key.Tab -> {
+                            // Let default tab handling work
+                            false
+                        }
+                        else -> false
+                    }
+                } else {
+                    false
+                }
+            }
     ) {
         Column(
             modifier = Modifier
@@ -302,15 +330,15 @@ private fun EmptyContent(
 ) {
     val (message, actionLabel) = when (reason) {
         EmptyReason.NO_MEALS -> Pair(
-            "No meals in your library yet.\nAdd your first meal to get started!",
-            "Add Meal"
+            "Your meal library is empty.\nStart by adding your favorite meals to get personalized suggestions!",
+            "Add Your First Meal"
         )
         EmptyReason.NO_MATCHES -> Pair(
-            "No meals match your current filters or search.\nTry adjusting your filters or browse all meals.",
+            "No meals match your current search or filters.\nTry adjusting your filters or clearing the search to see more options.",
             null
         )
         EmptyReason.ALL_PLANNED -> Pair(
-            "All your meals are already planned for this week!\nYou can still browse all meals if needed.",
+            "Great planning! All your meals are already scheduled for this week.\nYou can still browse your meal library if you'd like to make changes.",
             null
         )
     }

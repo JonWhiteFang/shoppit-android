@@ -135,7 +135,7 @@ class GetMealSuggestionsUseCase @Inject constructor(
                 .take(MAX_SUGGESTIONS) // Limit to top 10 early
                 .toList() // Materialize only the top 10
             
-            Result.success(sortedSuggestions)
+            Result.success(suggestions)
         }.catch { e ->
             // Catch any unexpected errors
             emit(Result.failure(e))

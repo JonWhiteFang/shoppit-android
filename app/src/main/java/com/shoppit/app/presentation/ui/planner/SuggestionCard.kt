@@ -23,7 +23,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -48,7 +54,7 @@ import java.time.format.DateTimeFormatter
  * @param onViewDetails Callback when "View Details" button is clicked
  * @param modifier Optional modifier
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun SuggestionCard(
     suggestion: MealSuggestion,
@@ -78,7 +84,16 @@ fun SuggestionCard(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = cardDescription },
+            .semantics { contentDescription = cardDescription }
+            .onKeyEvent { keyEvent ->
+                // Handle Enter key for selection
+                if (keyEvent.type == KeyEventType.KeyDown && keyEvent.key == Key.Enter) {
+                    onClick()
+                    true
+                } else {
+                    false
+                }
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isHighScore) {
@@ -175,6 +190,23 @@ fun SuggestionCard(
                         }
                     )
                 }
+            }
+
+            // Display suggestion reasons if available
+            if (suggestion.reasons.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = suggestion.reasons.joinToString(" • "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isHighScore) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.primary
+                    },
+                    modifier = Modifier.semantics {
+                        contentDescription = "Reasons: ${suggestion.reasons.joinToString(", ")}"
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
