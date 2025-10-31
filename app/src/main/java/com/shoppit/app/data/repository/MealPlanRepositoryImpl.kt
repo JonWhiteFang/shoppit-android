@@ -6,6 +6,7 @@ import com.shoppit.app.data.error.PersistenceLogger
 import com.shoppit.app.data.local.dao.MealPlanDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.EntityType
 import com.shoppit.app.domain.model.MealPlan
 import com.shoppit.app.domain.model.SyncOperation
@@ -28,7 +29,8 @@ import javax.inject.Inject
  */
 class MealPlanRepositoryImpl @Inject constructor(
     private val mealPlanDao: MealPlanDao,
-    private val syncEngine: SyncEngine
+    private val syncEngine: SyncEngine,
+    private val errorLogger: ErrorLogger
 ) : MealPlanRepository {
     
     /**
@@ -54,6 +56,7 @@ class MealPlanRepositoryImpl @Inject constructor(
             }
             .catch { e -> 
                 PersistenceLogger.logQueryFailure("getMealPlansForWeek", e)
+                errorLogger.logError(e, "MealPlanRepositoryImpl.getMealPlansForWeek", mapOf("startDate" to startDate, "endDate" to endDate))
                 emit(Result.failure(PersistenceError.QueryFailed("getMealPlansForWeek", e)))
             }
     }
@@ -74,6 +77,7 @@ class MealPlanRepositoryImpl @Inject constructor(
             }
             .catch { e -> 
                 PersistenceLogger.logQueryFailure("getMealPlansForDate", e)
+                errorLogger.logError(e, "MealPlanRepositoryImpl.getMealPlansForDate", mapOf("date" to date))
                 emit(Result.failure(PersistenceError.QueryFailed("getMealPlansForDate", e)))
             }
     }
@@ -94,11 +98,13 @@ class MealPlanRepositoryImpl @Inject constructor(
                     Result.success(mealPlan)
                 } else {
                     PersistenceLogger.logQueryFailure("getMealPlanById", Exception("Meal plan not found: id=$id"))
+                    errorLogger.logError(Exception("Meal plan not found: id=$id"), "MealPlanRepositoryImpl.getMealPlanById", mapOf("mealPlanId" to id))
                     Result.failure(PersistenceError.QueryFailed("getMealPlanById", Exception("Meal plan not found: id=$id")))
                 }
             }
             .catch { e ->
                 PersistenceLogger.logQueryFailure("getMealPlanById", e)
+                errorLogger.logError(e, "MealPlanRepositoryImpl.getMealPlanById", mapOf("mealPlanId" to id))
                 emit(Result.failure(PersistenceError.QueryFailed("getMealPlanById", e)))
             }
     }
@@ -124,9 +130,11 @@ class MealPlanRepositoryImpl @Inject constructor(
             Result.success(id)
         } catch (e: SQLiteConstraintException) {
             PersistenceLogger.logOperationFailure("addMealPlan", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.addMealPlan", mapOf("date" to mealPlan.date, "mealType" to mealPlan.mealType))
             Result.failure(PersistenceError.ConstraintViolation("meal_plan_insert", e.message ?: "Unknown constraint violation"))
         } catch (e: Exception) {
             PersistenceLogger.logOperationFailure("addMealPlan", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.addMealPlan", mapOf("date" to mealPlan.date, "mealType" to mealPlan.mealType))
             Result.failure(PersistenceError.WriteFailed("addMealPlan", e))
         }
     }
@@ -151,9 +159,11 @@ class MealPlanRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: SQLiteConstraintException) {
             PersistenceLogger.logOperationFailure("updateMealPlan", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.updateMealPlan", mapOf("mealPlanId" to mealPlan.id, "date" to mealPlan.date, "mealType" to mealPlan.mealType))
             Result.failure(PersistenceError.ConstraintViolation("meal_plan_update", e.message ?: "Unknown constraint violation"))
         } catch (e: Exception) {
             PersistenceLogger.logOperationFailure("updateMealPlan", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.updateMealPlan", mapOf("mealPlanId" to mealPlan.id, "date" to mealPlan.date, "mealType" to mealPlan.mealType))
             Result.failure(PersistenceError.WriteFailed("updateMealPlan", e))
         }
     }
@@ -177,6 +187,7 @@ class MealPlanRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             PersistenceLogger.logOperationFailure("deleteMealPlan", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.deleteMealPlan", mapOf("mealPlanId" to mealPlanId))
             Result.failure(PersistenceError.WriteFailed("deleteMealPlan", e))
         }
     }
@@ -197,6 +208,7 @@ class MealPlanRepositoryImpl @Inject constructor(
             Result.success(Unit)
         } catch (e: Exception) {
             PersistenceLogger.logOperationFailure("deleteMealPlansForDate", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.deleteMealPlansForDate", mapOf("date" to date))
             Result.failure(PersistenceError.WriteFailed("deleteMealPlansForDate", e))
         }
     }
@@ -225,9 +237,11 @@ class MealPlanRepositoryImpl @Inject constructor(
             Result.success(ids)
         } catch (e: SQLiteConstraintException) {
             PersistenceLogger.logOperationFailure("addMealPlans", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.addMealPlans", mapOf("mealPlanCount" to mealPlans.size))
             Result.failure(PersistenceError.ConstraintViolation("meal_plan_batch_insert", e.message ?: "Unknown constraint violation"))
         } catch (e: Exception) {
             PersistenceLogger.logOperationFailure("addMealPlans", e)
+            errorLogger.logError(e, "MealPlanRepositoryImpl.addMealPlans", mapOf("mealPlanCount" to mealPlans.size))
             Result.failure(PersistenceError.WriteFailed("addMealPlans", e))
         }
     }

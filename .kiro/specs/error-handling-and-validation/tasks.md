@@ -227,26 +227,26 @@ This implementation plan breaks down the error handling and validation feature i
     - Integrate ErrorSnackbarHandler observing ViewModel errorEvent
     - _Requirements: 1.1_
 
-- [ ] 14. Update all repositories with error logging
-  - [ ] 14.1 Add ErrorLogger to MealRepositoryImpl
+- [x] 14. Update all repositories with error logging
+  - [x] 14.1 Add ErrorLogger to MealRepositoryImpl
     - Inject ErrorLogger into MealRepositoryImpl
     - Log all caught exceptions with context
     - Add cause parameter to all AppError instances
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 10.1, 10.3, 10.4_
   
-  - [ ] 14.2 Add ErrorLogger to MealPlanRepositoryImpl
+  - [x] 14.2 Add ErrorLogger to MealPlanRepositoryImpl
     - Inject ErrorLogger into MealPlanRepositoryImpl
     - Log all caught exceptions with context
     - Add cause parameter to all AppError instances
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 10.1, 10.3, 10.4_
   
-  - [ ] 14.3 Add ErrorLogger to ShoppingListRepositoryImpl
+  - [x] 14.3 Add ErrorLogger to ShoppingListRepositoryImpl
     - Inject ErrorLogger into ShoppingListRepositoryImpl
     - Log all caught exceptions with context
     - Add cause parameter to all AppError instances
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 10.1, 10.3, 10.4_
   
-  - [ ] 14.4 Write unit tests for repository error logging
+  - [x] 14.4 Write unit tests for repository error logging
     - Test errors are logged when exceptions occur
     - Test AppError instances include cause parameter
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 10.1_
