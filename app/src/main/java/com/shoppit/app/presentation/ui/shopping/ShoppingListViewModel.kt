@@ -3,6 +3,7 @@ package com.shoppit.app.presentation.ui.shopping
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.usecase.AddManualItemUseCase
 import com.shoppit.app.domain.usecase.ClearCheckedItemsUseCase
 import com.shoppit.app.domain.usecase.DeleteManualItemUseCase
@@ -13,8 +14,11 @@ import com.shoppit.app.domain.usecase.ToggleItemCheckedUseCase
 import com.shoppit.app.domain.usecase.UncheckAllItemsUseCase
 import com.shoppit.app.domain.usecase.UpdateManualItemUseCase
 import com.shoppit.app.domain.model.ShoppingListItem
+import com.shoppit.app.presentation.ui.common.ErrorEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -40,6 +44,7 @@ class ShoppingListViewModel @Inject constructor(
     private val clearCheckedItemsUseCase: ClearCheckedItemsUseCase,
     private val uncheckAllItemsUseCase: UncheckAllItemsUseCase,
     private val getItemSourcesUseCase: GetItemSourcesUseCase,
+    private val errorLogger: ErrorLogger,
     // New use cases for management features
     private val toggleShoppingModeUseCase: com.shoppit.app.domain.usecase.ToggleShoppingModeUseCase,
     private val getItemHistoryUseCase: com.shoppit.app.domain.usecase.GetItemHistoryUseCase,
@@ -83,6 +88,11 @@ class ShoppingListViewModel @Inject constructor(
         )
     )
     val uiState: StateFlow<ShoppingListUiState> = _uiState.asStateFlow()
+    
+    // Error events for snackbar display (one-time events)
+    // Requirements: 10.1, 10.2, 10.3, 10.4, 10.5
+    private val _errorEvent = MutableSharedFlow<ErrorEvent>()
+    val errorEvent: SharedFlow<ErrorEvent> = _errorEvent
     
     // In-memory cache for frequent items (Task 11.2 - Performance optimization)
     private var frequentItemsCache: List<com.shoppit.app.domain.model.ItemHistory>? = null
@@ -197,6 +207,10 @@ class ShoppingListViewModel @Inject constructor(
      * Toggles the checked status of a shopping list item.
      * Tracks the item for undo functionality when checking.
      * Updates purchase history when item is checked.
+     * 
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 10.1: Log errors with context
      */
     fun toggleItemChecked(itemId: Long, isChecked: Boolean) {
         viewModelScope.launch {
@@ -225,9 +239,25 @@ class ShoppingListViewModel @Inject constructor(
             toggleItemCheckedUseCase(itemId, isChecked).fold(
                 onSuccess = { /* List updates automatically via Flow */ },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "ShoppingListViewModel.toggleItemChecked",
+                        additionalData = mapOf(
+                            "itemId" to itemId.toString(),
+                            "isChecked" to isChecked.toString()
+                        )
+                    )
+                    
+                    // Update UI state with error
                     _uiState.update { 
                         it.copy(error = error.message ?: "Failed to update item")
                     }
+                    
+                    // Emit error event for snackbar (Requirement 1.1)
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to update item")
+                    )
                 }
             )
         }
@@ -351,6 +381,10 @@ class ShoppingListViewModel @Inject constructor(
     
     /**
      * Clears all checked items from the shopping list after confirmation.
+     * 
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 10.1: Log errors with context
      */
     fun clearCheckedItems() {
         viewModelScope.launch {
@@ -359,14 +393,32 @@ class ShoppingListViewModel @Inject constructor(
             clearCheckedItemsUseCase().fold(
                 onSuccess = { 
                     _uiState.update { it.copy(isClearingChecked = false) }
+                    
+                    // Emit success event
+                    _errorEvent.emit(
+                        ErrorEvent.Success("Checked items cleared")
+                    )
                 },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "ShoppingListViewModel.clearCheckedItems",
+                        additionalData = emptyMap()
+                    )
+                    
+                    // Update UI state with error
                     _uiState.update { 
                         it.copy(
                             error = error.message ?: "Failed to clear checked items",
                             isClearingChecked = false
                         )
                     }
+                    
+                    // Emit error event for snackbar (Requirement 1.1)
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to clear checked items")
+                    )
                 }
             )
         }
