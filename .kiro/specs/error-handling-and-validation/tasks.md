@@ -6,25 +6,25 @@ This implementation plan breaks down the error handling and validation feature i
 
 ## Task List
 
-- [ ] 1. Enhance core error infrastructure
+- [x] 1. Enhance core error infrastructure
   - Update AppError sealed class to include field and cause parameters for all error types
   - Create extension functions for ValidationResult to field-error map conversion
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-- [ ] 2. Implement centralized error logging
-  - [ ] 2.1 Create ErrorLogger interface and implementation
+- [x] 2. Implement centralized error logging
+  - [x] 2.1 Create ErrorLogger interface and implementation
     - Define ErrorLogger interface with logError, logWarning, and logInfo methods
     - Implement ErrorLoggerImpl with Timber integration
     - Add conditional crash reporting for production builds
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
   
-  - [ ] 2.2 Create Hilt module for ErrorLogger
+  - [x] 2.2 Create Hilt module for ErrorLogger
     - Create ErrorLoggerModule to provide ErrorLogger instance
     - Bind ErrorLoggerImpl to ErrorLogger interface
     - _Requirements: 10.1_
 
-- [ ] 3. Create ingredient validation
-  - [ ] 3.1 Implement IngredientValidator
+- [-] 3. Create ingredient validation
+  - [x] 3.1 Implement IngredientValidator
     - Create IngredientValidator class implementing DataValidator<Ingredient>
     - Validate ingredient name is not blank
     - Validate quantity is not blank and is a valid positive number

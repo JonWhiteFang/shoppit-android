@@ -126,3 +126,48 @@ inline fun <R> ValidationResult.fold(
  * Exception thrown when validation fails.
  */
 class ValidationException(message: String) : Exception(message)
+
+/**
+ * Extension function to convert ValidationResult to a map of field names to error messages.
+ * Useful for displaying inline validation errors in forms.
+ *
+ * @return Map where keys are field names and values are error messages
+ */
+fun ValidationResult.toFieldErrorMap(): Map<String, String> {
+    return when (this) {
+        is ValidationResult.Valid -> emptyMap()
+        is ValidationResult.Invalid -> {
+            validationErrors.associate { it.field to it.message }
+        }
+    }
+}
+
+/**
+ * Extension function to get the first error message for a specific field.
+ *
+ * @param field The field name to get the error for
+ * @return The error message if found, null otherwise
+ */
+fun ValidationResult.getFieldError(field: String): String? {
+    return when (this) {
+        is ValidationResult.Valid -> null
+        is ValidationResult.Invalid -> {
+            validationErrors.firstOrNull { it.field == field }?.message
+        }
+    }
+}
+
+/**
+ * Extension function to check if a specific field has an error.
+ *
+ * @param field The field name to check
+ * @return true if the field has an error, false otherwise
+ */
+fun ValidationResult.hasFieldError(field: String): Boolean {
+    return when (this) {
+        is ValidationResult.Valid -> false
+        is ValidationResult.Invalid -> {
+            validationErrors.any { it.field == field }
+        }
+    }
+}

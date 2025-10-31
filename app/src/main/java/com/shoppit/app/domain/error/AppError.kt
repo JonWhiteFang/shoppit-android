@@ -5,33 +5,49 @@ package com.shoppit.app.domain.error
  * Provides type-safe error handling across all layers.
  */
 sealed class AppError : Exception() {
+    abstract override val message: String
+    abstract override val cause: Throwable?
+
     /**
      * Network-related errors (connectivity, timeouts, etc.)
      */
-    data class NetworkError(override val message: String = "Network connection failed") : AppError()
+    data class NetworkError(
+        override val message: String = "Network connection failed",
+        override val cause: Throwable? = null
+    ) : AppError()
 
     /**
      * Database-related errors (query failures, constraint violations, etc.)
      */
-    data object DatabaseError : AppError() {
-        override val message: String
-            get() = "Database error occurred"
-    }
+    data class DatabaseError(
+        override val message: String = "Database error occurred",
+        override val cause: Throwable? = null
+    ) : AppError()
 
     /**
      * Authentication-related errors (invalid credentials, token expiration, etc.)
      */
-    data class AuthenticationError(override val message: String) : AppError()
+    data class AuthenticationError(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AppError()
 
     /**
-     * Validation errors with descriptive messages
+     * Validation errors with descriptive messages and optional field identifier
      */
-    data class ValidationError(override val message: String) : AppError()
+    data class ValidationError(
+        override val message: String,
+        val field: String? = null,
+        override val cause: Throwable? = null
+    ) : AppError()
 
     /**
      * Permission denied errors (camera, microphone, location, etc.)
      */
-    data class PermissionDenied(val permission: String) : AppError() {
+    data class PermissionDenied(
+        val permission: String,
+        override val cause: Throwable? = null
+    ) : AppError() {
         override val message: String
             get() = "Permission denied: $permission"
     }
@@ -39,20 +55,32 @@ sealed class AppError : Exception() {
     /**
      * Voice input parsing errors
      */
-    data class VoiceParsingError(override val message: String) : AppError()
+    data class VoiceParsingError(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AppError()
 
     /**
      * Barcode scanning errors
      */
-    data class BarcodeScanError(override val message: String) : AppError()
+    data class BarcodeScanError(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AppError()
 
     /**
      * Resource not found errors
      */
-    data class NotFoundError(override val message: String) : AppError()
+    data class NotFoundError(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AppError()
 
     /**
      * Unknown or unexpected errors with the original throwable
      */
-    data class UnknownError(override val message: String) : AppError()
+    data class UnknownError(
+        override val message: String,
+        override val cause: Throwable? = null
+    ) : AppError()
 }
