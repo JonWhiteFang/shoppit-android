@@ -223,13 +223,7 @@ fun ShoppingListScreen(
         null -> { /* No confirmation needed */ }
     }
     
-    // Show barcode scanner
-    if (uiState.showBarcodeScanner) {
-        BarcodeScanner(
-            onBarcodeDetected = viewModel::processBarcode,
-            onDismiss = viewModel::dismissBarcodeScanner
-        )
-    }
+    // Barcode scanner feature removed - dependencies were unused
     
     // Show export dialog
     if (uiState.showExportDialog) {
