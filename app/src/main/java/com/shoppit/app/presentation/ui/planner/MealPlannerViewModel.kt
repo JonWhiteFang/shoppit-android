@@ -12,6 +12,7 @@ import com.shoppit.app.domain.usecase.ClearDayPlansUseCase
 import com.shoppit.app.domain.usecase.CopyDayPlansUseCase
 import com.shoppit.app.domain.usecase.DeleteMealPlanUseCase
 import com.shoppit.app.domain.usecase.GenerateShoppingListUseCase
+import com.shoppit.app.domain.usecase.GetMealPlanHistoryUseCase
 import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
 import com.shoppit.app.domain.usecase.GetMealSuggestionsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
@@ -46,6 +47,7 @@ class MealPlannerViewModel @Inject constructor(
     private val clearDayPlansUseCase: ClearDayPlansUseCase,
     private val generateShoppingListUseCase: GenerateShoppingListUseCase,
     private val getMealSuggestionsUseCase: GetMealSuggestionsUseCase,
+    private val getMealPlanHistoryUseCase: GetMealPlanHistoryUseCase,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -201,6 +203,8 @@ class MealPlannerViewModel @Inject constructor(
                             selectedSlot = null
                         )
                     }
+                    // Invalidate suggestion cache when plans change
+                    invalidateSuggestionCache()
                     // Trigger shopping list regeneration after meal plan change
                     regenerateShoppingList()
                 },
@@ -231,7 +235,9 @@ class MealPlannerViewModel @Inject constructor(
     fun deleteMealPlan(mealPlanId: Long) {
         viewModelScope.launch {
             deleteMealPlanUseCase(mealPlanId).fold(
-                onSuccess = { 
+                onSuccess = {
+                    // Invalidate suggestion cache when plans change
+                    invalidateSuggestionCache()
                     // Trigger shopping list regeneration after deletion
                     regenerateShoppingList()
                 },
@@ -250,7 +256,9 @@ class MealPlannerViewModel @Inject constructor(
     fun copyDay(sourceDate: LocalDate, targetDate: LocalDate, replace: Boolean) {
         viewModelScope.launch {
             copyDayPlansUseCase(sourceDate, targetDate, replace).fold(
-                onSuccess = { 
+                onSuccess = {
+                    // Invalidate suggestion cache when plans change
+                    invalidateSuggestionCache()
                     // Trigger shopping list regeneration after copy
                     regenerateShoppingList()
                 },
@@ -269,7 +277,9 @@ class MealPlannerViewModel @Inject constructor(
     fun clearDay(date: LocalDate) {
         viewModelScope.launch {
             clearDayPlansUseCase(date).fold(
-                onSuccess = { 
+                onSuccess = {
+                    // Invalidate suggestion cache when plans change
+                    invalidateSuggestionCache()
                     // Trigger shopping list regeneration after clear
                     regenerateShoppingList()
                 },
@@ -407,6 +417,8 @@ class MealPlannerViewModel @Inject constructor(
                 onSuccess = {
                     // Clear search query after successful selection
                     _searchQuery.value = ""
+                    // Invalidate suggestion cache when plans change
+                    invalidateSuggestionCache()
                     // Hide suggestions
                     hideSuggestions()
                     // Trigger shopping list regeneration
@@ -428,6 +440,17 @@ class MealPlannerViewModel @Inject constructor(
     fun hideSuggestions() {
         _suggestionState.update { SuggestionUiState.Hidden }
         _suggestionContext.value = null
+    }
+    
+    /**
+     * Invalidates the meal plan history cache.
+     * Called when meal plans are added, updated, or deleted.
+     * Requirements: 7.3
+     */
+    private fun invalidateSuggestionCache() {
+        viewModelScope.launch {
+            getMealPlanHistoryUseCase.invalidateCache()
+        }
     }
     
     companion object {

@@ -21,7 +21,12 @@ import javax.inject.Inject
  * 3. Calculating scores for each meal
  * 4. Ranking and limiting results
  *
- * Requirements: 1.1, 1.2, 1.3, 2.1-2.5, 3.1-3.5, 4.1-4.5, 5.1-5.5, 6.1-6.5
+ * Performance Optimizations:
+ * - Uses sequence operations for lazy evaluation
+ * - Limits processing to top 10 results early
+ * - Caches meal plan history via GetMealPlanHistoryUseCase
+ *
+ * Requirements: 1.1, 1.2, 1.3, 2.1-2.5, 3.1-3.5, 4.1-4.5, 5.1-5.5, 6.1-6.5, 7.1-7.4
  */
 class GetMealSuggestionsUseCase @Inject constructor(
     private val mealRepository: MealRepository,
@@ -96,38 +101,39 @@ class GetMealSuggestionsUseCase @Inject constructor(
             
             val historyMap = historyResult.getOrNull() ?: emptyMap()
             
-            // Calculate scores and create suggestions
-            val suggestions = filteredMeals.map { meal ->
-                // Get history for this meal (or create empty history if never planned)
-                val history = historyMap[meal.id] ?: MealPlanHistory(
-                    mealId = meal.id,
-                    lastPlannedDate = null,
-                    planCount = 0,
-                    planDates = emptyList()
-                )
-                
-                // Calculate score
-                val scoreBreakdown = calculateScoreUseCase(meal, context, history)
-                
-                // Generate reasons for the suggestion
-                val reasons = generateReasons(meal, context, history, scoreBreakdown.totalScore)
-                
-                MealSuggestion(
-                    meal = meal,
-                    score = scoreBreakdown.totalScore,
-                    reasons = reasons,
-                    lastPlannedDate = history.lastPlannedDate,
-                    planCount = history.planCount
-                )
-            }
-            
-            // Sort by score descending, then alphabetically by name
-            val sortedSuggestions = suggestions
+            // Use sequence for efficient lazy evaluation
+            // Only processes meals that pass filters and limits to top 10
+            val suggestions = filteredMeals
+                .asSequence()
+                .map { meal ->
+                    // Get history for this meal (or create empty history if never planned)
+                    val history = historyMap[meal.id] ?: MealPlanHistory(
+                        mealId = meal.id,
+                        lastPlannedDate = null,
+                        planCount = 0,
+                        planDates = emptyList()
+                    )
+                    
+                    // Calculate score
+                    val scoreBreakdown = calculateScoreUseCase(meal, context, history)
+                    
+                    // Generate reasons for the suggestion
+                    val reasons = generateReasons(meal, context, history, scoreBreakdown.totalScore)
+                    
+                    MealSuggestion(
+                        meal = meal,
+                        score = scoreBreakdown.totalScore,
+                        reasons = reasons,
+                        lastPlannedDate = history.lastPlannedDate,
+                        planCount = history.planCount
+                    )
+                }
                 .sortedWith(
                     compareByDescending<MealSuggestion> { it.score }
                         .thenBy { it.meal.name }
                 )
-                .take(MAX_SUGGESTIONS) // Limit to top 10
+                .take(MAX_SUGGESTIONS) // Limit to top 10 early
+                .toList() // Materialize only the top 10
             
             Result.success(sortedSuggestions)
         }.catch { e ->

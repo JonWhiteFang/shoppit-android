@@ -11,12 +11,22 @@ import dagger.hilt.android.components.ViewModelComponent
  * Hilt module for providing use case instances.
  * Use cases are scoped to ViewModelComponent for ViewModel injection.
  *
+ * Note: Most use cases use constructor injection with @Inject and don't need
+ * explicit provider methods. This module only provides use cases that require
+ * special configuration or have no dependencies.
+ *
+ * Suggestion Use Cases (Constructor Injection):
+ * - GetMealSuggestionsUseCase: Orchestrates meal suggestion generation
+ * - CalculateSuggestionScoreUseCase: Calculates relevance scores
+ * - GetMealPlanHistoryUseCase: Analyzes meal planning history
+ *
  * Requirements:
  * - 5.1: Provide SearchMealsUseCase for dependency injection
  * - 5.2: Provide FilterMealsByTagsUseCase for dependency injection
  * - 5.3: Ensure use cases are injectable into ViewModels
  * - 5.4: Follow Hilt best practices for use case provision
  * - 5.5: Support constructor injection for use cases
+ * - Meal Suggestions: All suggestion use cases use constructor injection
  */
 @Module
 @InstallIn(ViewModelComponent::class)

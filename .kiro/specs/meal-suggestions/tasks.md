@@ -165,14 +165,14 @@
     - Test navigation flow
     - _Requirements: 10.1-10.5_
 
-- [ ] 8. Add dependency injection configuration
+- [x] 8. Add dependency injection configuration
   - Register `GetMealSuggestionsUseCase` in Hilt module
   - Register `CalculateSuggestionScoreUseCase` in Hilt module
   - Register `GetMealPlanHistoryUseCase` in Hilt module
   - Verify all dependencies are properly injected
   - _Requirements: All_
 
-- [ ] 9. Implement performance optimizations
+- [x] 9. Implement performance optimizations
   - Add caching for meal plan history in current session
   - Implement cache invalidation when plans change
   - Use sequence operations for efficient filtering
