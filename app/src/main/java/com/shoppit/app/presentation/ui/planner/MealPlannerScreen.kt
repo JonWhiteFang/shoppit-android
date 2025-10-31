@@ -2,6 +2,8 @@ package com.shoppit.app.presentation.ui.planner
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -13,6 +15,7 @@ import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.domain.model.MealType
 import com.shoppit.app.presentation.ui.common.ErrorScreen
+import com.shoppit.app.presentation.ui.common.ErrorSnackbarHandler
 import com.shoppit.app.presentation.ui.common.LoadingScreen
 import java.time.LocalDate
 
@@ -32,6 +35,13 @@ fun MealPlannerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val suggestionState by viewModel.suggestionState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Handle error events for snackbar display
+    ErrorSnackbarHandler(
+        errorEventFlow = viewModel.errorEvent,
+        snackbarHostState = snackbarHostState
+    )
 
     MealPlannerContent(
         uiState = uiState,
@@ -50,6 +60,7 @@ fun MealPlannerScreen(
         onUpdateTagFilter = viewModel::updateTagFilter,
         onUpdateSearchQuery = viewModel::updateSearchQuery,
         onHideSuggestions = viewModel::hideSuggestions,
+        snackbarHostState = snackbarHostState,
         modifier = modifier
     )
 }
@@ -94,10 +105,12 @@ fun MealPlannerContent(
     onUpdateTagFilter: (MealTag) -> Unit,
     onUpdateSearchQuery: (String) -> Unit,
     onHideSuggestions: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             WeekNavigationBar(
                 weekStart = uiState.currentWeekStart,
