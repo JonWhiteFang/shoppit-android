@@ -3,13 +3,17 @@ package com.shoppit.app.presentation.ui.meal
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.domain.usecase.DeleteMealUseCase
 import com.shoppit.app.domain.usecase.FilterMealsByTagsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.SearchMealsUseCase
+import com.shoppit.app.presentation.ui.common.ErrorEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -30,6 +34,7 @@ import javax.inject.Inject
  * - 6.1: Preserve scroll position and search state across navigation
  * - 6.2: Save filter and search states in ViewModels
  * - 8.2: Handle database errors with user-friendly messages
+ * - 10.1, 10.2, 10.3, 10.4, 10.5: Log errors with context
  */
 @HiltViewModel
 class MealViewModel @Inject constructor(
@@ -37,6 +42,7 @@ class MealViewModel @Inject constructor(
     private val deleteMealUseCase: DeleteMealUseCase,
     private val searchMealsUseCase: SearchMealsUseCase,
     private val filterMealsByTagsUseCase: FilterMealsByTagsUseCase,
+    private val errorLogger: ErrorLogger,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -45,6 +51,10 @@ class MealViewModel @Inject constructor(
     
     // Public immutable state
     val uiState: StateFlow<MealListUiState> = _uiState.asStateFlow()
+    
+    // Error events for snackbar display (one-time events)
+    private val _errorEvent = MutableSharedFlow<ErrorEvent>()
+    val errorEvent: SharedFlow<ErrorEvent> = _errorEvent
     
     // Search query state
     private val _searchQuery = MutableStateFlow(
@@ -68,14 +78,33 @@ class MealViewModel @Inject constructor(
     /**
      * Loads meals from the repository.
      * Updates UI state to Loading, then Success or Error based on the result.
+     * Logs errors and emits error events for snackbar display.
+     * 
+     * Requirements:
+     * - 1.1, 1.2, 1.3: Map errors to user-friendly messages
+     * - 2.1, 2.2, 2.3, 2.4: Display error state with retry option
+     * - 10.1: Log errors with context
      */
     private fun loadMeals() {
         viewModelScope.launch {
             getMealsUseCase()
                 .catch { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "MealViewModel.loadMeals",
+                        additionalData = emptyMap()
+                    )
+                    
+                    // Update UI state to error
                     _uiState.update { 
                         MealListUiState.Error(error.message ?: "Unknown error occurred")
                     }
+                    
+                    // Emit error event for snackbar
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to load meals")
+                    )
                 }
                 .collect { result ->
                     result.fold(
@@ -84,9 +113,22 @@ class MealViewModel @Inject constructor(
                             applyFilters()
                         },
                         onFailure = { error -> 
+                            // Log error with context (Requirement 10.1)
+                            errorLogger.logError(
+                                error = error,
+                                context = "MealViewModel.loadMeals",
+                                additionalData = emptyMap()
+                            )
+                            
+                            // Update UI state to error
                             _uiState.update {
                                 MealListUiState.Error(error.message ?: "Failed to load meals")
                             }
+                            
+                            // Emit error event for snackbar
+                            _errorEvent.emit(
+                                ErrorEvent.Error(error.message ?: "Failed to load meals")
+                            )
                         }
                     )
                 }
@@ -95,8 +137,13 @@ class MealViewModel @Inject constructor(
 
     /**
      * Deletes a meal by its ID.
-     * On success, the meal list will automatically update via the Flow.
-     * On failure, updates the UI state to show an error.
+     * On success, the meal list will automatically update via the Flow and emits success event.
+     * On failure, updates the UI state to show an error, logs the error, and emits error event.
+     *
+     * Requirements:
+     * - 1.1: Display user-friendly error messages
+     * - 9.2: Display success message on successful deletion
+     * - 10.1: Log errors with context
      *
      * @param mealId The ID of the meal to delete
      */
@@ -105,12 +152,28 @@ class MealViewModel @Inject constructor(
             deleteMealUseCase(mealId).fold(
                 onSuccess = {
                     // Meal list updates automatically via Flow
-                    // No need to manually update state
+                    // Emit success event (Requirement 9.2)
+                    _errorEvent.emit(
+                        ErrorEvent.Success("Meal deleted successfully")
+                    )
                 },
                 onFailure = { error ->
+                    // Log error with context (Requirement 10.1)
+                    errorLogger.logError(
+                        error = error,
+                        context = "MealViewModel.deleteMeal",
+                        additionalData = mapOf("mealId" to mealId.toString())
+                    )
+                    
+                    // Update UI state to error
                     _uiState.update { 
                         MealListUiState.Error(error.message ?: "Failed to delete meal")
                     }
+                    
+                    // Emit error event for snackbar (Requirement 1.1)
+                    _errorEvent.emit(
+                        ErrorEvent.Error(error.message ?: "Failed to delete meal")
+                    )
                 }
             )
         }

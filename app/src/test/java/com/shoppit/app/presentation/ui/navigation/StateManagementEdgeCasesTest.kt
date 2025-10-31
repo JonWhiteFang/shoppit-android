@@ -3,6 +3,7 @@ package com.shoppit.app.presentation.ui.navigation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import androidx.lifecycle.SavedStateHandle
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.domain.usecase.DeleteMealUseCase
@@ -48,6 +49,7 @@ class StateManagementEdgeCasesTest {
     private lateinit var deleteMealUseCase: DeleteMealUseCase
     private lateinit var searchMealsUseCase: SearchMealsUseCase
     private lateinit var filterMealsByTagsUseCase: FilterMealsByTagsUseCase
+    private lateinit var errorLogger: ErrorLogger
     private lateinit var savedStateHandle: SavedStateHandle
 
     @Before
@@ -57,6 +59,7 @@ class StateManagementEdgeCasesTest {
         deleteMealUseCase = mockk()
         searchMealsUseCase = SearchMealsUseCase()
         filterMealsByTagsUseCase = FilterMealsByTagsUseCase()
+        errorLogger = mockk(relaxed = true)
         savedStateHandle = SavedStateHandle()
     }
 
@@ -78,7 +81,7 @@ class StateManagementEdgeCasesTest {
         )
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // When - Simulate rapid state changes
@@ -106,7 +109,7 @@ class StateManagementEdgeCasesTest {
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
         // When
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, emptyStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, emptyStateHandle)
         advanceUntilIdle()
 
         // Then - Should use default values
@@ -130,7 +133,7 @@ class StateManagementEdgeCasesTest {
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
         // When
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, partialStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, partialStateHandle)
         advanceUntilIdle()
 
         // Then - Should restore available state and use defaults for missing
@@ -159,7 +162,7 @@ class StateManagementEdgeCasesTest {
         )
         coEvery { deleteMealUseCase(1) } returns Result.success(Unit)
 
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Verify initial state
@@ -186,7 +189,7 @@ class StateManagementEdgeCasesTest {
         val meals = listOf(Meal(id = 1, name = "Meal 1", ingredients = emptyList()))
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // When - Multiple concurrent updates
@@ -213,14 +216,14 @@ class StateManagementEdgeCasesTest {
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
         // First cycle
-        val viewModel1 = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel1 = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
         viewModel1.updateSearchQuery("test query")
         viewModel1.toggleTag(MealTag.VEGETARIAN)
         advanceUntilIdle()
 
         // Second cycle - Simulate process death and recreation
-        val viewModel2 = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel2 = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Then - State should be restored
@@ -231,7 +234,7 @@ class StateManagementEdgeCasesTest {
         viewModel2.updateSearchQuery("updated query")
         advanceUntilIdle()
 
-        val viewModel3 = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel3 = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         assertEquals("updated query", viewModel3.searchQuery.value)
@@ -248,7 +251,7 @@ class StateManagementEdgeCasesTest {
         val meals = listOf(Meal(id = 1, name = "Meal 1", ingredients = emptyList()))
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // When - Update state
@@ -258,7 +261,7 @@ class StateManagementEdgeCasesTest {
 
         // Simulate ViewModel being cleared (but SavedStateHandle persists)
         // Create new ViewModel with same SavedStateHandle
-        val newViewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val newViewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Then - State should be restored from SavedStateHandle
@@ -275,7 +278,7 @@ class StateManagementEdgeCasesTest {
         // Given
         coEvery { getMealsUseCase() } returns flowOf(Result.failure(Exception("Network error")))
 
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // When - Update state even in error state
@@ -287,7 +290,7 @@ class StateManagementEdgeCasesTest {
         assertTrue(viewModel.uiState.value is MealListUiState.Error)
 
         // Verify state persists after recreation
-        val newViewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val newViewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
         assertEquals("query in error state", newViewModel.searchQuery.value)
     }
@@ -302,7 +305,7 @@ class StateManagementEdgeCasesTest {
         val meals = listOf(Meal(id = 1, name = "Meal 1", ingredients = emptyList()))
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         
         // When - Update state while loading
         viewModel.updateSearchQuery("query during loading")
@@ -323,7 +326,7 @@ class StateManagementEdgeCasesTest {
         val meals = listOf(Meal(id = 1, name = "Meal 1", ingredients = emptyList()))
         coEvery { getMealsUseCase() } returns flowOf(Result.success(meals))
 
-        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // When - Use special characters and edge cases
@@ -335,8 +338,10 @@ class StateManagementEdgeCasesTest {
         assertEquals(specialQuery, viewModel.searchQuery.value)
 
         // Verify persistence
-        val newViewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        val newViewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
         assertEquals(specialQuery, newViewModel.searchQuery.value)
     }
 }
+
+

@@ -1,6 +1,7 @@
 package com.shoppit.app.presentation.ui.meal
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,6 +26,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,7 +46,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
+import com.shoppit.app.presentation.ui.common.ErrorEvent
+import com.shoppit.app.presentation.ui.common.ErrorSnackbarHandler
+import com.shoppit.app.presentation.ui.common.LoadingOverlay
 import com.shoppit.app.presentation.ui.common.LoadingScreen
+import com.shoppit.app.presentation.ui.common.ValidatedTextField
 import com.shoppit.app.presentation.ui.navigation.util.UnsavedChangesBackHandler
 import com.shoppit.app.presentation.ui.theme.ShoppitTheme
 
@@ -69,6 +76,13 @@ fun AddEditMealScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Observe error events and display snackbars
+    ErrorSnackbarHandler(
+        errorEventFlow = viewModel.errorEvent,
+        snackbarHostState = snackbarHostState
+    )
     
     // Handle navigation after successful save
     LaunchedEffect(uiState.isSaving) {
@@ -95,6 +109,7 @@ fun AddEditMealScreen(
         onAddIngredient = viewModel::addIngredient,
         onRemoveIngredient = viewModel::removeIngredient,
         onSaveMeal = viewModel::saveMeal,
+        snackbarHostState = snackbarHostState,
         modifier = modifier
     )
 }
@@ -112,6 +127,7 @@ fun AddEditMealScreen(
  * - 6.1: Interface to add ingredient entries
  * - 6.4: Allow removing ingredients
  * - 8.1: Display validation errors inline
+ * - 1.1, 9.1, 9.2, 9.3, 9.4: Display error and success messages via snackbar
  *
  * @param uiState The current UI state
  * @param onNavigateBack Callback when back button is clicked
@@ -120,6 +136,7 @@ fun AddEditMealScreen(
  * @param onAddIngredient Callback when an ingredient is added
  * @param onRemoveIngredient Callback when an ingredient is removed
  * @param onSaveMeal Callback when save button is clicked
+ * @param snackbarHostState The SnackbarHostState for displaying snackbar messages
  * @param modifier Optional modifier for the content
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -132,6 +149,7 @@ fun AddEditMealContent(
     onAddIngredient: (Ingredient) -> Unit,
     onRemoveIngredient: (Int) -> Unit,
     onSaveMeal: () -> Unit,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
     // Show loading screen while initial meal data is being loaded
@@ -145,6 +163,7 @@ fun AddEditMealContent(
     
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -179,29 +198,22 @@ fun AddEditMealContent(
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // Meal name field
             item {
-                OutlinedTextField(
+                ValidatedTextField(
                     value = uiState.meal.name,
                     onValueChange = onMealNameChange,
-                    label = { Text("Meal Name *") },
+                    label = "Meal Name *",
+                    error = uiState.validationErrors["name"],
                     placeholder = { Text("e.g., Spaghetti Carbonara") },
-                    isError = uiState.validationErrors.containsKey("name"),
-                    supportingText = {
-                        uiState.validationErrors["name"]?.let { error ->
-                            Text(
-                                text = error,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !uiState.isSaving
@@ -255,6 +267,7 @@ fun AddEditMealContent(
             item {
                 IngredientInput(
                     onAddIngredient = onAddIngredient,
+                    validationErrors = uiState.validationErrors,
                     enabled = !uiState.isSaving
                 )
             }
@@ -283,6 +296,10 @@ fun AddEditMealContent(
                 }
             }
         }
+            
+            // Loading overlay for save operation (Requirements: 8.1, 8.2, 8.3, 8.4)
+            LoadingOverlay(isLoading = uiState.isSaving)
+        }
     }
 }
 
@@ -295,14 +312,17 @@ fun AddEditMealContent(
  * - 6.2: Validate ingredient has non-empty name
  * - 6.3: Allow quantity and unit to be optional
  * - 6.4: Add ingredient to list
+ * - 4.1, 4.2, 4.3, 4.4: Display inline validation errors for ingredient fields
  *
  * @param onAddIngredient Callback when ingredient is added
+ * @param validationErrors Map of field names to error messages for inline display
  * @param enabled Whether the input is enabled
  * @param modifier Optional modifier for the component
  */
 @Composable
 fun IngredientInput(
     onAddIngredient: (Ingredient) -> Unit,
+    validationErrors: Map<String, String> = emptyMap(),
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
@@ -330,7 +350,7 @@ fun IngredientInput(
             )
             
             // Ingredient name field
-            OutlinedTextField(
+            ValidatedTextField(
                 value = ingredientName,
                 onValueChange = {
                     ingredientName = it
@@ -338,17 +358,9 @@ fun IngredientInput(
                         showError = false
                     }
                 },
-                label = { Text("Ingredient Name *") },
+                label = "Ingredient Name *",
+                error = if (showError) "Ingredient name is required" else null,
                 placeholder = { Text("e.g., Pasta") },
-                isError = showError,
-                supportingText = {
-                    if (showError) {
-                        Text(
-                            text = "Ingredient name is required",
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 enabled = enabled
@@ -359,10 +371,10 @@ fun IngredientInput(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
+                ValidatedTextField(
                     value = ingredientQuantity,
                     onValueChange = { ingredientQuantity = it },
-                    label = { Text("Quantity") },
+                    label = "Quantity",
                     placeholder = { Text("e.g., 2") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -370,10 +382,10 @@ fun IngredientInput(
                     enabled = enabled
                 )
                 
-                OutlinedTextField(
+                ValidatedTextField(
                     value = ingredientUnit,
                     onValueChange = { ingredientUnit = it },
-                    label = { Text("Unit") },
+                    label = "Unit",
                     placeholder = { Text("e.g., cups") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
@@ -506,7 +518,8 @@ private fun AddEditMealContentPreview() {
             onMealNotesChange = {},
             onAddIngredient = {},
             onRemoveIngredient = {},
-            onSaveMeal = {}
+            onSaveMeal = {},
+            snackbarHostState = remember { SnackbarHostState() }
         )
     }
 }
@@ -522,7 +535,8 @@ private fun AddEditMealContentEmptyPreview() {
             onMealNotesChange = {},
             onAddIngredient = {},
             onRemoveIngredient = {},
-            onSaveMeal = {}
+            onSaveMeal = {},
+            snackbarHostState = remember { SnackbarHostState() }
         )
     }
 }
@@ -543,7 +557,8 @@ private fun AddEditMealContentWithErrorsPreview() {
             onMealNotesChange = {},
             onAddIngredient = {},
             onRemoveIngredient = {},
-            onSaveMeal = {}
+            onSaveMeal = {},
+            snackbarHostState = remember { SnackbarHostState() }
         )
     }
 }
@@ -565,7 +580,8 @@ private fun AddEditMealContentSavingPreview() {
             onMealNotesChange = {},
             onAddIngredient = {},
             onRemoveIngredient = {},
-            onSaveMeal = {}
+            onSaveMeal = {},
+            snackbarHostState = remember { SnackbarHostState() }
         )
     }
 }

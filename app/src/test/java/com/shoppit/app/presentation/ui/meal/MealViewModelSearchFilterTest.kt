@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import androidx.lifecycle.SavedStateHandle
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealTag
@@ -13,6 +14,7 @@ import com.shoppit.app.domain.usecase.FilterMealsByTagsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.SearchMealsUseCase
 import com.shoppit.app.util.ViewModelTest
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -44,6 +46,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
     private lateinit var deleteMealUseCase: DeleteMealUseCase
     private lateinit var searchMealsUseCase: SearchMealsUseCase
     private lateinit var filterMealsByTagsUseCase: FilterMealsByTagsUseCase
+    private lateinit var errorLogger: ErrorLogger
     private lateinit var savedStateHandle: SavedStateHandle
     private lateinit var viewModel: MealViewModel
     private lateinit var testMeals: List<Meal>
@@ -55,6 +58,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
         deleteMealUseCase = DeleteMealUseCase(repository)
         searchMealsUseCase = SearchMealsUseCase()
         filterMealsByTagsUseCase = FilterMealsByTagsUseCase()
+        errorLogger = mockk(relaxed = true)
         savedStateHandle = SavedStateHandle()
         
         // Create test meals with various names, ingredients, and tags
@@ -107,8 +111,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -128,8 +131,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -152,8 +154,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -175,8 +176,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -199,8 +199,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -220,8 +219,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -241,8 +239,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
         viewModel.toggleTag(MealTag.DINNER)
@@ -264,8 +261,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -288,8 +284,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -312,8 +307,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -334,8 +328,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
         viewModel.updateSearchQuery("pasta")
@@ -357,8 +350,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
         viewModel.toggleTag(MealTag.DINNER)
@@ -380,8 +372,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
         viewModel.updateSearchQuery("pasta")
@@ -406,8 +397,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
         viewModel.updateSearchQuery("pasta")
@@ -431,8 +421,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -456,8 +445,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -483,8 +471,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -505,8 +492,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -528,8 +514,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -549,8 +534,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -567,8 +551,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -589,8 +572,7 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
             getMealsUseCase,
             deleteMealUseCase,
             searchMealsUseCase,
-            filterMealsByTagsUseCase,
-            savedStateHandle
+            filterMealsByTagsUseCase,            errorLogger,            savedStateHandle
         )
         advanceUntilIdle()
 
@@ -603,3 +585,4 @@ class MealViewModelSearchFilterTest : ViewModelTest() {
         assertTrue(state.isFiltered)
     }
 }
+

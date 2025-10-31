@@ -3,6 +3,7 @@ package com.shoppit.app.presentation.ui.meal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import androidx.lifecycle.SavedStateHandle
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.usecase.DeleteMealUseCase
@@ -10,12 +11,15 @@ import com.shoppit.app.domain.usecase.FakeMealRepository
 import com.shoppit.app.domain.usecase.FilterMealsByTagsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.SearchMealsUseCase
+import com.shoppit.app.presentation.ui.common.ErrorEvent
 import com.shoppit.app.util.ViewModelTest
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -27,6 +31,9 @@ import org.junit.Test
  * - 2.1: Retrieve all meals from database
  * - 5.2: Remove meal from database when user confirms deletion
  * - 8.2: Handle database errors with user-friendly messages
+ * - 1.1: Display user-friendly error messages
+ * - 9.2: Display success message on successful deletion
+ * - 10.1: Log errors with context
  */
 @ExperimentalCoroutinesApi
 class MealViewModelTest : ViewModelTest() {
@@ -36,6 +43,7 @@ class MealViewModelTest : ViewModelTest() {
     private lateinit var deleteMealUseCase: DeleteMealUseCase
     private lateinit var searchMealsUseCase: SearchMealsUseCase
     private lateinit var filterMealsByTagsUseCase: FilterMealsByTagsUseCase
+    private lateinit var errorLogger: ErrorLogger
     private lateinit var savedStateHandle: SavedStateHandle
     private lateinit var viewModel: MealViewModel
 
@@ -46,6 +54,7 @@ class MealViewModelTest : ViewModelTest() {
         deleteMealUseCase = DeleteMealUseCase(repository)
         searchMealsUseCase = SearchMealsUseCase()
         filterMealsByTagsUseCase = FilterMealsByTagsUseCase()
+        errorLogger = mockk(relaxed = true)
         savedStateHandle = SavedStateHandle()
     }
 
@@ -67,7 +76,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setMeals(meals)
 
         // When - ViewModel is created and loads meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Success with meals
@@ -84,7 +93,7 @@ class MealViewModelTest : ViewModelTest() {
         repository.setShouldFail(true, Exception("Database connection failed"))
 
         // When - ViewModel is created and tries to load meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Error with message
@@ -109,7 +118,7 @@ class MealViewModelTest : ViewModelTest() {
             )
         )
         repository.setMeals(meals)
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Verify initial state has 2 meals
@@ -139,7 +148,7 @@ class MealViewModelTest : ViewModelTest() {
             )
         )
         repository.setMeals(meals)
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Set repository to fail on next operation
@@ -161,12 +170,64 @@ class MealViewModelTest : ViewModelTest() {
         repository.setMeals(emptyList())
 
         // When - ViewModel is created and loads meals
-        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, savedStateHandle)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // Then - state should be Success with empty list
         val state = viewModel.uiState.value
         assertTrue(state is MealListUiState.Success)
         assertTrue((state as MealListUiState.Success).meals.isEmpty())
+    }
+
+    @Test
+    fun `logs error when loading fails`() = runTest {
+        // Given - repository will fail
+        val exception = Exception("Database connection failed")
+        repository.setShouldFail(true, exception)
+
+        // When - ViewModel is created and tries to load meals
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
+        advanceUntilIdle()
+
+        // Then - error should be logged with context
+        verify {
+            errorLogger.logError(
+                error = exception,
+                context = "MealViewModel.loadMeals",
+                additionalData = emptyMap()
+            )
+        }
+    }
+
+    @Test
+    fun `logs error when delete fails`() = runTest {
+        // Given - repository has meals but will fail on delete
+        val meals = listOf(
+            Meal(
+                id = 1,
+                name = "Pasta Carbonara",
+                ingredients = listOf(Ingredient(name = "Pasta"))
+            )
+        )
+        repository.setMeals(meals)
+        viewModel = MealViewModel(getMealsUseCase, deleteMealUseCase, searchMealsUseCase, filterMealsByTagsUseCase, errorLogger, savedStateHandle)
+        advanceUntilIdle()
+
+        // Set repository to fail on next operation
+        val exception = Exception("Failed to delete meal")
+        repository.setShouldFail(true, exception)
+
+        // When - delete a meal
+        viewModel.deleteMeal(1L)
+        advanceUntilIdle()
+
+        // Then - error should be logged with context and meal ID
+        verify {
+            errorLogger.logError(
+                error = exception,
+                context = "MealViewModel.deleteMeal",
+                additionalData = mapOf("mealId" to "1")
+            )
+        }
     }
 }
