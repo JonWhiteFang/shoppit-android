@@ -1,20 +1,20 @@
 # Implementation Plan
 
-- [-] 1. Prepare for dependency removal
+- [x] 1. Prepare for dependency removal
   - Document current dependency state and create backups
   - _Requirements: 1.1, 3.3_
 
-- [ ] 1.1 Generate current dependency tree
+- [x] 1.1 Generate current dependency tree
   - Run `./gradlew app:dependencies` and save output to `dependencies_before.txt`
   - Document current Netty and Protobuf versions present
   - _Requirements: 3.3_
 
-- [ ] 1.2 Create backup of build configuration files
+- [x] 1.2 Create backup of build configuration files
   - Copy `app/build.gradle.kts` to `app/build.gradle.kts.backup`
   - Copy `gradle/libs.versions.toml` to `gradle/libs.versions.toml.backup`
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-- [ ] 1.3 Verify no code references exist
+- [x] 1.3 Verify no code references exist
   - Search codebase for `import androidx.camera` patterns
   - Search codebase for `import com.google.mlkit.vision.barcode` patterns
   - Search for `CameraX`, `barcode`, `scanner` keywords in Kotlin files
