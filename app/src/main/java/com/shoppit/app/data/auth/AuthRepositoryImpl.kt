@@ -280,8 +280,10 @@ class AuthRepositoryImpl @Inject constructor(
 
     /**
      * Validate email format.
+     * Uses a simple regex pattern that works in unit tests without Android framework.
      */
     private fun isValidEmail(email: String): Boolean {
-        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
+        return emailRegex.matches(email)
     }
 }

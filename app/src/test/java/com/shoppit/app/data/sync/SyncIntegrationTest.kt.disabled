@@ -127,7 +127,9 @@ class SyncIntegrationTest {
         // Create repository instances with sync hooks
         mealRepository = MealRepositoryImpl(
             mealDao = mealDao,
-            syncEngine = syncEngine
+            syncEngine = syncEngine,
+            cacheManager = mockk(relaxed = true),
+            validator = mockk(relaxed = true)
         )
 
         mealPlanRepository = MealPlanRepositoryImpl(
@@ -155,7 +157,6 @@ class SyncIntegrationTest {
         val meal = Meal(
             id = 0,
             name = "Spaghetti Carbonara",
-            ingredients = emptyList(),
             notes = "Delicious pasta",
             tags = listOf("Italian", "Pasta"),
             createdAt = System.currentTimeMillis(),
@@ -385,7 +386,6 @@ class SyncIntegrationTest {
         val meal = Meal(
             id = 0,
             name = "Offline Meal",
-            ingredients = emptyList(),
             notes = "Created offline",
             tags = emptyList(),
             createdAt = System.currentTimeMillis(),

@@ -32,10 +32,9 @@ class UpdateMealUseCase @Inject constructor(
         return if (validationResult.isValid()) {
             repository.updateMeal(meal)
         } else {
-            // Convert validation errors to failure result
+            // Convert validation errors to failure result with formatted message
             val errors = validationResult.getErrors()
-            // Return the first error message for simplicity
-            val message = errors.firstOrNull()?.message ?: "Validation failed"
+            val message = errors.joinToString("; ") { "${it.field}: ${it.message}" }
             Result.failure(com.shoppit.app.domain.validator.ValidationException(message))
         }
     }

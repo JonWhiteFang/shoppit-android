@@ -303,14 +303,17 @@ class AddEditMealViewModel @Inject constructor(
                         else -> emptyMap()
                     }
                     
+                    // Get the first error message for the general error field
+                    val firstErrorMessage = if (validationErrors.isNotEmpty()) {
+                        validationErrors.values.first()
+                    } else {
+                        error.message ?: "Failed to save meal"
+                    }
+                    
                     _uiState.update { 
                         it.copy(
                             isSaving = false,
-                            error = if (validationErrors.isEmpty()) {
-                                error.message ?: "Failed to save meal"
-                            } else {
-                                null // Don't show general error if we have field-specific errors
-                            },
+                            error = firstErrorMessage,
                             validationErrors = validationErrors
                         )
                     }

@@ -111,7 +111,7 @@ class SyncEngineImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.AuthenticationError)
         assertEquals("User not authenticated", error.message)
     }
@@ -127,7 +127,7 @@ class SyncEngineImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.NetworkError)
         assertEquals(SyncStatus.OFFLINE, syncEngine.observeSyncStatus().first())
     }
@@ -157,7 +157,7 @@ class SyncEngineImplTest {
 
         // Then
         assertTrue(result.isSuccess)
-        val syncResult = result.getOrNull()
+        val syncResult = result.getOrNull()!!
         assertNotNull(syncResult)
         assertEquals(0, syncResult.syncedEntities)
         assertEquals(0, syncResult.failedEntities)
@@ -203,8 +203,8 @@ class SyncEngineImplTest {
             retryCount = 0,
             errorMessage = null
         )
-        coEvery { retryPolicy.executeWithRetryForEntity(any(), any(), any(), any()) } returns Result.success(Unit)
-        coEvery { syncMetadataDao.updateMetadata(any()) } just Runs
+        coEvery { retryPolicy.executeWithRetryForEntity<Unit>(any(), any(), any(), any()) } returns Result.success(Unit)
+        coEvery { syncMetadataDao.updateMetadata(any()) } coAnswers { }
         coEvery { syncMetadataDao.removeFromQueue(any()) } just Runs
 
         // When
@@ -212,7 +212,7 @@ class SyncEngineImplTest {
 
         // Then
         assertTrue(result.isSuccess)
-        val syncResult = result.getOrNull()
+        val syncResult = result.getOrNull()!!
         assertNotNull(syncResult)
         assertEquals(1, syncResult.syncedEntities)
         assertEquals(0, syncResult.failedEntities)
@@ -224,9 +224,9 @@ class SyncEngineImplTest {
     fun `queueChange creates new queue entry for new entity`() = runTest {
         // Given
         coEvery { syncMetadataDao.getQueuedChange("meal", 100) } returns null
-        coEvery { syncMetadataDao.queueChange(any()) } just Runs
+        coEvery { syncMetadataDao.queueChange(any()) } coAnswers { }
         coEvery { syncMetadataDao.getMetadata("meal", 100) } returns null
-        coEvery { syncMetadataDao.insertMetadata(any()) } just Runs
+        coEvery { syncMetadataDao.insertMetadata(any()) } coAnswers { }
 
         // When
         syncEngine.queueChange(EntityType.MEAL, 100, SyncOperation.CREATE)
@@ -250,7 +250,7 @@ class SyncEngineImplTest {
             lastAttemptAt = null
         )
         coEvery { syncMetadataDao.getQueuedChange("meal", 100) } returns existingChange
-        coEvery { syncMetadataDao.updateQueuedChange(any()) } just Runs
+        coEvery { syncMetadataDao.updateQueuedChange(any()) } coAnswers { }
         coEvery { syncMetadataDao.getMetadata("meal", 100) } returns SyncMetadataEntity(
             id = 1,
             entityType = "meal",
@@ -262,7 +262,7 @@ class SyncEngineImplTest {
             retryCount = 0,
             errorMessage = null
         )
-        coEvery { syncMetadataDao.updateMetadata(any()) } just Runs
+        coEvery { syncMetadataDao.updateMetadata(any()) } coAnswers { }
 
         // When
         syncEngine.queueChange(EntityType.MEAL, 100, SyncOperation.UPDATE)
@@ -381,7 +381,7 @@ class SyncEngineImplTest {
 
         // Then
         assertTrue(result.isSuccess) // Should still succeed with 0 synced entities
-        val syncResult = result.getOrNull()
+        val syncResult = result.getOrNull()!!
         assertNotNull(syncResult)
         assertFalse(syncResult.success)
     }

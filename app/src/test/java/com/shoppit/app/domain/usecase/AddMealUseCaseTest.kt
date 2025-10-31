@@ -49,7 +49,7 @@ class AddMealUseCaseTest : RepositoryTest() {
         // Then
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Meal name cannot be empty", result.exceptionOrNull()?.message)
+        assertEquals("name: Meal name cannot be empty", result.exceptionOrNull()?.message)
         // Verify meal was not added to repository
         assertTrue(repository.getMealsList().isEmpty())
     }
@@ -90,7 +90,7 @@ class AddMealUseCaseTest : RepositoryTest() {
         // Then
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Meal must have at least one ingredient", result.exceptionOrNull()?.message)
+        assertEquals("ingredients: Meal must have at least one ingredient", result.exceptionOrNull()?.message)
         assertTrue(repository.getMealsList().isEmpty())
     }
 
@@ -111,7 +111,7 @@ class AddMealUseCaseTest : RepositoryTest() {
         // Then
         assertTrue(result.isFailure)
         assertTrue(result.exceptionOrNull() is ValidationException)
-        assertEquals("Ingredient name cannot be empty", result.exceptionOrNull()?.message)
+        assertEquals("ingredients[1].name: Ingredient name cannot be empty", result.exceptionOrNull()?.message)
         assertTrue(repository.getMealsList().isEmpty())
     }
 

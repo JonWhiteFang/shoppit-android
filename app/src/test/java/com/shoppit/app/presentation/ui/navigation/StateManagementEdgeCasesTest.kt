@@ -26,6 +26,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Tests for state management edge cases.
@@ -35,6 +38,8 @@ import org.junit.Test
  * - 6.4: Test state preservation with low memory conditions
  * - 6.4: Verify state clearing on data deletion
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 @OptIn(ExperimentalCoroutinesApi::class)
 class StateManagementEdgeCasesTest {
 

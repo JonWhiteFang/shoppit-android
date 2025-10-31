@@ -356,7 +356,7 @@ class RetryPolicyTest {
         // Then
         assertTrue(result.isFailure)
         // Error should be mapped but original exception is preserved
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertNotNull(error)
     }
 
@@ -372,7 +372,7 @@ class RetryPolicyTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertNotNull(error)
     }
 
@@ -388,7 +388,7 @@ class RetryPolicyTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertNotNull(error)
     }
 
@@ -405,7 +405,7 @@ class RetryPolicyTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is SyncError.AuthenticationError)
         assertEquals("Unauthorized", error.message)
     }

@@ -1,27 +1,29 @@
-# Script to replace kotlin.test assertions with org.junit.Assert
+# Fix test assertion issues with nullable types
 
-$testFiles = Get-ChildItem -Path "app\src\test" -Filter "*.kt" -Recurse
+$testFiles = @(
+    "app\src\test\java\com\shoppit\app\data\auth\AuthRepositoryImplTest.kt",
+    "app\src\test\java\com\shoppit\app\data\sync\RetryPolicyTest.kt",
+    "app\src\test\java\com\shoppit\app\data\sync\SyncEngineImplTest.kt",
+    "app\src\test\java\com\shoppit\app\data\sync\SyncIntegrationTest.kt"
+)
 
 foreach ($file in $testFiles) {
-    $content = Get-Content $file.FullName -Raw
-    $modified = $false
-    
-    # Replace kotlin.test imports with org.junit.Assert
-    if ($content -match 'import kotlin\.test\.') {
-        $content = $content -replace 'import kotlin\.test\.assertEquals', 'import org.junit.Assert.assertEquals'
-        $content = $content -replace 'import kotlin\.test\.assertTrue', 'import org.junit.Assert.assertTrue'
-        $content = $content -replace 'import kotlin\.test\.assertFalse', 'import org.junit.Assert.assertFalse'
-        $content = $content -replace 'import kotlin\.test\.assertNotNull', 'import org.junit.Assert.assertNotNull'
-        $content = $content -replace 'import kotlin\.test\.assertNull', 'import org.junit.Assert.assertNull'
-        $modified = $true
-        Write-Host "Replaced kotlin.test imports in $($file.Name)" -ForegroundColor Yellow
-    }
-    
-    # Save if modified
-    if ($modified) {
-        Set-Content -Path $file.FullName -Value $content -NoNewline
-        Write-Host "Updated $($file.FullName)" -ForegroundColor Green
+    if (Test-Path $file) {
+        Write-Host "Fixing $file..."
+        $content = Get-Content $file -Raw
+        
+        # Fix: result.getOrNull().property -> result.getOrNull()!!.property
+        $content = $content -replace '(\$\w+\.getOrNull\(\))\.(\w+)', '$1!!.$2'
+        
+        # Fix: result.exceptionOrNull().property -> result.exceptionOrNull()!!.property  
+        $content = $content -replace '(\$\w+\.exceptionOrNull\(\))\.(\w+)', '$1!!.$2'
+        
+        # Fix: user.property -> user!!.property (after getOrNull)
+        $content = $content -replace 'val (\w+) = result\.getOrNull\(\)\s+assertNotNull\(\1\)\s+assertEquals\(([^,]+), \1\.', 'val $1 = result.getOrNull()!!`n        assertEquals($2, $1.'
+        
+        Set-Content $file $content -NoNewline
+        Write-Host "Fixed $file"
     }
 }
 
-Write-Host "`nAssertion import fixes completed!" -ForegroundColor Cyan
+Write-Host "Done!"

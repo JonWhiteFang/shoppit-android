@@ -23,7 +23,7 @@ This implementation plan breaks down the error handling and validation feature i
     - Bind ErrorLoggerImpl to ErrorLogger interface
     - _Requirements: 10.1_
 
-- [-] 3. Create ingredient validation
+- [x] 3. Create ingredient validation
   - [x] 3.1 Implement IngredientValidator
     - Create IngredientValidator class implementing DataValidator<Ingredient>
     - Validate ingredient name is not blank

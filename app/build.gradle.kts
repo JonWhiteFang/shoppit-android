@@ -69,6 +69,13 @@ android {
     lint {
         disable += "AutoboxingStateCreation"
     }
+    
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 // KSP optimization configuration
@@ -132,6 +139,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.robolectric)
     
     // Android Testing
     androidTestImplementation(libs.androidx.test.ext)

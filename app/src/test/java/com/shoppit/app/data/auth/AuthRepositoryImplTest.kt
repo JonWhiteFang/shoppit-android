@@ -66,7 +66,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isSuccess)
-        val user = result.getOrNull()
+        val user = result.getOrNull()!!
         assertNotNull(user)
         assertEquals(email, user.email)
         assertEquals("test", user.name) // Name extracted from email
@@ -89,7 +89,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
         assertEquals("Email and password are required", error.message)
     }
@@ -105,7 +105,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
     }
 
@@ -120,7 +120,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
         assertEquals("Invalid email format", error.message)
     }
@@ -133,7 +133,7 @@ class AuthRepositoryImplTest {
 
         // When
         authRepository.signIn(email, password)
-        val currentUser = authRepository.getCurrentUser().first()
+        val currentUser = authRepository.getCurrentUser().first()!!
 
         // Then
         assertNotNull(currentUser)
@@ -154,7 +154,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isSuccess)
-        val user = result.getOrNull()
+        val user = result.getOrNull()!!
         assertNotNull(user)
         assertEquals(email, user.email)
         assertEquals(name, user.name)
@@ -176,7 +176,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
         assertEquals("All fields are required", error.message)
     }
@@ -193,7 +193,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
     }
 
@@ -209,7 +209,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
     }
 
@@ -225,7 +225,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
         assertEquals("Invalid email format", error.message)
     }
@@ -242,7 +242,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
         assertEquals("Password must be at least 8 characters", error.message)
     }
@@ -337,7 +337,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isSuccess)
-        assertNotNull(result.getOrNull())
+        assertNotNull(result.getOrNull()!!)
         verify { tokenStorage.saveAccessToken(any()) }
         verify { tokenStorage.saveTokenExpiration(any()) }
     }
@@ -352,7 +352,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.AuthenticationError)
         assertEquals("No refresh token available", error.message)
     }
@@ -436,7 +436,7 @@ class AuthRepositoryImplTest {
 
         // When - create new instance to trigger init
         val newAuthRepository = AuthRepositoryImpl(tokenStorage)
-        val user = newAuthRepository.getCurrentUser().first()
+        val user = newAuthRepository.getCurrentUser().first()!!
 
         // Then
         assertNotNull(user)
@@ -458,7 +458,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isSuccess)
-        val updatedUser = result.getOrNull()
+        val updatedUser = result.getOrNull()!!
         assertNotNull(updatedUser)
         assertEquals(newName, updatedUser.name)
         verify { tokenStorage.saveUserName(newName) }
@@ -474,7 +474,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.AuthenticationError)
         assertEquals("No user logged in", error.message)
     }
@@ -490,7 +490,7 @@ class AuthRepositoryImplTest {
 
         // Then
         assertTrue(result.isFailure)
-        val error = result.exceptionOrNull()
+        val error = result.exceptionOrNull()!!
         assertTrue(error is AppError.ValidationError)
         assertEquals("Name cannot be empty", error.message)
     }
@@ -503,7 +503,7 @@ class AuthRepositoryImplTest {
 
         // When
         authRepository.updateUserProfile(newName)
-        val currentUser = authRepository.getCurrentUser().first()
+        val currentUser = authRepository.getCurrentUser().first()!!
 
         // Then
         assertNotNull(currentUser)

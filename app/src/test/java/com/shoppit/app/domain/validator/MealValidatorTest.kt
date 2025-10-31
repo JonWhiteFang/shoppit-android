@@ -348,7 +348,7 @@ class MealValidatorTest {
         // Then
         assertTrue(result.isInvalid())
         val errors = result.getErrors()
-        assertEquals(5, errors.size) // name + quantity for first, quantity for second and third
+        assertEquals(4, errors.size) // name + quantity for first, quantity for second and third
         
         val errorFields = errors.map { it.field }
         assertTrue(errorFields.contains("ingredients[0].name"))
