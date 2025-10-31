@@ -47,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.shoppit.app.domain.model.ItemCategory
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.ErrorScreen
+import com.shoppit.app.presentation.ui.common.ErrorSnackbarHandler
 import com.shoppit.app.presentation.ui.common.LoadingScreen
 import com.shoppit.app.presentation.ui.common.AnimatedExpandIcon
 import com.shoppit.app.presentation.ui.common.AnimatedSectionContent
@@ -81,7 +82,13 @@ fun ShoppingListScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     
-    // Show error messages in snackbar
+    // Handle error events with ErrorSnackbarHandler
+    ErrorSnackbarHandler(
+        errorEventFlow = viewModel.errorEvent,
+        snackbarHostState = snackbarHostState
+    )
+    
+    // Show error messages in snackbar (for backward compatibility with existing error state)
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
             snackbarHostState.showSnackbar(error)

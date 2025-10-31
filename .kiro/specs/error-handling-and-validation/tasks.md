@@ -221,8 +221,8 @@ This implementation plan breaks down the error handling and validation feature i
     - Test errors are logged
     - _Requirements: 1.1, 10.1_
 
-- [ ] 13. Update ShoppingListScreen with error feedback
-  - [ ] 13.1 Add ErrorSnackbarHandler to ShoppingListScreen
+- [x] 13. Update ShoppingListScreen with error feedback
+  - [x] 13.1 Add ErrorSnackbarHandler to ShoppingListScreen
     - Add SnackbarHost to Scaffold
     - Integrate ErrorSnackbarHandler observing ViewModel errorEvent
     - _Requirements: 1.1_
