@@ -3,14 +3,19 @@ package com.shoppit.app.presentation.ui.meal
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.validator.ValidationException
 import com.shoppit.app.domain.usecase.AddMealUseCase
 import com.shoppit.app.domain.usecase.GetMealByIdUseCase
 import com.shoppit.app.domain.usecase.UpdateMealUseCase
+import com.shoppit.app.presentation.ui.common.ErrorEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -39,6 +44,7 @@ class AddEditMealViewModel @Inject constructor(
     private val addMealUseCase: AddMealUseCase,
     private val updateMealUseCase: UpdateMealUseCase,
     private val getMealByIdUseCase: GetMealByIdUseCase,
+    private val errorLogger: ErrorLogger,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -50,6 +56,10 @@ class AddEditMealViewModel @Inject constructor(
     
     // Public immutable state
     val uiState: StateFlow<AddEditMealUiState> = _uiState.asStateFlow()
+    
+    // Error events for snackbar display (one-time events)
+    private val _errorEvent = MutableSharedFlow<ErrorEvent>()
+    val errorEvent: SharedFlow<ErrorEvent> = _errorEvent.asSharedFlow()
 
     init {
         // Load existing meal if in edit mode

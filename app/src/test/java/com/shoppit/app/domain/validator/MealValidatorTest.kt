@@ -8,11 +8,13 @@ import org.junit.Test
 
 class MealValidatorTest {
     
+    private lateinit var ingredientValidator: IngredientValidator
     private lateinit var validator: MealValidator
     
     @Before
     fun setup() {
-        validator = MealValidator()
+        ingredientValidator = IngredientValidator()
+        validator = MealValidator(ingredientValidator)
     }
     
     @Test
@@ -255,5 +257,121 @@ class MealValidatorTest {
         
         // Then
         assertTrue(result.isFailure)
+    }
+    
+    @Test
+    fun `validate returns Invalid when ingredient has invalid quantity`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "Test Meal",
+            ingredients = listOf(
+                Ingredient("Pasta", "abc", "g") // Non-numeric quantity
+            )
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("ingredients[0].quantity", errors[0].field)
+        assertEquals("Quantity must be a valid number", errors[0].message)
+        assertEquals(ValidationError.CODE_INVALID_FORMAT, errors[0].code)
+    }
+    
+    @Test
+    fun `validate returns Invalid when ingredient has zero quantity`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "Test Meal",
+            ingredients = listOf(
+                Ingredient("Pasta", "0", "g")
+            )
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("ingredients[0].quantity", errors[0].field)
+        assertEquals("Quantity must be greater than zero", errors[0].message)
+        assertEquals(ValidationError.CODE_OUT_OF_RANGE, errors[0].code)
+    }
+    
+    @Test
+    fun `validate returns Invalid when ingredient has negative quantity`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "Test Meal",
+            ingredients = listOf(
+                Ingredient("Pasta", "-5", "g")
+            )
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(1, errors.size)
+        assertEquals("ingredients[0].quantity", errors[0].field)
+        assertEquals("Quantity must be greater than zero", errors[0].message)
+    }
+    
+    @Test
+    fun `validate returns all errors for meal with multiple invalid ingredients`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "Test Meal",
+            ingredients = listOf(
+                Ingredient("", "abc", "g"),      // Empty name + invalid quantity
+                Ingredient("Eggs", "-2", "pcs"),  // Negative quantity
+                Ingredient("Salt", "0", "tsp")    // Zero quantity
+            )
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isInvalid())
+        val errors = result.getErrors()
+        assertEquals(5, errors.size) // name + quantity for first, quantity for second and third
+        
+        val errorFields = errors.map { it.field }
+        assertTrue(errorFields.contains("ingredients[0].name"))
+        assertTrue(errorFields.contains("ingredients[0].quantity"))
+        assertTrue(errorFields.contains("ingredients[1].quantity"))
+        assertTrue(errorFields.contains("ingredients[2].quantity"))
+    }
+    
+    @Test
+    fun `validate returns Valid for meal with valid ingredients including quantities`() {
+        // Given
+        val meal = Meal(
+            id = 1,
+            name = "Test Meal",
+            ingredients = listOf(
+                Ingredient("Pasta", "400", "g"),
+                Ingredient("Eggs", "4", "pcs"),
+                Ingredient("Salt", "1.5", "tsp")
+            )
+        )
+        
+        // When
+        val result = validator.validate(meal)
+        
+        // Then
+        assertTrue(result.isValid())
     }
 }

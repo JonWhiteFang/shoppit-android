@@ -8,7 +8,9 @@ import javax.inject.Inject
  * Validator for meal domain objects.
  * Ensures meal data meets business rules before persistence.
  */
-class MealValidator @Inject constructor() : DataValidator<Meal> {
+class MealValidator @Inject constructor(
+    private val ingredientValidator: IngredientValidator
+) : DataValidator<Meal> {
     
     /**
      * Validates a meal according to business rules.
@@ -54,19 +56,21 @@ class MealValidator @Inject constructor() : DataValidator<Meal> {
                 )
             )
         } else {
-            // Validate each ingredient
+            // Validate each ingredient using IngredientValidator
             data.ingredients.forEachIndexed { index, ingredient ->
-                if (ingredient.name.isBlank()) {
-                    errors.add(
-                        ValidationError(
-                            field = "ingredients[$index].name",
-                            message = "Ingredient name cannot be empty",
-                            code = ValidationError.CODE_REQUIRED
+                val ingredientResult = ingredientValidator.validate(ingredient)
+                if (ingredientResult.isInvalid()) {
+                    // Add ingredient-specific errors with indexed field names
+                    ingredientResult.getErrors().forEach { error ->
+                        errors.add(
+                            ValidationError(
+                                field = "ingredients[$index].${error.field}",
+                                message = error.message,
+                                code = error.code
+                            )
                         )
-                    )
+                    }
                 }
-                
-                // Quantity and unit are optional, no validation needed
             }
         }
         

@@ -1,5 +1,6 @@
 package com.shoppit.app.di
 
+import com.shoppit.app.domain.validator.IngredientValidator
 import com.shoppit.app.domain.validator.MealValidator
 import dagger.Module
 import dagger.Provides
@@ -23,13 +24,25 @@ import javax.inject.Singleton
 object MealModule {
     
     /**
+     * Provides a singleton instance of IngredientValidator.
+     * 
+     * @return IngredientValidator instance for validating ingredient data
+     */
+    @Provides
+    @Singleton
+    fun provideIngredientValidator(): IngredientValidator {
+        return IngredientValidator()
+    }
+    
+    /**
      * Provides a singleton instance of MealValidator.
      * 
+     * @param ingredientValidator Validator for individual ingredients
      * @return MealValidator instance for validating meal data
      */
     @Provides
     @Singleton
-    fun provideMealValidator(): MealValidator {
-        return MealValidator()
+    fun provideMealValidator(ingredientValidator: IngredientValidator): MealValidator {
+        return MealValidator(ingredientValidator)
     }
 }

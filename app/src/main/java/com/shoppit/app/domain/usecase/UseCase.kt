@@ -47,12 +47,22 @@ abstract class UseCase<in P, R> {
      */
     private fun mapException(exception: Exception): Throwable {
         val error = when (exception) {
-            is SQLiteException -> AppError.DatabaseError
-            is IOException -> AppError.NetworkError("Network connection failed")
-            is IllegalArgumentException -> AppError.ValidationError(
-                exception.message ?: "Validation failed"
+            is SQLiteException -> AppError.DatabaseError(
+                message = "Database error: ${exception.message}",
+                cause = exception
             )
-            else -> AppError.UnknownError(exception.message ?: "Unknown error occurred")
+            is IOException -> AppError.NetworkError(
+                message = "Network connection failed",
+                cause = exception
+            )
+            is IllegalArgumentException -> AppError.ValidationError(
+                message = exception.message ?: "Validation failed",
+                cause = exception
+            )
+            else -> AppError.UnknownError(
+                message = exception.message ?: "Unknown error occurred",
+                cause = exception
+            )
         }
         return Exception(error.toString())
     }
