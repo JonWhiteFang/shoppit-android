@@ -24,8 +24,8 @@
     - Test edge cases (no history, never planned)
     - _Requirements: 6.1-6.4_
 
-- [ ] 3. Implement meal plan history analysis
-  - [ ] 3.1 Create `GetMealPlanHistoryUseCase` to analyze past 30 days
+- [x] 3. Implement meal plan history analysis
+  - [x] 3.1 Create `GetMealPlanHistoryUseCase` to analyze past 30 days
     - Fetch meal plans from past 30 days using repository
     - Group plans by meal ID
     - Calculate plan count per meal
@@ -33,15 +33,15 @@
     - Return map of meal ID to `MealPlanHistory`
     - _Requirements: 3.1-3.5_
   
-  - [ ] 3.2 Write unit tests for history analysis
+  - [x] 3.2 Write unit tests for history analysis
     - Test history calculation with various plan patterns
     - Test 30-day date range filtering
     - Test grouping by meal ID
     - Test empty history handling
     - _Requirements: 3.1-3.5_
 
-- [ ] 4. Implement main suggestion generation use case
-  - [ ] 4.1 Create `GetMealSuggestionsUseCase` with orchestration logic
+- [-] 4. Implement main suggestion generation use case
+  - [x] 4.1 Create `GetMealSuggestionsUseCase` with orchestration logic
     - Inject `MealRepository`, `MealPlanRepository`, scoring and history use cases
     - Fetch all meals from repository as Flow
     - Fetch meal plans for the week to identify already-planned meals
