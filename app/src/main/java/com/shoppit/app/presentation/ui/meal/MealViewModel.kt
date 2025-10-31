@@ -85,7 +85,7 @@ class MealViewModel @Inject constructor(
      * - 2.1, 2.2, 2.3, 2.4: Display error state with retry option
      * - 10.1: Log errors with context
      */
-    private fun loadMeals() {
+    fun loadMeals() {
         viewModelScope.launch {
             getMealsUseCase()
                 .catch { error ->

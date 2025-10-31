@@ -157,13 +157,13 @@ This implementation plan breaks down the error handling and validation feature i
     - Test success events are emitted on delete
     - _Requirements: 1.1, 2.1, 9.2, 10.1_
 
-- [ ] 9. Update MealListScreen with error feedback
-  - [ ] 9.1 Add ErrorSnackbarHandler to MealListScreen
+- [x] 9. Update MealListScreen with error feedback
+  - [x] 9.1 Add ErrorSnackbarHandler to MealListScreen
     - Add SnackbarHost to Scaffold
     - Integrate ErrorSnackbarHandler observing ViewModel errorEvent
     - _Requirements: 1.1, 9.2_
   
-  - [ ] 9.2 Enhance error screen with retry action
+  - [x] 9.2 Enhance error screen with retry action
     - Pass retry callback to ErrorScreen when in error state
     - Retry callback should call viewModel.loadMeals()
     - _Requirements: 2.1, 2.2, 2.3, 2.4_

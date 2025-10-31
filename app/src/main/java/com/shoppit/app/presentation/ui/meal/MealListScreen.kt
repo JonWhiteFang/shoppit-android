@@ -22,9 +22,12 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +43,7 @@ import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.ErrorScreen
+import com.shoppit.app.presentation.ui.common.ErrorSnackbarHandler
 import com.shoppit.app.presentation.ui.common.LoadingScreen
 import com.shoppit.app.presentation.ui.theme.ShoppitTheme
 
@@ -70,17 +74,26 @@ fun MealListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val selectedTags by viewModel.selectedTags.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    
+    // Requirement 9.1: Observe error events and display snackbars
+    ErrorSnackbarHandler(
+        errorEventFlow = viewModel.errorEvent,
+        snackbarHostState = snackbarHostState
+    )
     
     MealListContent(
         uiState = uiState,
         searchQuery = searchQuery,
         selectedTags = selectedTags,
+        snackbarHostState = snackbarHostState,
         onSearchQueryChange = viewModel::updateSearchQuery,
         onTagToggle = viewModel::toggleTag,
         onClearFilters = viewModel::clearFilters,
         onMealClick = onMealClick,
         onAddMealClick = onAddMealClick,
         onDeleteMeal = viewModel::deleteMeal,
+        onRetry = viewModel::loadMeals,
         modifier = modifier
     )
 }
@@ -117,12 +130,14 @@ fun MealListContent(
     uiState: MealListUiState,
     searchQuery: String,
     selectedTags: Set<MealTag>,
+    snackbarHostState: SnackbarHostState,
     onSearchQueryChange: (String) -> Unit,
     onTagToggle: (MealTag) -> Unit,
     onClearFilters: () -> Unit,
     onMealClick: (Long) -> Unit,
     onAddMealClick: () -> Unit,
     onDeleteMeal: (Long) -> Unit,
+    onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     MealListKeyboardHandler(
@@ -131,6 +146,9 @@ fun MealListContent(
         modifier = modifier
     ) {
         Scaffold(
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState)
+            },
             floatingActionButton = {
                 FloatingActionButton(onClick = onAddMealClick) {
                     Icon(
@@ -192,9 +210,10 @@ fun MealListContent(
                     }
                 }
                 is MealListUiState.Error -> {
+                    // Requirement 9.2: Pass retry callback to ErrorScreen
                     ErrorScreen(
                         message = uiState.message,
-                        onRetry = null
+                        onRetry = onRetry
                     )
                 }
             }
@@ -369,12 +388,14 @@ private fun MealListContentLoadingPreview() {
             uiState = MealListUiState.Loading,
             searchQuery = "",
             selectedTags = emptySet(),
+            snackbarHostState = remember { SnackbarHostState() },
             onSearchQueryChange = {},
             onTagToggle = {},
             onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
-            onDeleteMeal = {}
+            onDeleteMeal = {},
+            onRetry = {}
         )
     }
 }
@@ -387,12 +408,14 @@ private fun MealListContentEmptyPreview() {
             uiState = MealListUiState.Success(emptyList()),
             searchQuery = "",
             selectedTags = emptySet(),
+            snackbarHostState = remember { SnackbarHostState() },
             onSearchQueryChange = {},
             onTagToggle = {},
             onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
-            onDeleteMeal = {}
+            onDeleteMeal = {},
+            onRetry = {}
         )
     }
 }
@@ -428,12 +451,14 @@ private fun MealListContentSuccessPreview() {
             ),
             searchQuery = "",
             selectedTags = emptySet(),
+            snackbarHostState = remember { SnackbarHostState() },
             onSearchQueryChange = {},
             onTagToggle = {},
             onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
-            onDeleteMeal = {}
+            onDeleteMeal = {},
+            onRetry = {}
         )
     }
 }
@@ -446,12 +471,14 @@ private fun MealListContentErrorPreview() {
             uiState = MealListUiState.Error("Failed to load meals. Please try again."),
             searchQuery = "",
             selectedTags = emptySet(),
+            snackbarHostState = remember { SnackbarHostState() },
             onSearchQueryChange = {},
             onTagToggle = {},
             onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
-            onDeleteMeal = {}
+            onDeleteMeal = {},
+            onRetry = {}
         )
     }
 }
@@ -477,12 +504,14 @@ private fun MealListContentWithFiltersPreview() {
             ),
             searchQuery = "pasta",
             selectedTags = setOf(MealTag.VEGETARIAN),
+            snackbarHostState = remember { SnackbarHostState() },
             onSearchQueryChange = {},
             onTagToggle = {},
             onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
-            onDeleteMeal = {}
+            onDeleteMeal = {},
+            onRetry = {}
         )
     }
 }
@@ -500,12 +529,14 @@ private fun MealListContentNoResultsPreview() {
             ),
             searchQuery = "xyz",
             selectedTags = emptySet(),
+            snackbarHostState = remember { SnackbarHostState() },
             onSearchQueryChange = {},
             onTagToggle = {},
             onClearFilters = {},
             onMealClick = {},
             onAddMealClick = {},
-            onDeleteMeal = {}
+            onDeleteMeal = {},
+            onRetry = {}
         )
     }
 }
