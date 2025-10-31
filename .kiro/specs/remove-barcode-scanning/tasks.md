@@ -21,11 +21,11 @@
   - Document findings (should be zero matches)
   - _Requirements: 3.2_
 
-- [ ] 2. Remove dependencies from build configuration
+- [x] 2. Remove dependencies from build configuration
   - Remove CameraX and ML Kit dependencies from Gradle files
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-- [ ] 2.1 Remove dependencies from app/build.gradle.kts
+- [x] 2.1 Remove dependencies from app/build.gradle.kts
   - Remove `implementation(libs.camerax.core)` line
   - Remove `implementation(libs.camerax.camera2)` line
   - Remove `implementation(libs.camerax.lifecycle)` line
@@ -33,12 +33,12 @@
   - Remove `implementation(libs.mlkit.barcode.scanning)` line
   - _Requirements: 1.1, 1.2_
 
-- [ ] 2.2 Remove version references from gradle/libs.versions.toml
+- [x] 2.2 Remove version references from gradle/libs.versions.toml
   - Remove `camerax = "1.4.1"` line from versions section
   - Remove `barcode-scanning = "17.3.0"` line from versions section
   - _Requirements: 1.3, 1.4_
 
-- [ ] 2.3 Remove library definitions from gradle/libs.versions.toml
+- [x] 2.3 Remove library definitions from gradle/libs.versions.toml
   - Remove `camerax-core` library definition
   - Remove `camerax-camera2` library definition
   - Remove `camerax-lifecycle` library definition
@@ -47,7 +47,7 @@
   - Remove any associated comments (e.g., "# CameraX", "# ML Kit Barcode Scanning")
   - _Requirements: 1.5, 1.6_
 
-- [ ] 2.4 Sync Gradle project
+- [x] 2.4 Sync Gradle project
   - Run Gradle sync in IDE or execute `./gradlew --refresh-dependencies`
   - Verify sync completes without errors
   - _Requirements: 3.1_
