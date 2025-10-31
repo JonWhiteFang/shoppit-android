@@ -244,6 +244,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
 
         val date = LocalDate.now()
         viewModel.onSlotClick(date, MealType.LUNCH)
+        advanceUntilIdle() // Wait for async operation
 
         // When
         viewModel.onMealSelected(1L)
@@ -276,6 +277,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
         advanceUntilIdle()
 
         viewModel.onSlotClick(date, MealType.LUNCH)
+        advanceUntilIdle() // Wait for async operation
 
         // When
         viewModel.onMealSelected(2L)
@@ -367,6 +369,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
         advanceUntilIdle()
 
         viewModel.onSlotClick(LocalDate.now(), MealType.LUNCH)
+        advanceUntilIdle() // Wait for async operation
         assertTrue(viewModel.uiState.value.showMealSelection)
 
         // When
