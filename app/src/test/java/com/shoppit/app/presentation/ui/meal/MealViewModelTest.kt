@@ -1,5 +1,7 @@
 package com.shoppit.app.presentation.ui.meal
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import androidx.lifecycle.SavedStateHandle
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal

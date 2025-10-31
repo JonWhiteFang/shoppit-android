@@ -8,10 +8,10 @@ import org.junit.Test
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 
 /**
  * Unit tests for RetryPolicy.
@@ -101,7 +101,7 @@ class RetryPolicyTest {
         var attemptCount = 0
         val block: suspend () -> String = {
             attemptCount++
-            throw SyncError.ValidationError("Invalid data")
+            throw SyncError.ClientError(400, "Invalid data")
         }
 
         // When
@@ -111,7 +111,7 @@ class RetryPolicyTest {
         assertTrue(result.isFailure)
         assertEquals(1, attemptCount) // Only one attempt
         val error = result.exceptionOrNull()
-        assertTrue(error is SyncError.ValidationError)
+        assertTrue(error is SyncError.ClientError)
     }
 
     // ========== Exponential Backoff Tests ==========
@@ -244,7 +244,7 @@ class RetryPolicyTest {
     @Test
     fun `shouldRetry returns false for non-retryable errors`() {
         // Given
-        val error = SyncError.ValidationError("Invalid data")
+        val error = SyncError.ClientError(400, "Invalid data")
         val attemptNumber = 1
 
         // When
@@ -288,7 +288,7 @@ class RetryPolicyTest {
     fun `shouldRetry returns false for non-retryable sync errors`() {
         // Given
         val errors = listOf(
-            SyncError.ValidationError("Invalid data"),
+            SyncError.ClientError(400, "Invalid data"),
             SyncError.AuthenticationError("Unauthorized"),
             SyncError.ClientError(400, "Bad request")
         )
@@ -332,7 +332,7 @@ class RetryPolicyTest {
     @Test
     fun `calculateDelay handles rate limit errors`() {
         // Given
-        val error = SyncError.RateLimitError(retryAfter = 5000)
+        val error = SyncError.RateLimitError(retryAfterSeconds = 5000)
 
         // When
         val delay = retryPolicy.calculateDelay(error, 0)

@@ -1,5 +1,7 @@
 package com.shoppit.app.data.local.database
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import com.shoppit.app.domain.model.MealTag
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

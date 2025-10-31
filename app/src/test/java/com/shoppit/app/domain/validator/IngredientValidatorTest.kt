@@ -1,5 +1,7 @@
 package com.shoppit.app.domain.validator
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import com.shoppit.app.domain.model.Ingredient
 import org.junit.Assert.*
 import org.junit.Before

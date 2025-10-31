@@ -1,5 +1,10 @@
 package com.shoppit.app.presentation.ui.planner
 
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import androidx.lifecycle.SavedStateHandle
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
@@ -14,6 +19,7 @@ import com.shoppit.app.domain.usecase.DeleteMealPlanUseCase
 import com.shoppit.app.domain.usecase.FakeMealPlanRepository
 import com.shoppit.app.domain.usecase.FakeMealRepository
 import com.shoppit.app.domain.usecase.GenerateShoppingListUseCase
+import com.shoppit.app.domain.usecase.GetMealPlanHistoryUseCase
 import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
 import com.shoppit.app.domain.usecase.GetMealSuggestionsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
@@ -53,6 +59,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
     private lateinit var clearDayPlansUseCase: ClearDayPlansUseCase
     private lateinit var generateShoppingListUseCase: GenerateShoppingListUseCase
     private lateinit var getMealSuggestionsUseCase: GetMealSuggestionsUseCase
+    private lateinit var getMealPlanHistoryUseCase: GetMealPlanHistoryUseCase
     private lateinit var viewModel: MealPlannerViewModel
 
     @Before
@@ -73,6 +80,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
             mealRepository = mealRepository
         )
         getMealSuggestionsUseCase = mockk(relaxed = true)
+        getMealPlanHistoryUseCase = mockk(relaxed = true)
     }
 
     @Test
@@ -694,6 +702,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
             clearDayPlansUseCase,
             generateShoppingListUseCase,
             getMealSuggestionsUseCase,
+            getMealPlanHistoryUseCase,
             SavedStateHandle()
         )
     }

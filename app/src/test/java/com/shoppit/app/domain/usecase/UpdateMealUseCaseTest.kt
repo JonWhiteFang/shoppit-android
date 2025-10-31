@@ -1,7 +1,10 @@
 package com.shoppit.app.domain.usecase
 
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
+import com.shoppit.app.domain.validator.IngredientValidator
 import com.shoppit.app.domain.validator.MealValidator
 import com.shoppit.app.domain.validator.ValidationException
 import com.shoppit.app.util.RepositoryTest
@@ -20,13 +23,15 @@ import org.junit.Test
 class UpdateMealUseCaseTest : RepositoryTest() {
 
     private lateinit var repository: FakeMealRepository
+    private lateinit var ingredientValidator: IngredientValidator
     private lateinit var validator: MealValidator
     private lateinit var useCase: UpdateMealUseCase
 
     @Before
     fun setUp() {
         repository = FakeMealRepository()
-        validator = MealValidator()
+        ingredientValidator = IngredientValidator()
+        validator = MealValidator(ingredientValidator)
         useCase = UpdateMealUseCase(repository, validator)
     }
 

@@ -1,14 +1,21 @@
 package com.shoppit.app.presentation.ui.meal
 
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import androidx.lifecycle.SavedStateHandle
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.Ingredient
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.usecase.AddMealUseCase
 import com.shoppit.app.domain.usecase.FakeMealRepository
 import com.shoppit.app.domain.usecase.GetMealByIdUseCase
 import com.shoppit.app.domain.usecase.UpdateMealUseCase
+import com.shoppit.app.domain.validator.IngredientValidator
 import com.shoppit.app.domain.validator.MealValidator
 import com.shoppit.app.util.ViewModelTest
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -37,13 +44,17 @@ class AddEditMealViewModelTest : ViewModelTest() {
     private lateinit var addMealUseCase: AddMealUseCase
     private lateinit var updateMealUseCase: UpdateMealUseCase
     private lateinit var getMealByIdUseCase: GetMealByIdUseCase
+    private lateinit var ingredientValidator: IngredientValidator
     private lateinit var validator: MealValidator
+    private lateinit var errorLogger: ErrorLogger
     private lateinit var viewModel: AddEditMealViewModel
 
     @Before
     fun setUp() {
         repository = FakeMealRepository()
-        validator = MealValidator()
+        ingredientValidator = IngredientValidator()
+        validator = MealValidator(ingredientValidator)
+        errorLogger = mockk(relaxed = true)
         addMealUseCase = AddMealUseCase(repository, validator)
         updateMealUseCase = UpdateMealUseCase(repository, validator)
         getMealByIdUseCase = GetMealByIdUseCase(repository)
@@ -69,6 +80,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
             addMealUseCase,
             updateMealUseCase,
             getMealByIdUseCase,
+            errorLogger,
             savedStateHandle
         )
         advanceUntilIdle()
@@ -86,12 +98,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `updateMealName updates state`() = runTest {
         // Given - ViewModel in add mode
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
 
         // When - update meal name
         viewModel.updateMealName("New Meal Name")
@@ -105,12 +112,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `updateMealNotes updates state`() = runTest {
         // Given - ViewModel in add mode
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
 
         // When - update meal notes
         viewModel.updateMealNotes("These are my notes")
@@ -123,12 +125,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `addIngredient adds to list`() = runTest {
         // Given - ViewModel in add mode
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
 
         // When - add ingredients
         viewModel.addIngredient(Ingredient(name = "Pasta", quantity = "400", unit = "g"))
@@ -145,12 +142,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `removeIngredient removes from list`() = runTest {
         // Given - ViewModel with ingredients
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.addIngredient(Ingredient(name = "Pasta"))
         viewModel.addIngredient(Ingredient(name = "Eggs"))
         viewModel.addIngredient(Ingredient(name = "Cheese"))
@@ -169,12 +161,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `saveMeal validates and calls add use case for new meal`() = runTest {
         // Given - ViewModel in add mode with valid meal
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.updateMealName("Pasta Carbonara")
         viewModel.addIngredient(Ingredient(name = "Pasta"))
 
@@ -200,12 +187,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
         repository.setMeals(listOf(existingMeal))
 
         val savedStateHandle = SavedStateHandle(mapOf("mealId" to 1L))
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         advanceUntilIdle()
 
         // When - update meal name and save
@@ -224,12 +206,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `saveMeal shows validation error for empty name`() = runTest {
         // Given - ViewModel with invalid meal (empty name)
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.addIngredient(Ingredient(name = "Pasta"))
 
         // When - save meal with empty name
@@ -247,12 +224,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `saveMeal shows validation error for empty ingredients`() = runTest {
         // Given - ViewModel with invalid meal (no ingredients)
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.updateMealName("Pasta Carbonara")
 
         // When - save meal without ingredients
@@ -270,12 +242,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `saveMeal shows validation error for ingredient with empty name`() = runTest {
         // Given - ViewModel with invalid ingredient
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.updateMealName("Pasta Carbonara")
         viewModel.addIngredient(Ingredient(name = "Pasta"))
         viewModel.addIngredient(Ingredient(name = ""))
@@ -294,12 +261,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `updateMealName clears validation errors`() = runTest {
         // Given - ViewModel with validation error
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.addIngredient(Ingredient(name = "Pasta"))
         viewModel.saveMeal()
         advanceUntilIdle()
@@ -319,12 +281,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `addIngredient clears validation errors`() = runTest {
         // Given - ViewModel with validation error for ingredients
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.updateMealName("Pasta")
         viewModel.saveMeal()
         advanceUntilIdle()
@@ -344,12 +301,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `initial state in add mode has empty meal`() {
         // When - ViewModel is created in add mode
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
 
         // Then - state should have empty meal
         val state = viewModel.uiState.value
@@ -366,12 +318,7 @@ class AddEditMealViewModelTest : ViewModelTest() {
     fun `handles repository error when saving`() = runTest {
         // Given - ViewModel with valid meal but repository will fail
         val savedStateHandle = SavedStateHandle()
-        viewModel = AddEditMealViewModel(
-            addMealUseCase,
-            updateMealUseCase,
-            getMealByIdUseCase,
-            savedStateHandle
-        )
+        viewModel = AddEditMealViewModel(addMealUseCase, updateMealUseCase, getMealByIdUseCase, errorLogger, savedStateHandle)
         viewModel.updateMealName("Pasta")
         viewModel.addIngredient(Ingredient(name = "Pasta"))
         

@@ -1,5 +1,7 @@
 package com.shoppit.app.presentation.ui.navigation
 
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import android.content.Intent
 import android.net.Uri
 import androidx.navigation.NavController

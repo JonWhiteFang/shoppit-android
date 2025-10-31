@@ -1,5 +1,6 @@
 package com.shoppit.app.util
 
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Rule
 
