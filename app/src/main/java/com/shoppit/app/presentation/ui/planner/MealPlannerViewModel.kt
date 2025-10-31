@@ -171,18 +171,12 @@ class MealPlannerViewModel @Inject constructor(
     }
 
     /**
-     * Handles click on a meal slot to show meal selection dialog.
+     * Handles click on a meal slot to show meal suggestions.
+     * Requirements: 1.1, 10.1-10.2
      */
     fun onSlotClick(date: LocalDate, mealType: MealType) {
-        val existingPlan = uiState.value.weekData?.plansByDate?.get(date)
-            ?.find { it.mealPlan.mealType == mealType }?.mealPlan
-
-        _uiState.update {
-            it.copy(
-                showMealSelection = true,
-                selectedSlot = MealSlot(date, mealType, existingPlan)
-            )
-        }
+        // Show suggestions instead of meal selection dialog
+        showSuggestions(date, mealType)
     }
 
     /**

@@ -193,10 +193,19 @@ class MealPlannerViewModelTest : ViewModelTest() {
     }
 
     @Test
-    fun `onSlotClick shows meal selection dialog`() = runTest {
+    fun `onSlotClick shows meal suggestions`() = runTest {
         // Given
-        mealRepository.setMeals(emptyList())
+        val meal = Meal(id = 1, name = "Pasta", ingredients = listOf(Ingredient(name = "Pasta")), tags = setOf(MealTag.LUNCH))
+        val suggestion = MealSuggestion(
+            meal = meal,
+            score = 150.0,
+            reasons = listOf("Perfect for lunch"),
+            lastPlannedDate = null,
+            planCount = 0
+        )
+        mealRepository.setMeals(listOf(meal))
         mealPlanRepository.setMealPlans(emptyList())
+        coEvery { getMealSuggestionsUseCase(any()) } returns flowOf(Result.success(listOf(suggestion)))
         viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -205,13 +214,14 @@ class MealPlannerViewModelTest : ViewModelTest() {
 
         // When
         viewModel.onSlotClick(date, mealType)
+        advanceUntilIdle()
 
         // Then
-        val state = viewModel.uiState.value
-        assertTrue(state.showMealSelection)
-        assertNotNull(state.selectedSlot)
-        assertEquals(date, state.selectedSlot?.date)
-        assertEquals(mealType, state.selectedSlot?.mealType)
+        val state = viewModel.suggestionState.value
+        assertTrue(state is SuggestionUiState.Success)
+        assertEquals(1, (state as SuggestionUiState.Success).suggestions.size)
+        assertEquals(date, state.context.targetDate)
+        assertEquals(mealType, state.context.targetMealType)
     }
 
     @Test

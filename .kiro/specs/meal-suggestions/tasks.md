@@ -95,7 +95,7 @@
     - _Requirements: 1.1-1.5, 8.1-8.5, 9.1-9.5_
 
 - [ ] 6. Create suggestion UI components
-  - [ ] 6.1 Create `SuggestionCard` composable
+  - [x] 6.1 Create `SuggestionCard` composable
     - Display meal name with typography
     - Display meal type tags as chips
     - Display ingredient count
@@ -107,7 +107,7 @@
     - Apply Material3 styling
     - _Requirements: 4.4, 6.4, 10.1-10.5_
   
-  - [ ] 6.2 Create `SuggestionFilters` composable
+  - [x] 6.2 Create `SuggestionFilters` composable
     - Display filter chips for all meal tags
     - Show meal count for each tag
     - Implement multi-select with visual feedback
@@ -116,7 +116,7 @@
     - Apply Material3 styling with proper spacing
     - _Requirements: 2.1-2.5, 9.1-9.2_
   
-  - [ ] 6.3 Create `MealSuggestionsBottomSheet` composable
+  - [x] 6.3 Create `MealSuggestionsBottomSheet` composable
     - Implement bottom sheet with Material3 ModalBottomSheet
     - Add search bar at top with real-time filtering
     - Add filter chips section below search
@@ -130,7 +130,7 @@
     - Add screen reader announcements
     - _Requirements: 1.1-1.5, 2.1-2.5, 5.1-5.5, 7.1-7.5, 8.1-8.5, 9.1-9.5, 10.1-10.5_
   
-  - [ ] 6.4 Write UI tests for suggestion components
+  - [x] 6.4 Write UI tests for suggestion components
     - Test SuggestionCard displays meal information
     - Test SuggestionCard click handlers
     - Test SuggestionFilters tag selection
@@ -142,8 +142,8 @@
     - Test accessibility (content descriptions, semantics)
     - _Requirements: 1.1-1.5, 2.1-2.5, 5.1-5.5, 8.1-8.5_
 
-- [ ] 7. Integrate suggestions into meal planning flow
-  - [ ] 7.1 Update `MealPlannerScreen` to show suggestions
+- [x] 7. Integrate suggestions into meal planning flow
+  - [x] 7.1 Update `MealPlannerScreen` to show suggestions
     - Add state collection for `suggestionState`
     - Show `MealSuggestionsBottomSheet` when state is not Hidden
     - Pass suggestion context from ViewModel
@@ -152,13 +152,13 @@
     - Handle browse all callback
     - _Requirements: 10.1-10.5_
   
-  - [ ] 7.2 Update "Add Meal" action to trigger suggestions
+  - [x] 7.2 Update "Add Meal" action to trigger suggestions
     - Modify add meal button/action to call `showSuggestions()`
     - Pass selected date and meal type to ViewModel
     - Ensure smooth transition to bottom sheet
     - _Requirements: 1.1, 10.1-10.2_
   
-  - [ ] 7.3 Write integration tests for suggestion flow
+  - [x] 7.3 Write integration tests for suggestion flow
     - Test end-to-end suggestion display
     - Test meal selection adds to plan
     - Test filter and search integration

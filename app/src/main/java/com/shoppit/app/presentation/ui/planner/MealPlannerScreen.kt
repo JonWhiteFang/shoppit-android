@@ -3,10 +3,14 @@ package com.shoppit.app.presentation.ui.planner
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.shoppit.app.domain.model.Meal
+import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.domain.model.MealType
 import com.shoppit.app.presentation.ui.common.ErrorScreen
 import com.shoppit.app.presentation.ui.common.LoadingScreen
@@ -27,9 +31,11 @@ fun MealPlannerScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val suggestionState by viewModel.suggestionState.collectAsStateWithLifecycle()
 
     MealPlannerContent(
         uiState = uiState,
+        suggestionState = suggestionState,
         onSlotClick = viewModel::onSlotClick,
         onMealSelected = viewModel::onMealSelected,
         onDismissMealSelection = viewModel::dismissMealSelection,
@@ -40,6 +46,10 @@ fun MealPlannerScreen(
         onCopyDay = viewModel::copyDay,
         onClearDay = viewModel::clearDay,
         onMealDetailClick = onMealDetailClick,
+        onSelectSuggestion = viewModel::selectSuggestion,
+        onUpdateTagFilter = viewModel::updateTagFilter,
+        onUpdateSearchQuery = viewModel::updateSearchQuery,
+        onHideSuggestions = viewModel::hideSuggestions,
         modifier = modifier
     )
 }
@@ -49,6 +59,7 @@ fun MealPlannerScreen(
  * Handles UI rendering based on state.
  *
  * @param uiState Current UI state
+ * @param suggestionState Current suggestion UI state
  * @param onSlotClick Callback when a meal slot is clicked
  * @param onMealSelected Callback when a meal is selected from the dialog
  * @param onDismissMealSelection Callback to dismiss the meal selection dialog
@@ -59,11 +70,16 @@ fun MealPlannerScreen(
  * @param onCopyDay Callback to copy a day's plans
  * @param onClearDay Callback to clear a day's plans
  * @param onMealDetailClick Callback when meal details are requested
+ * @param onSelectSuggestion Callback when a suggested meal is selected
+ * @param onUpdateTagFilter Callback when a tag filter is toggled
+ * @param onUpdateSearchQuery Callback when search query changes
+ * @param onHideSuggestions Callback to hide the suggestions bottom sheet
  * @param modifier Optional modifier
  */
 @Composable
 fun MealPlannerContent(
     uiState: MealPlannerUiState,
+    suggestionState: SuggestionUiState,
     onSlotClick: (LocalDate, MealType) -> Unit,
     onMealSelected: (Long) -> Unit,
     onDismissMealSelection: () -> Unit,
@@ -74,6 +90,10 @@ fun MealPlannerContent(
     onCopyDay: (LocalDate, LocalDate, Boolean) -> Unit,
     onClearDay: (LocalDate) -> Unit,
     onMealDetailClick: (Long) -> Unit,
+    onSelectSuggestion: (Meal) -> Unit,
+    onUpdateTagFilter: (MealTag) -> Unit,
+    onUpdateSearchQuery: (String) -> Unit,
+    onHideSuggestions: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -118,6 +138,48 @@ fun MealPlannerContent(
                 selectedSlot = uiState.selectedSlot,
                 onMealSelected = onMealSelected,
                 onDismiss = onDismissMealSelection
+            )
+        }
+
+        // Show suggestions bottom sheet when state is not Hidden
+        if (suggestionState !is SuggestionUiState.Hidden) {
+            // Calculate available tags and meal counts from available meals
+            val availableTags = remember(uiState.availableMeals) {
+                uiState.availableMeals
+                    .flatMap { it.tags }
+                    .distinct()
+                    .sortedBy { it.name }
+            }
+
+            val mealCountByTag = remember(uiState.availableMeals) {
+                availableTags.associateWith { tag ->
+                    uiState.availableMeals.count { meal -> meal.tags.contains(tag) }
+                }
+            }
+
+            // Get current search query and selected tags from suggestion context
+            val searchQuery = when (suggestionState) {
+                is SuggestionUiState.Success -> suggestionState.context.searchQuery
+                else -> ""
+            }
+
+            val selectedTags = when (suggestionState) {
+                is SuggestionUiState.Success -> suggestionState.context.selectedTags
+                else -> emptySet()
+            }
+
+            MealSuggestionsBottomSheet(
+                uiState = suggestionState,
+                searchQuery = searchQuery,
+                selectedTags = selectedTags,
+                availableTags = availableTags,
+                mealCountByTag = mealCountByTag,
+                onSearchQueryChange = onUpdateSearchQuery,
+                onTagToggle = onUpdateTagFilter,
+                onMealSelected = onSelectSuggestion,
+                onViewDetails = { meal -> onMealDetailClick(meal.id) },
+                onBrowseAll = { /* TODO: Navigate to meal list or show meal selection */ },
+                onDismiss = onHideSuggestions
             )
         }
     }
