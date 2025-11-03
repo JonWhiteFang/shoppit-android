@@ -18,11 +18,16 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
     companion object {
         private const val SLOW_QUERY_THRESHOLD = 100L // milliseconds
         private const val WARNING_QUERY_THRESHOLD = 50L // milliseconds
+        private const val SLOW_NAVIGATION_THRESHOLD = 100L // milliseconds (Requirement 9.1)
+        private const val TARGET_NAVIGATION_TIME = 100L // milliseconds (Requirement 9.1)
     }
     
     // Query tracking
     private val queryMetrics = ConcurrentHashMap<String, MutableQueryMetrics>()
     private val transactionMetrics = ConcurrentHashMap<String, MutableQueryMetrics>()
+    
+    // Navigation tracking (Requirement 9.4, 10.2)
+    private val navigationMetrics = ConcurrentHashMap<String, MutableNavigationMetrics>()
     
     // Cache tracking
     private val cacheHits = AtomicInteger(0)
@@ -156,6 +161,32 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
         }
     }
     
+    override fun trackNavigation(from: String, to: String, duration: Long) {
+        val key = "$from->$to"
+        val metrics = navigationMetrics.getOrPut(key) { MutableNavigationMetrics(from, to) }
+        metrics.addTransition(duration)
+        
+        // Log slow navigations (Requirement 9.1)
+        if (duration > TARGET_NAVIGATION_TIME) {
+            Timber.w("Slow navigation detected: $from -> $to (${duration}ms, target: ${TARGET_NAVIGATION_TIME}ms)")
+        } else {
+            Timber.d("Navigation completed: $from -> $to (${duration}ms)")
+        }
+    }
+    
+    override fun getNavigationMetrics(): List<com.shoppit.app.data.performance.NavigationMetrics> {
+        return navigationMetrics.values
+            .map { it.toNavigationMetrics() }
+            .sortedByDescending { it.transitionCount }
+    }
+    
+    override fun getSlowNavigations(threshold: Long): List<com.shoppit.app.data.performance.NavigationMetrics> {
+        return navigationMetrics.values
+            .filter { it.avgDuration >= threshold }
+            .map { it.toNavigationMetrics() }
+            .sortedByDescending { it.avgDuration }
+    }
+    
     /**
      * Mutable metrics for tracking query/transaction performance.
      * Thread-safe using atomic operations.
@@ -198,6 +229,57 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
                 avgDuration = avgDuration,
                 executionCount = executionCount,
                 lastExecuted = _lastExecuted.get(),
+                minDuration = _minDuration.get().let { if (it == Long.MAX_VALUE) 0 else it },
+                maxDuration = _maxDuration.get()
+            )
+        }
+    }
+    
+    /**
+     * Mutable metrics for tracking navigation performance.
+     * Thread-safe using atomic operations.
+     * 
+     * Requirements: 9.1, 9.4, 10.2
+     */
+    private class MutableNavigationMetrics(val from: String, val to: String) {
+        private val totalDuration = AtomicLong(0)
+        private val _transitionCount = AtomicInteger(0)
+        private val _lastTransition = AtomicLong(0)
+        private val _minDuration = AtomicLong(Long.MAX_VALUE)
+        private val _maxDuration = AtomicLong(0)
+        
+        val transitionCount: Int get() = _transitionCount.get()
+        val avgDuration: Long get() {
+            val count = transitionCount
+            return if (count > 0) totalDuration.get() / count else 0
+        }
+        
+        fun addTransition(duration: Long) {
+            totalDuration.addAndGet(duration)
+            _transitionCount.incrementAndGet()
+            _lastTransition.set(System.currentTimeMillis())
+            
+            // Update min/max
+            var currentMin = _minDuration.get()
+            while (duration < currentMin) {
+                if (_minDuration.compareAndSet(currentMin, duration)) break
+                currentMin = _minDuration.get()
+            }
+            
+            var currentMax = _maxDuration.get()
+            while (duration > currentMax) {
+                if (_maxDuration.compareAndSet(currentMax, duration)) break
+                currentMax = _maxDuration.get()
+            }
+        }
+        
+        fun toNavigationMetrics(): com.shoppit.app.data.performance.NavigationMetrics {
+            return com.shoppit.app.data.performance.NavigationMetrics(
+                from = from,
+                to = to,
+                avgDuration = avgDuration,
+                transitionCount = transitionCount,
+                lastTransition = _lastTransition.get(),
                 minDuration = _minDuration.get().let { if (it == Long.MAX_VALUE) 0 else it },
                 maxDuration = _maxDuration.get()
             )

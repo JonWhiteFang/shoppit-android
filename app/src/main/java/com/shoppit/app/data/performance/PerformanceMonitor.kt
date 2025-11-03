@@ -87,6 +87,36 @@ interface PerformanceMonitor {
      * Requirements: 4.5
      */
     fun trackMemoryPressureEvent()
+    
+    /**
+     * Tracks a navigation transition.
+     * 
+     * @param from The source route
+     * @param to The destination route
+     * @param duration The transition duration in milliseconds
+     * 
+     * Requirements: 9.1, 9.4, 10.2
+     */
+    fun trackNavigation(from: String, to: String, duration: Long)
+    
+    /**
+     * Gets navigation metrics.
+     * 
+     * @return List of navigation metrics
+     * 
+     * Requirements: 9.4, 10.2
+     */
+    fun getNavigationMetrics(): List<NavigationMetrics>
+    
+    /**
+     * Gets slow navigation transitions exceeding threshold.
+     * 
+     * @param threshold The minimum duration in milliseconds (default: 100ms)
+     * @return List of slow navigation metrics
+     * 
+     * Requirements: 9.1, 10.2
+     */
+    fun getSlowNavigations(threshold: Long = 100): List<NavigationMetrics>
 }
 
 /**
@@ -125,4 +155,27 @@ data class PerformanceSummary(
     val avgTransactionDuration: Long,
     val cacheHitRate: Double,
     val slowQueryCount: Int
+)
+
+/**
+ * Metrics for navigation transitions.
+ *
+ * @property from Source route
+ * @property to Destination route
+ * @property avgDuration Average transition time in milliseconds
+ * @property transitionCount Number of times this transition occurred
+ * @property lastTransition Timestamp of last transition
+ * @property minDuration Minimum transition time in milliseconds
+ * @property maxDuration Maximum transition time in milliseconds
+ * 
+ * Requirements: 9.1, 9.4, 10.2
+ */
+data class NavigationMetrics(
+    val from: String,
+    val to: String,
+    val avgDuration: Long,
+    val transitionCount: Int,
+    val lastTransition: Long,
+    val minDuration: Long,
+    val maxDuration: Long
 )

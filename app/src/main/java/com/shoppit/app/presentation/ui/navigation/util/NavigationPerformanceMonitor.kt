@@ -1,59 +1,74 @@
 package com.shoppit.app.presentation.ui.navigation.util
 
 import android.os.SystemClock
+import com.shoppit.app.data.performance.PerformanceMonitor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import timber.log.Timber
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Monitors navigation performance metrics including transition times and frame rates.
- * Tracks navigation timing to ensure transitions complete within 300ms target.
+ * Tracks navigation timing to ensure transitions complete within 100ms target.
+ * Integrated with PerformanceMonitor for centralized metrics tracking.
  *
  * Requirements:
- * - 7.1: Complete navigation transitions within 300ms
+ * - 9.1: Complete navigation transitions within 100ms
  * - 7.2: Display smooth animations without frame drops
  * - 7.5: Handle rapid navigation requests
+ * - 9.4: Track navigation duration with PerformanceMonitor
+ * - 10.2: Add navigation duration tracking to PerformanceMonitor
  */
-object NavigationPerformanceMonitor {
+@Singleton
+class NavigationPerformanceMonitor @Inject constructor(
+    private val performanceMonitor: PerformanceMonitor
+) {
     
-    private const val TARGET_TRANSITION_TIME_MS = 300L
-    private const val SLOW_TRANSITION_THRESHOLD_MS = 500L
+    companion object {
+        private const val TARGET_TRANSITION_TIME_MS = 100L // Updated from 300ms to 100ms (Requirement 9.1)
+        private const val SLOW_TRANSITION_THRESHOLD_MS = 100L // Requirement 9.1
+    }
     
     private val _metrics = MutableStateFlow<NavigationMetrics>(NavigationMetrics())
     val metrics: StateFlow<NavigationMetrics> = _metrics.asStateFlow()
     
-    private val navigationTimings = mutableMapOf<String, Long>()
+    private val navigationTimings = mutableMapOf<String, NavigationTiming>()
     private val transitionHistory = mutableListOf<TransitionRecord>()
     private const val MAX_HISTORY_SIZE = 50
     
     /**
      * Starts timing a navigation transition.
-     * @param route The destination route being navigated to
+     * @param from The source route
+     * @param to The destination route being navigated to
      */
-    fun startTransition(route: String) {
+    fun startTransition(from: String, to: String) {
         val startTime = SystemClock.elapsedRealtime()
-        navigationTimings[route] = startTime
+        navigationTimings[to] = NavigationTiming(from, to, startTime)
         
-        Timber.d("Navigation transition started to: $route")
+        Timber.d("Navigation transition started: $from -> $to")
     }
     
     /**
      * Ends timing a navigation transition and records metrics.
-     * @param route The destination route that was navigated to
+     * @param to The destination route that was navigated to
      */
-    fun endTransition(route: String) {
+    fun endTransition(to: String) {
         val endTime = SystemClock.elapsedRealtime()
-        val startTime = navigationTimings.remove(route)
+        val timing = navigationTimings.remove(to)
         
-        if (startTime != null) {
-            val duration = endTime - startTime
-            recordTransition(route, duration)
+        if (timing != null) {
+            val duration = endTime - timing.startTime
+            recordTransition(timing.from, to, duration)
+            
+            // Track with PerformanceMonitor (Requirement 9.4, 10.2)
+            performanceMonitor.trackNavigation(timing.from, to, duration)
             
             if (duration > TARGET_TRANSITION_TIME_MS) {
-                Timber.w("Slow navigation transition to $route: ${duration}ms (target: ${TARGET_TRANSITION_TIME_MS}ms)")
+                Timber.w("Slow navigation transition: ${timing.from} -> $to (${duration}ms, target: ${TARGET_TRANSITION_TIME_MS}ms)")
             } else {
-                Timber.d("Navigation transition to $route completed in ${duration}ms")
+                Timber.d("Navigation transition completed: ${timing.from} -> $to (${duration}ms)")
             }
         }
     }
@@ -61,9 +76,10 @@ object NavigationPerformanceMonitor {
     /**
      * Records a completed transition in the history.
      */
-    private fun recordTransition(route: String, durationMs: Long) {
+    private fun recordTransition(from: String, to: String, durationMs: Long) {
         val record = TransitionRecord(
-            route = route,
+            from = from,
+            to = to,
             durationMs = durationMs,
             timestamp = System.currentTimeMillis(),
             isSlowTransition = durationMs > SLOW_TRANSITION_THRESHOLD_MS
@@ -137,12 +153,21 @@ object NavigationPerformanceMonitor {
                 appendLine("\nRecent Transitions:")
                 getRecentTransitions(5).forEach { record ->
                     val status = if (record.isSlowTransition) "SLOW" else "OK"
-                    appendLine("  [$status] ${record.route}: ${record.durationMs}ms")
+                    appendLine("  [$status] ${record.from} -> ${record.to}: ${record.durationMs}ms")
                 }
             }
         }
     }
 }
+
+/**
+ * Internal data class to track navigation timing.
+ */
+private data class NavigationTiming(
+    val from: String,
+    val to: String,
+    val startTime: Long
+)
 
 /**
  * Data class holding aggregate navigation performance metrics.
@@ -159,7 +184,8 @@ data class NavigationMetrics(
  * Record of a single navigation transition.
  */
 data class TransitionRecord(
-    val route: String,
+    val from: String,
+    val to: String,
     val durationMs: Long,
     val timestamp: Long,
     val isSlowTransition: Boolean

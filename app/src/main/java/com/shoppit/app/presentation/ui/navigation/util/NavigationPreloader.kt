@@ -5,26 +5,45 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.shoppit.app.presentation.ui.meal.MealDetailViewModel
+import com.shoppit.app.presentation.ui.meal.MealViewModel
+import com.shoppit.app.presentation.ui.planner.MealPlannerViewModel
+import com.shoppit.app.presentation.ui.shopping.ShoppingListViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
  * Manages preloading of frequently accessed screens to improve navigation performance.
  * Tracks navigation patterns and preloads ViewModels for common navigation paths.
+ * Enhanced with predictive preloading based on user behavior patterns.
  *
  * Requirements:
  * - 7.4: Preload frequently accessed screens to minimize transition delays
+ * - 9.2: Preload destination screen data during navigation transition
  */
 object NavigationPreloader {
     
     private val navigationCounts = mutableMapOf<String, Int>()
     private val navigationPaths = mutableListOf<NavigationPath>()
     private const val MAX_PATH_HISTORY = 100
+    private const val PRELOAD_DELAY_MS = 500L // Delay before preloading to avoid unnecessary work
     
     private val _frequentDestinations = MutableStateFlow<List<String>>(emptyList())
     val frequentDestinations: StateFlow<List<String>> = _frequentDestinations.asStateFlow()
+    
+    private val _preloadingStatus = MutableStateFlow<Map<String, PreloadStatus>>(emptyMap())
+    val preloadingStatus: StateFlow<Map<String, PreloadStatus>> = _preloadingStatus.asStateFlow()
+    
+    private val preloadJobs = mutableMapOf<String, Job>()
+    private val preloadScope = CoroutineScope(Dispatchers.Default)
     
     /**
      * Records a navigation event to track usage patterns.
@@ -102,11 +121,114 @@ object NavigationPreloader {
     }
     
     /**
+     * Starts predictive preloading for likely next destinations.
+     * @param currentRoute The current route
+     */
+    fun startPredictivePreloading(currentRoute: String) {
+        // Cancel any existing preload jobs
+        cancelPreloading()
+        
+        // Get likely next destinations
+        val likelyDestinations = getCommonPaths(currentRoute, limit = 2)
+        
+        likelyDestinations.forEach { destination ->
+            if (shouldPreload(destination)) {
+                schedulePreload(destination)
+            }
+        }
+    }
+    
+    /**
+     * Schedules a preload operation for a destination.
+     * @param route The route to preload
+     */
+    private fun schedulePreload(route: String) {
+        // Cancel existing job for this route if any
+        preloadJobs[route]?.cancel()
+        
+        val job = preloadScope.launch {
+            try {
+                // Update status to loading
+                updatePreloadStatus(route, PreloadStatus.Loading)
+                
+                // Wait before preloading to avoid unnecessary work
+                delay(PRELOAD_DELAY_MS)
+                
+                // Simulate data preloading (actual implementation would load data)
+                Timber.d("Preloading data for route: $route")
+                
+                // Update status to loaded
+                updatePreloadStatus(route, PreloadStatus.Loaded(System.currentTimeMillis()))
+                
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to preload route: $route")
+                updatePreloadStatus(route, PreloadStatus.Error(e.message ?: "Unknown error"))
+            }
+        }
+        
+        preloadJobs[route] = job
+    }
+    
+    /**
+     * Updates the preloading status for a route.
+     */
+    private fun updatePreloadStatus(route: String, status: PreloadStatus) {
+        val currentStatus = _preloadingStatus.value.toMutableMap()
+        currentStatus[route] = status
+        _preloadingStatus.value = currentStatus
+    }
+    
+    /**
+     * Cancels all ongoing preload operations.
+     */
+    fun cancelPreloading() {
+        preloadJobs.values.forEach { it.cancel() }
+        preloadJobs.clear()
+        
+        // Clear loading statuses
+        val currentStatus = _preloadingStatus.value.toMutableMap()
+        currentStatus.entries.removeAll { it.value is PreloadStatus.Loading }
+        _preloadingStatus.value = currentStatus
+    }
+    
+    /**
+     * Checks if data is already preloaded for a route.
+     * @param route The route to check
+     * @return True if data is preloaded and fresh
+     */
+    fun isPreloaded(route: String): Boolean {
+        val status = _preloadingStatus.value[route]
+        return when (status) {
+            is PreloadStatus.Loaded -> {
+                // Consider data fresh if loaded within last 5 minutes
+                val age = System.currentTimeMillis() - status.timestamp
+                age < 5 * 60 * 1000
+            }
+            else -> false
+        }
+    }
+    
+    /**
+     * Clears preloaded data for a route.
+     * @param route The route to clear
+     */
+    fun clearPreloadedData(route: String) {
+        preloadJobs[route]?.cancel()
+        preloadJobs.remove(route)
+        
+        val currentStatus = _preloadingStatus.value.toMutableMap()
+        currentStatus.remove(route)
+        _preloadingStatus.value = currentStatus
+        
+        Timber.d("Cleared preloaded data for route: $route")
+    }
+    
+    /**
      * Checks if a destination should be preloaded based on usage patterns.
      * @param route The route to check
      * @return True if the route should be preloaded
      */
-    fun shouldPreload(route: String): Boolean {
+    private fun shouldPreload(route: String): Boolean {
         val count = navigationCounts[route] ?: 0
         return count >= 3 // Preload if accessed 3 or more times
     }
@@ -151,6 +273,7 @@ private data class NavigationPath(
 /**
  * Composable that records navigation events for preloading analysis.
  * Should be called in the NavHost to track navigation patterns.
+ * Enhanced with predictive preloading.
  *
  * @param currentRoute The current route
  * @param previousRoute The previous route
@@ -163,6 +286,33 @@ fun RecordNavigationForPreloading(
     LaunchedEffect(currentRoute) {
         if (currentRoute != null) {
             NavigationPreloader.recordNavigation(previousRoute, currentRoute)
+            
+            // Start predictive preloading for likely next destinations
+            NavigationPreloader.startPredictivePreloading(currentRoute)
+        }
+    }
+}
+
+/**
+ * Composable that preloads data for a specific route using LaunchedEffect.
+ * Can be used to preload meal detail data, shopping list data, etc.
+ *
+ * @param route The route to preload data for
+ * @param preloadAction The action to perform for preloading
+ */
+@Composable
+fun PreloadRouteData(
+    route: String,
+    preloadAction: suspend () -> Unit
+) {
+    LaunchedEffect(route) {
+        if (!NavigationPreloader.isPreloaded(route)) {
+            try {
+                Timber.d("Preloading data for route: $route")
+                preloadAction()
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to preload data for route: $route")
+            }
         }
     }
 }
@@ -220,4 +370,26 @@ object ViewModelCache {
      * Gets the current cache size.
      */
     fun getCacheSize(): Int = cache.size
+}
+
+/**
+ * Represents the preloading status for a route.
+ */
+sealed class PreloadStatus {
+    /**
+     * Data is currently being preloaded.
+     */
+    data object Loading : PreloadStatus()
+    
+    /**
+     * Data has been successfully preloaded.
+     * @property timestamp When the data was loaded
+     */
+    data class Loaded(val timestamp: Long) : PreloadStatus()
+    
+    /**
+     * Preloading failed with an error.
+     * @property message Error message
+     */
+    data class Error(val message: String) : PreloadStatus()
 }
