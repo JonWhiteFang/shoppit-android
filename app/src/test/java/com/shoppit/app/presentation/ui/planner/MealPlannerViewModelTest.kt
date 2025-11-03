@@ -25,6 +25,7 @@ import com.shoppit.app.domain.usecase.GetMealPlansForWeekUseCase
 import com.shoppit.app.domain.usecase.GetMealSuggestionsUseCase
 import com.shoppit.app.domain.usecase.GetMealsUseCase
 import com.shoppit.app.domain.usecase.UpdateMealPlanUseCase
+import com.shoppit.app.domain.validator.MealPlanValidator
 import com.shoppit.app.presentation.ui.common.ErrorEvent
 import com.shoppit.app.util.ViewModelTest
 import io.mockk.coEvery
@@ -53,6 +54,7 @@ class MealPlannerViewModelTest : ViewModelTest() {
 
     private lateinit var mealPlanRepository: FakeMealPlanRepository
     private lateinit var mealRepository: FakeMealRepository
+    private lateinit var mealPlanValidator: MealPlanValidator
     private lateinit var getMealPlansForWeekUseCase: GetMealPlansForWeekUseCase
     private lateinit var getMealsUseCase: GetMealsUseCase
     private lateinit var assignMealToPlanUseCase: AssignMealToPlanUseCase
@@ -70,10 +72,11 @@ class MealPlannerViewModelTest : ViewModelTest() {
     fun setUp() {
         mealPlanRepository = FakeMealPlanRepository()
         mealRepository = FakeMealRepository()
+        mealPlanValidator = MealPlanValidator()
         
         getMealPlansForWeekUseCase = GetMealPlansForWeekUseCase(mealPlanRepository, mealRepository)
         getMealsUseCase = GetMealsUseCase(mealRepository)
-        assignMealToPlanUseCase = AssignMealToPlanUseCase(mealPlanRepository)
+        assignMealToPlanUseCase = AssignMealToPlanUseCase(mealPlanRepository, mealPlanValidator)
         updateMealPlanUseCase = UpdateMealPlanUseCase(mealPlanRepository)
         deleteMealPlanUseCase = DeleteMealPlanUseCase(mealPlanRepository)
         copyDayPlansUseCase = CopyDayPlansUseCase(mealPlanRepository)

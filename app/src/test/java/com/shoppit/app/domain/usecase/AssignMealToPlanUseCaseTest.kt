@@ -3,6 +3,7 @@ package com.shoppit.app.domain.usecase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import com.shoppit.app.domain.model.MealType
+import com.shoppit.app.domain.validator.MealPlanValidator
 import com.shoppit.app.util.RepositoryTest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -20,12 +21,14 @@ import java.time.LocalDate
 class AssignMealToPlanUseCaseTest : RepositoryTest() {
 
     private lateinit var repository: FakeMealPlanRepository
+    private lateinit var validator: MealPlanValidator
     private lateinit var useCase: AssignMealToPlanUseCase
 
     @Before
     fun setUp() {
         repository = FakeMealPlanRepository()
-        useCase = AssignMealToPlanUseCase(repository)
+        validator = MealPlanValidator()
+        useCase = AssignMealToPlanUseCase(repository, validator)
     }
 
     @Test

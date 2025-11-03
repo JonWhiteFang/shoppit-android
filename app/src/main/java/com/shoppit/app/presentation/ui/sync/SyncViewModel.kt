@@ -145,15 +145,21 @@ class SyncViewModel @Inject constructor(
      * Other errors show specific error messages.
      */
     private fun handleSyncError(error: Throwable) {
-        val (errorMessage, isOfflineMode) = when (error) {
+        val errorMessage: String
+        val isOfflineMode: Boolean
+        
+        when (error) {
             is AppError.NetworkError -> {
-                "Unable to sync. Using offline data." to true
+                errorMessage = "Unable to sync. Using offline data."
+                isOfflineMode = true
             }
             is AppError.AuthenticationError -> {
-                "Authentication failed. Please sign in again." to false
+                errorMessage = "Authentication failed. Please sign in again."
+                isOfflineMode = false
             }
             else -> {
-                error.message ?: "Sync failed. Using offline data." to true
+                errorMessage = error.message ?: "Sync failed. Using offline data."
+                isOfflineMode = true
             }
         }
 
