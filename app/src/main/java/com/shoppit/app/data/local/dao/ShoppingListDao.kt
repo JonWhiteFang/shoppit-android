@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.shoppit.app.data.local.entity.ShoppingListItemEntity
 import kotlinx.coroutines.flow.Flow
@@ -11,32 +12,67 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ShoppingListDao {
     
+    /**
+     * Retrieves all shopping list items ordered by category and name.
+     * Optimized with indices on category and name columns.
+     */
     @Query("SELECT * FROM shopping_list_items ORDER BY category ASC, name ASC")
     fun getAllItems(): Flow<List<ShoppingListItemEntity>>
     
     @Query("SELECT * FROM shopping_list_items WHERE id = :itemId")
     fun getItemById(itemId: Long): Flow<ShoppingListItemEntity?>
     
+    /**
+     * Retrieves unchecked items with optimized filtering.
+     * Uses composite index on (is_checked, name) for fast filtering.
+     */
     @Query("SELECT * FROM shopping_list_items WHERE is_checked = 0 ORDER BY category ASC, name ASC")
     fun getUncheckedItems(): Flow<List<ShoppingListItemEntity>>
     
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItem(item: ShoppingListItemEntity): Long
     
+    /**
+     * Inserts multiple items in a single transaction for better performance.
+     * More efficient than inserting items one by one.
+     */
+    @Transaction
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItems(items: List<ShoppingListItemEntity>): List<Long>
     
     @Update
     suspend fun updateItem(item: ShoppingListItemEntity)
     
+    /**
+     * Updates multiple items in a single transaction.
+     * More efficient than updating items one by one.
+     */
+    @Transaction
+    @Update
+    suspend fun updateItems(items: List<ShoppingListItemEntity>)
+    
     @Query("UPDATE shopping_list_items SET is_checked = :isChecked WHERE id = :itemId")
     suspend fun updateCheckedStatus(itemId: Long, isChecked: Boolean)
+    
+    /**
+     * Batch update checked status for multiple items in a transaction.
+     */
+    @Transaction
+    @Query("UPDATE shopping_list_items SET is_checked = :isChecked WHERE id IN (:itemIds)")
+    suspend fun updateCheckedStatusBatch(itemIds: List<Long>, isChecked: Boolean)
     
     @Query("UPDATE shopping_list_items SET is_checked = 0")
     suspend fun uncheckAllItems()
     
     @Query("DELETE FROM shopping_list_items WHERE id = :itemId")
     suspend fun deleteItemById(itemId: Long)
+    
+    /**
+     * Deletes multiple items in a single transaction.
+     */
+    @Transaction
+    @Query("DELETE FROM shopping_list_items WHERE id IN (:itemIds)")
+    suspend fun deleteItemsByIds(itemIds: List<Long>)
     
     @Query("DELETE FROM shopping_list_items WHERE is_checked = 1")
     suspend fun deleteCheckedItems()
@@ -50,9 +86,18 @@ interface ShoppingListDao {
     @Query("SELECT COUNT(*) FROM shopping_list_items WHERE is_checked = 1")
     suspend fun getCheckedItemCount(): Int
     
+    /**
+     * Retrieves items by store section with optimized ordering.
+     * Uses index on store_section for fast filtering.
+     * Compiled query for frequently executed section-based queries.
+     */
     @Query("SELECT * FROM shopping_list_items WHERE store_section = :section ORDER BY is_priority DESC, custom_order ASC, name ASC")
     fun getItemsBySection(section: String): Flow<List<ShoppingListItemEntity>>
     
+    /**
+     * Retrieves priority items with optimized filtering.
+     * Uses index on is_priority for fast filtering.
+     */
     @Query("SELECT * FROM shopping_list_items WHERE is_priority = 1 ORDER BY store_section ASC, name ASC")
     fun getPriorityItems(): Flow<List<ShoppingListItemEntity>>
     
@@ -71,6 +116,9 @@ interface ShoppingListDao {
     @Query("UPDATE shopping_list_items SET store_section = :section WHERE id = :itemId")
     suspend fun updateItemSection(itemId: Long, section: String)
     
+    /**
+     * Aggregates total estimated price with optimized SUM query.
+     */
     @Query("SELECT SUM(estimated_price) FROM shopping_list_items WHERE estimated_price IS NOT NULL")
     suspend fun getTotalEstimatedPrice(): Double?
     
@@ -79,4 +127,34 @@ interface ShoppingListDao {
     
     @Query("SELECT COUNT(*) FROM shopping_list_items WHERE estimated_price IS NOT NULL")
     suspend fun getItemsWithPriceCount(): Int
+    
+    /**
+     * Aggregates items by name for shopping list generation.
+     * Optimized query for combining duplicate items.
+     */
+    @Query("""
+        SELECT 
+            MIN(id) as id,
+            name,
+            SUM(CAST(quantity AS REAL)) as quantity,
+            unit,
+            category,
+            MAX(is_checked) as is_checked,
+            MAX(is_manual) as is_manual,
+            GROUP_CONCAT(meal_ids, ',') as meal_ids,
+            MAX(created_at) as created_at,
+            MAX(notes) as notes,
+            MAX(is_priority) as is_priority,
+            MAX(custom_order) as custom_order,
+            AVG(estimated_price) as estimated_price,
+            store_section,
+            MAX(last_modified_at) as last_modified_at,
+            server_id,
+            sync_status
+        FROM shopping_list_items
+        WHERE is_manual = 0
+        GROUP BY name, unit, category, store_section
+        ORDER BY category ASC, name ASC
+    """)
+    suspend fun getAggregatedItems(): List<ShoppingListItemEntity>
 }

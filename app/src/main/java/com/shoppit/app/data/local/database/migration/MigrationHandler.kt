@@ -59,7 +59,8 @@ class MigrationHandlerImpl : MigrationHandler {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
-            MIGRATION_7_8
+            MIGRATION_7_8,
+            MIGRATION_8_9
         )
     }
     
@@ -421,6 +422,24 @@ class MigrationHandlerImpl : MigrationHandler {
                 """.trimIndent())
                 
                 Timber.d("Migration 7->8 completed: sync metadata and queue tables created, sync fields added to entities")
+            }
+        }
+        
+        /**
+         * Migration from version 8 to 9: Add composite index for shopping list performance
+         * Adds composite index on (is_checked, name) for optimized filtering queries
+         */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                Timber.d("Migrating database from version 8 to 9")
+                
+                // Add composite index on shopping_list_items for optimized filtering
+                database.execSQL("""
+                    CREATE INDEX IF NOT EXISTS index_shopping_list_items_is_checked_name 
+                    ON shopping_list_items(is_checked, name)
+                """.trimIndent())
+                
+                Timber.d("Migration 8->9 completed: composite index added to shopping_list_items table")
             }
         }
     }

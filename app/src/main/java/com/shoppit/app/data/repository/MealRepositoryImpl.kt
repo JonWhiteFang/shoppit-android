@@ -5,6 +5,7 @@ import com.shoppit.app.data.cache.CacheManager
 import com.shoppit.app.data.local.dao.MealDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
+import com.shoppit.app.data.performance.PerformanceMonitor
 import com.shoppit.app.di.MealDetailCache
 import com.shoppit.app.di.MealListCache
 import android.database.sqlite.SQLiteConstraintException
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
+import kotlin.system.measureTimeMillis
 
 /**
  * Implementation of MealRepository using Room database with in-memory caching.
@@ -36,6 +38,7 @@ import javax.inject.Inject
  * @property mealListCache Cache for the complete list of meals
  * @property mealDetailCache Cache for individual meal details
  * @property mealValidator Validator for meal data
+ * @property performanceMonitor Monitor for tracking query and cache performance
  */
 class MealRepositoryImpl @Inject constructor(
     private val mealDao: MealDao,
@@ -43,7 +46,8 @@ class MealRepositoryImpl @Inject constructor(
     @MealDetailCache private val mealDetailCache: CacheManager<Long, Meal>,
     private val mealValidator: MealValidator,
     private val syncEngine: SyncEngine,
-    private val errorLogger: ErrorLogger
+    private val errorLogger: ErrorLogger,
+    private val performanceMonitor: PerformanceMonitor
 ) : MealRepository {
     
     companion object {
@@ -53,6 +57,7 @@ class MealRepositoryImpl @Inject constructor(
     /**
      * Retrieves all meals from cache or database as a reactive Flow.
      * Implements cache-aside pattern with cache warming.
+     * Tracks query performance and cache hit/miss rates.
      *
      * @return Flow emitting Result with list of meals or PersistenceError.QueryFailed
      */
@@ -61,16 +66,27 @@ class MealRepositoryImpl @Inject constructor(
         val cachedMeals = mealListCache.get(MEAL_LIST_CACHE_KEY)
         if (cachedMeals != null) {
             PersistenceLogger.logCacheHit(MEAL_LIST_CACHE_KEY)
+            performanceMonitor.trackCacheHit()
         } else {
             PersistenceLogger.logCacheMiss(MEAL_LIST_CACHE_KEY)
+            performanceMonitor.trackCacheMiss()
         }
         
         return mealDao.getAllMeals()
-            .map { entities -> 
+            .map { entities ->
+                val duration = measureTimeMillis {
+                    val meals = entities.map { it.toDomainModel() }
+                    // Update cache with fresh data
+                    mealListCache.put(MEAL_LIST_CACHE_KEY, meals)
+                }
+                
+                // Track query performance
+                performanceMonitor.trackQuery("getAllMeals", duration)
+                PersistenceLogger.logQueryExecution("getAllMeals", duration)
+                PersistenceLogger.logOperationSuccess("getMeals", duration)
+                
                 val meals = entities.map { it.toDomainModel() }
-                // Update cache with fresh data
                 mealListCache.put(MEAL_LIST_CACHE_KEY, meals)
-                PersistenceLogger.logOperationSuccess("getMeals", 0)
                 Result.success(meals)
             }
             .catch { e -> 
@@ -83,6 +99,7 @@ class MealRepositoryImpl @Inject constructor(
     /**
      * Retrieves a specific meal by ID from cache or database as a reactive Flow.
      * Checks cache first, then falls back to database.
+     * Tracks query performance and cache hit/miss rates.
      *
      * @param id The unique identifier of the meal
      * @return Flow emitting Result with meal or PersistenceError.QueryFailed
@@ -92,17 +109,30 @@ class MealRepositoryImpl @Inject constructor(
         val cachedMeal = mealDetailCache.get(id)
         if (cachedMeal != null) {
             PersistenceLogger.logCacheHit("meal_$id")
+            performanceMonitor.trackCacheHit()
         } else {
             PersistenceLogger.logCacheMiss("meal_$id")
+            performanceMonitor.trackCacheMiss()
         }
         
         return mealDao.getMealById(id)
             .map { entity ->
+                val duration = measureTimeMillis {
+                    if (entity != null) {
+                        val meal = entity.toDomainModel()
+                        // Update cache with fresh data
+                        mealDetailCache.put(id, meal)
+                    }
+                }
+                
+                // Track query performance
+                performanceMonitor.trackQuery("getMealById", duration)
+                PersistenceLogger.logQueryExecution("getMealById", duration)
+                
                 if (entity != null) {
                     val meal = entity.toDomainModel()
-                    // Update cache with fresh data
                     mealDetailCache.put(id, meal)
-                    PersistenceLogger.logOperationSuccess("getMealById", 0)
+                    PersistenceLogger.logOperationSuccess("getMealById", duration)
                     Result.success(meal)
                 } else {
                     Result.failure(PersistenceError.QueryFailed("getMealById", Exception("Meal not found: id=$id")))

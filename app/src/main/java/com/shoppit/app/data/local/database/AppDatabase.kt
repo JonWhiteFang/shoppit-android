@@ -26,6 +26,7 @@ import com.shoppit.app.data.local.entity.TemplateItemEntity
  * 
  * This database serves as the offline-first data persistence layer.
  * 
+ * Version 9: Added composite index on shopping_list_items (is_checked, name) for performance
  * Version 8: Added sync metadata and queue tables for cloud synchronization
  * Version 7: Added tags column to meals table for meal categorization and filtering
  * Version 6: Added management features to shopping list (item_history, shopping_templates, template_items, store_sections)
@@ -48,7 +49,7 @@ import com.shoppit.app.data.local.entity.TemplateItemEntity
         SyncMetadataEntity::class,
         SyncQueueEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(Converters::class, MealConverters::class)

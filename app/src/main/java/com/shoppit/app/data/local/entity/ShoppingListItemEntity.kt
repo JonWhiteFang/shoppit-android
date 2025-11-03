@@ -12,7 +12,8 @@ import androidx.room.PrimaryKey
         Index(value = ["is_manual"]),
         Index(value = ["is_checked"]),
         Index(value = ["is_priority"]),
-        Index(value = ["store_section"])
+        Index(value = ["store_section"]),
+        Index(value = ["is_checked", "name"]) // Composite index for filtering checked items by name
     ]
 )
 data class ShoppingListItemEntity(

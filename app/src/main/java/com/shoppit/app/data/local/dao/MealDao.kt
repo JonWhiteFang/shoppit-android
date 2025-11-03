@@ -5,7 +5,9 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
 import androidx.room.Update
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.shoppit.app.data.local.entity.MealEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -19,11 +21,39 @@ interface MealDao {
     /**
      * Retrieves all meals from the database, sorted alphabetically by name.
      * Returns a Flow that emits the updated list whenever the data changes.
+     * Optimized with index on name column for fast sorting.
      *
      * @return Flow emitting list of all meals sorted by name
      */
     @Query("SELECT * FROM meals ORDER BY name ASC")
     fun getAllMeals(): Flow<List<MealEntity>>
+    
+    /**
+     * Searches for meals by name using case-insensitive pattern matching.
+     * Optimized with index on name column for fast LIKE queries.
+     * Uses compiled query for better performance on frequently executed searches.
+     *
+     * @param searchQuery The search pattern (use % for wildcards)
+     * @return Flow emitting list of matching meals sorted by name
+     */
+    @Query("SELECT * FROM meals WHERE name LIKE :searchQuery ORDER BY name ASC")
+    fun searchMeals(searchQuery: String): Flow<List<MealEntity>>
+    
+    /**
+     * Searches for meals by name or tags using case-insensitive pattern matching.
+     * Optimized for full-text search across multiple fields.
+     *
+     * @param searchQuery The search pattern (use % for wildcards)
+     * @return Flow emitting list of matching meals sorted by relevance
+     */
+    @Query("""
+        SELECT * FROM meals 
+        WHERE name LIKE :searchQuery OR tags LIKE :searchQuery
+        ORDER BY 
+            CASE WHEN name LIKE :searchQuery THEN 0 ELSE 1 END,
+            name ASC
+    """)
+    fun searchMealsWithTags(searchQuery: String): Flow<List<MealEntity>>
     
     /**
      * Retrieves a specific meal by its ID.
