@@ -1,5 +1,6 @@
 package com.shoppit.app.data.performance
 
+import com.shoppit.app.data.memory.MemoryMetrics
 import timber.log.Timber
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -26,6 +27,11 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
     // Cache tracking
     private val cacheHits = AtomicInteger(0)
     private val cacheMisses = AtomicInteger(0)
+    
+    // Memory tracking
+    private var latestMemoryMetrics: MemoryMetrics? = null
+    private val memoryPressureEvents = AtomicInteger(0)
+    private val memoryUsageThresholdMB = 150L // 150MB threshold from requirements
     
     override fun trackQuery(query: String, duration: Long) {
         val metrics = queryMetrics.getOrPut(query) { MutableQueryMetrics(query) }
@@ -84,6 +90,8 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
         transactionMetrics.clear()
         cacheHits.set(0)
         cacheMisses.set(0)
+        latestMemoryMetrics = null
+        memoryPressureEvents.set(0)
         Timber.d("Performance metrics reset")
     }
     
@@ -113,6 +121,39 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
             cacheHitRate = getCacheHitRate(),
             slowQueryCount = slowQueryCount
         )
+    }
+    
+    override fun trackMemoryUsage(usedMemory: Long, availableMemory: Long) {
+        val maxMemory = Runtime.getRuntime().maxMemory()
+        
+        latestMemoryMetrics = MemoryMetrics(
+            currentUsage = usedMemory,
+            maxUsage = maxMemory,
+            availableMemory = availableMemory,
+            pressureEvents = memoryPressureEvents.get()
+        )
+        
+        // Log if memory usage exceeds threshold (150MB)
+        val usedMB = usedMemory / (1024 * 1024)
+        if (usedMB > memoryUsageThresholdMB) {
+            Timber.w("Memory usage exceeds threshold: ${usedMB}MB (threshold: ${memoryUsageThresholdMB}MB)")
+            val metrics = latestMemoryMetrics?.toMegabytes()
+            Timber.w("Memory metrics: $metrics")
+        }
+    }
+    
+    override fun getMemoryMetrics(): MemoryMetrics? {
+        return latestMemoryMetrics
+    }
+    
+    override fun trackMemoryPressureEvent() {
+        val count = memoryPressureEvents.incrementAndGet()
+        Timber.d("Memory pressure event tracked (total: $count)")
+        
+        // Update latest metrics if available
+        latestMemoryMetrics?.let { metrics ->
+            latestMemoryMetrics = metrics.copy(pressureEvents = count)
+        }
     }
     
     /**

@@ -3,6 +3,9 @@ package com.shoppit.app
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.shoppit.app.data.cache.CacheWarmer
+import com.shoppit.app.data.memory.CacheMemoryPressureHandler
+import com.shoppit.app.data.memory.MemoryManager
 import com.shoppit.app.data.startup.StartupOptimizer
 import com.shoppit.app.data.startup.StartupPhase
 import com.shoppit.app.util.ReleaseTree
@@ -28,6 +31,8 @@ import javax.inject.Inject
  * - 1.2: Display first screen within 1000ms on warm start
  * - 1.3: Display first screen within 500ms on hot start
  * - 1.4: Defer non-critical initialization tasks to background threads
+ * - 4.4: Detect low memory conditions and clear non-essential caches
+ * - 4.5: Log memory metrics and trigger cache cleanup when usage exceeds 150MB
  */
 @HiltAndroidApp
 class ShoppitApplication : Application(), Configuration.Provider {
@@ -45,6 +50,26 @@ class ShoppitApplication : Application(), Configuration.Provider {
      */
     @Inject
     lateinit var startupOptimizer: StartupOptimizer
+    
+    /**
+     * MemoryManager for monitoring and managing memory usage.
+     * Handles memory pressure events and notifies registered listeners.
+     */
+    @Inject
+    lateinit var memoryManager: MemoryManager
+    
+    /**
+     * CacheMemoryPressureHandler for responding to memory pressure events.
+     * Clears caches when memory is running low.
+     */
+    @Inject
+    lateinit var cacheMemoryPressureHandler: CacheMemoryPressureHandler
+    
+    /**
+     * CacheWarmer for preloading frequently accessed data on app startup.
+     */
+    @Inject
+    lateinit var cacheWarmer: CacheWarmer
     
     /**
      * Application-scoped coroutine scope for background initialization.
@@ -82,6 +107,10 @@ class ShoppitApplication : Application(), Configuration.Provider {
         
         Timber.d("Shoppit Application initialized")
         
+        // Register memory pressure handler
+        memoryManager.registerMemoryPressureListener(cacheMemoryPressureHandler)
+        Timber.d("Memory pressure handler registered")
+        
         // Track critical services initialization
         val duration = System.currentTimeMillis() - startTime
         startupOptimizer.trackStartupPhase(StartupPhase.CRITICAL_SERVICES, duration)
@@ -98,6 +127,9 @@ class ShoppitApplication : Application(), Configuration.Provider {
             try {
                 // WorkManager initialization is deferred
                 // It will be initialized lazily when first accessed via workManagerConfiguration
+                
+                // Warm up caches with frequently accessed data
+                cacheWarmer.warmCaches()
                 
                 // Other deferred initialization can be added here:
                 // - Analytics initialization

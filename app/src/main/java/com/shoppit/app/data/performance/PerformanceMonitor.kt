@@ -1,8 +1,12 @@
 package com.shoppit.app.data.performance
 
+import com.shoppit.app.data.memory.MemoryMetrics
+
 /**
  * Interface for monitoring database and cache performance.
  * Tracks query execution times, transaction durations, and cache hit rates.
+ * 
+ * Requirements: 4.5, 10.3
  */
 interface PerformanceMonitor {
     /**
@@ -57,6 +61,32 @@ interface PerformanceMonitor {
      * @return Performance summary
      */
     fun getSummary(): PerformanceSummary
+    
+    /**
+     * Tracks memory usage snapshot.
+     * 
+     * @param usedMemory Current memory usage in bytes
+     * @param availableMemory Available memory in bytes
+     * 
+     * Requirements: 4.5, 10.3
+     */
+    fun trackMemoryUsage(usedMemory: Long, availableMemory: Long)
+    
+    /**
+     * Gets the latest memory metrics.
+     * 
+     * @return Latest memory metrics, or null if no metrics have been tracked
+     * 
+     * Requirements: 4.5, 10.3
+     */
+    fun getMemoryMetrics(): MemoryMetrics?
+    
+    /**
+     * Tracks a memory pressure event.
+     * 
+     * Requirements: 4.5
+     */
+    fun trackMemoryPressureEvent()
 }
 
 /**
