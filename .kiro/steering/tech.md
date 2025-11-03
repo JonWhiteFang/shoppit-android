@@ -6,14 +6,14 @@ inclusion: always
 
 ## Build System
 - Gradle with Kotlin DSL (build.gradle.kts)
-- Version catalogs in `gradle/libs.versions.toml`
-- Kotlin 1.9.20, Java 17, AGP 8.1.2
-- KSP for annotation processing (Room, Hilt)
+- Version catalogs in `gradle\libs.versions.toml`
+- Kotlin 2.1.0, Java 17, AGP 8.7.3
+- KSP 2.1.0-1.0.29 for annotation processing (Room, Hilt)
 
 ## Core Stack
 - **UI**: Jetpack Compose + Material3 (BOM 2023.10.01)
 - **Architecture**: Clean Architecture + MVVM + Offline-First
-- **DI**: Hilt 2.48 with `@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`
+- **DI**: Hilt 2.56 with `@HiltAndroidApp`, `@AndroidEntryPoint`, `@HiltViewModel`
 - **Async**: Kotlin Coroutines 1.7.3 + Flow for reactive streams
 - **Database**: Room 2.6.0 with SQLite
 - **Network**: Retrofit 2.9.0 + OkHttp 4.12.0 + Gson
@@ -29,37 +29,37 @@ inclusion: always
 ## Build Configuration
 - Namespace: `com.shoppit.app`
 - Min SDK 24 (Android 7.0) → Target SDK 34
-- Compose Compiler 1.5.4
+- Compose Compiler (managed by Kotlin plugin)
 - ProGuard: debug off, release on
 
 ## Common Gradle Commands
 
 ### Build & Install
-```bash
-./gradlew assembleDebug          # Build debug APK
-./gradlew installDebug            # Install on device
-./gradlew clean                   # Clean build
+```powershell
+.\gradlew.bat assembleDebug          # Build debug APK
+.\gradlew.bat installDebug            # Install on device
+.\gradlew.bat clean                   # Clean build
 ```
 
 ### Testing
-```bash
-./gradlew test                    # All unit tests
-./gradlew testDebugUnitTest       # Debug unit tests only
-./gradlew connectedAndroidTest    # Instrumented tests (needs device)
-./gradlew test --tests "ClassName" # Specific test class
+```powershell
+.\gradlew.bat test                    # All unit tests
+.\gradlew.bat testDebugUnitTest       # Debug unit tests only
+.\gradlew.bat connectedAndroidTest    # Instrumented tests (needs device)
+.\gradlew.bat test --tests "ClassName" # Specific test class
 ```
 
 ### Code Quality
-```bash
-./gradlew lint                    # Run lint checks
-./gradlew lintDebug               # Generate lint report
+```powershell
+.\gradlew.bat lint                    # Run lint checks
+.\gradlew.bat lintDebug               # Generate lint report
 ```
 
 ### Development
-```bash
-./gradlew kspDebugKotlin          # Generate Room/Hilt sources
-./gradlew dependencies            # Check dependency tree
-./gradlew tasks                   # List all tasks
+```powershell
+.\gradlew.bat kspDebugKotlin          # Generate Room/Hilt sources
+.\gradlew.bat dependencies            # Check dependency tree
+.\gradlew.bat tasks                   # List all tasks
 ```
 
 ## Key Implementation Notes

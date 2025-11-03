@@ -239,17 +239,278 @@ Last Scan: YYYY-MM-DD
 ## Common Security Issues in Android
 
 ### Code-Level Issues (SAST)
-- **SQL Injection**: Use Room with parameterized queries (already implemented)
-- **Hardcoded Secrets**: Never commit API keys, tokens, or passwords
-- **Insecure Data Storage**: Use EncryptedSharedPreferences for sensitive data
-- **Weak Cryptography**: Use Android Keystore for encryption
-- **Path Traversal**: Validate file paths before access
-- **XSS in WebViews**: Sanitize user input if using WebViews
+
+#### SQL Injection
+**Risk:** Malicious SQL queries can access/modify database
+**Prevention:** Use Room with parameterized queries (already implemented)
+
+```kotlin
+// Bad - vulnerable to SQL injection
+@Query("SELECT * FROM meals WHERE name = '" + userInput + "'")
+fun searchMeals(userInput: String): List<MealEntity>
+
+// Good - parameterized query
+@Query("SELECT * FROM meals WHERE name = :name")
+fun searchMeals(name: String): List<MealEntity>
+```
+
+#### Hardcoded Secrets
+**Risk:** API keys, tokens, passwords exposed in source code
+**Prevention:** Use BuildConfig, environment variables, or secure storage
+
+```kotlin
+// Bad - hardcoded API key
+const val API_KEY = "sk_live_1234567890abcdef"
+
+// Good - from BuildConfig
+val apiKey = BuildConfig.API_KEY
+
+// Good - from secure storage
+val apiKey = securePreferences.getString("api_key", "")
+```
+
+#### Insecure Data Storage
+**Risk:** Sensitive data stored in plain text
+**Prevention:** Use EncryptedSharedPreferences for sensitive data
+
+```kotlin
+// Bad - plain SharedPreferences
+val prefs = context.getSharedPreferences("user_data", Context.MODE_PRIVATE)
+prefs.edit().putString("auth_token", token).apply()
+
+// Good - EncryptedSharedPreferences
+val masterKey = MasterKey.Builder(context)
+    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+    .build()
+
+val encryptedPrefs = EncryptedSharedPreferences.create(
+    context,
+    "secure_prefs",
+    masterKey,
+    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+)
+
+encryptedPrefs.edit().putString("auth_token", token).apply()
+```
+
+#### Weak Cryptography
+**Risk:** Weak encryption algorithms can be broken
+**Prevention:** Use Android Keystore for encryption
+
+```kotlin
+// Bad - weak encryption
+val cipher = Cipher.getInstance("DES/ECB/PKCS5Padding")
+
+// Good - strong encryption with Keystore
+val keyGenerator = KeyGenerator.getInstance(
+    KeyProperties.KEY_ALGORITHM_AES,
+    "AndroidKeyStore"
+)
+
+val keyGenParameterSpec = KeyGenParameterSpec.Builder(
+    "my_key_alias",
+    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+)
+    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+    .build()
+
+keyGenerator.init(keyGenParameterSpec)
+val secretKey = keyGenerator.generateKey()
+```
+
+#### Path Traversal
+**Risk:** Malicious file paths can access unauthorized files
+**Prevention:** Validate and sanitize file paths
+
+```kotlin
+// Bad - no validation
+fun readFile(filename: String): String {
+    return File("/data/app/files/$filename").readText()
+}
+
+// Good - validate path
+fun readFile(filename: String): String {
+    require(!filename.contains("..")) { "Invalid filename" }
+    require(!filename.startsWith("/")) { "Invalid filename" }
+    
+    val file = File(context.filesDir, filename)
+    require(file.canonicalPath.startsWith(context.filesDir.canonicalPath)) {
+        "Path traversal detected"
+    }
+    
+    return file.readText()
+}
+```
+
+#### XSS in WebViews
+**Risk:** Malicious scripts can execute in WebView
+**Prevention:** Sanitize user input, disable JavaScript if not needed
+
+```kotlin
+// Bad - JavaScript enabled without sanitization
+webView.settings.javaScriptEnabled = true
+webView.loadData(userInput, "text/html", "UTF-8")
+
+// Good - sanitize input or disable JavaScript
+webView.settings.javaScriptEnabled = false
+val sanitizedInput = Html.escapeHtml(userInput)
+webView.loadData(sanitizedInput, "text/html", "UTF-8")
+```
+
+#### Insecure Network Communication
+**Risk:** Data transmitted over unencrypted connections
+**Prevention:** Use HTTPS, implement certificate pinning
+
+```kotlin
+// Bad - allows cleartext traffic
+<application android:usesCleartextTraffic="true">
+
+// Good - enforce HTTPS
+<application android:usesCleartextTraffic="false">
+
+// Network security config
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">api.shoppit.app</domain>
+    </domain-config>
+</network-security-config>
+```
+
+#### Intent Redirection
+**Risk:** Malicious apps can intercept intents
+**Prevention:** Use explicit intents, validate intent data
+
+```kotlin
+// Bad - implicit intent
+val intent = Intent(Intent.ACTION_VIEW)
+intent.data = Uri.parse(userInput)
+startActivity(intent)
+
+// Good - explicit intent with validation
+val uri = Uri.parse(userInput)
+require(uri.scheme == "https") { "Only HTTPS URLs allowed" }
+require(uri.host == "shoppit.app") { "Only shoppit.app URLs allowed" }
+
+val intent = Intent(Intent.ACTION_VIEW, uri)
+startActivity(intent)
+```
+
+#### Logging Sensitive Data
+**Risk:** Sensitive data exposed in logs
+**Prevention:** Never log sensitive information
+
+```kotlin
+// Bad - logging sensitive data
+Log.d(TAG, "User password: $password")
+Log.d(TAG, "Auth token: $token")
+
+// Good - log only non-sensitive data
+Log.d(TAG, "User logged in successfully")
+Log.d(TAG, "Auth token received (length: ${token.length})")
+
+// Use Timber with custom tree for production
+if (BuildConfig.DEBUG) {
+    Timber.plant(Timber.DebugTree())
+} else {
+    Timber.plant(CrashReportingTree())
+}
+```
 
 ### Dependency Issues (SCA)
-- **Outdated Libraries**: Keep Compose, Hilt, Room, Retrofit up to date
-- **Transitive Dependencies**: Monitor indirect dependencies
-- **License Compliance**: Check for incompatible licenses
+
+#### Outdated Libraries
+**Risk:** Known vulnerabilities in old versions
+**Prevention:** Keep dependencies up to date
+
+```kotlin
+// Check current versions
+.\gradlew.bat dependencies
+
+// Update in libs.versions.toml
+[versions]
+compose-bom = "2023.10.01"  # Update to latest
+hilt = "2.56"                # Update to latest
+room = "2.6.0"               # Update to latest
+```
+
+#### Transitive Dependencies
+**Risk:** Vulnerabilities in indirect dependencies
+**Prevention:** Monitor and update transitive dependencies
+
+```bash
+# View dependency tree
+.\gradlew.bat app:dependencies
+
+# Scan for vulnerabilities
+snyk_sca_scan(path = "absolute-path", all_projects = true)
+```
+
+#### License Compliance
+**Risk:** Using libraries with incompatible licenses
+**Prevention:** Check licenses before adding dependencies
+
+```kotlin
+// Check license compatibility
+// GPL - Requires open-sourcing your code
+// Apache 2.0 - Permissive, commercial use allowed
+// MIT - Permissive, commercial use allowed
+```
+
+### Android-Specific Security Issues
+
+#### Exported Components
+**Risk:** Unprotected components accessible to other apps
+**Prevention:** Only export components that need to be public
+
+```xml
+<!-- Bad - exported without protection -->
+<activity
+    android:name=".SecretActivity"
+    android:exported="true" />
+
+<!-- Good - not exported -->
+<activity
+    android:name=".SecretActivity"
+    android:exported="false" />
+
+<!-- Good - exported with permission -->
+<activity
+    android:name=".PublicActivity"
+    android:exported="true"
+    android:permission="com.shoppit.app.permission.ACCESS_ACTIVITY" />
+```
+
+#### Backup Configuration
+**Risk:** Sensitive data included in backups
+**Prevention:** Exclude sensitive files from backup
+
+```xml
+<!-- backup_rules.xml -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="secure_prefs.xml" />
+    <exclude domain="database" path="sensitive.db" />
+</full-backup-content>
+```
+
+#### Debug Mode in Production
+**Risk:** Debug features exposed in production
+**Prevention:** Disable debug features in release builds
+
+```kotlin
+// Check build type
+if (BuildConfig.DEBUG) {
+    // Debug-only features
+    Timber.plant(Timber.DebugTree())
+    StrictMode.enableDefaults()
+}
+
+// Disable debugging in manifest
+<application
+    android:debuggable="false"
+    android:allowBackup="false">
+```
 
 ## Snyk Authentication
 

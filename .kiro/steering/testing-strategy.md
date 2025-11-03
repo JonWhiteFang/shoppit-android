@@ -413,21 +413,21 @@ androidTest/
 ## Running Tests
 
 ### Gradle Commands
-```bash
+```powershell
 # All unit tests
-./gradlew test
+.\gradlew.bat test
 
 # Specific test class
-./gradlew test --tests "MealViewModelTest"
+.\gradlew.bat test --tests "MealViewModelTest"
 
 # Specific test method
-./gradlew test --tests "MealViewModelTest.loads meals successfully"
+.\gradlew.bat test --tests "MealViewModelTest.loads meals successfully"
 
 # All instrumented tests (requires device/emulator)
-./gradlew connectedAndroidTest
+.\gradlew.bat connectedAndroidTest
 
 # Specific instrumented test
-./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.shoppit.app.data.local.dao.MealDaoTest
+.\gradlew.bat connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.shoppit.app.data.local.dao.MealDaoTest
 ```
 
 ## CI/CD Integration
@@ -435,13 +435,13 @@ androidTest/
 ### GitHub Actions Example
 ```yaml
 - name: Run unit tests
-  run: ./gradlew test --stacktrace
+  run: .\gradlew.bat test --stacktrace
 
 - name: Run instrumented tests
   uses: reactivecircus/android-emulator-runner@v2
   with:
     api-level: 29
-    script: ./gradlew connectedAndroidTest
+    script: .\gradlew.bat connectedAndroidTest
 ```
 
 ## Common Pitfalls

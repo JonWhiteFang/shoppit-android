@@ -1,3 +1,7 @@
+---
+inclusion: always
+---
+
 # System Environment & Available Commands
 
 ## System Overview
@@ -186,8 +190,12 @@ git stash pop
 dir
 Get-ChildItem
 
+# List with details
+Get-ChildItem -Force
+
 # Change directory (avoid in scripts, use -path parameter instead)
 cd path\to\directory
+Set-Location path\to\directory
 
 # Create directory
 mkdir new-directory
@@ -196,6 +204,9 @@ New-Item -ItemType Directory -Path new-directory
 # Copy file
 copy source.txt destination.txt
 Copy-Item source.txt destination.txt
+
+# Copy directory recursively
+Copy-Item -Path source-dir -Destination dest-dir -Recurse
 
 # Move/rename file
 move old.txt new.txt
@@ -213,9 +224,16 @@ Remove-Item -Recurse -Force directory
 type file.txt
 Get-Content file.txt
 
+# View first/last lines
+Get-Content file.txt -Head 10
+Get-Content file.txt -Tail 10
+
 # Find in files
 findstr /s /i "search term" *.kt
 Select-String -Path *.kt -Pattern "search term"
+
+# Find files by name
+Get-ChildItem -Recurse -Filter "*.kt"
 
 # Get current directory
 cd
@@ -243,6 +261,9 @@ python -m venv venv
 
 # Activate virtual environment
 .\venv\Scripts\activate
+
+# Deactivate virtual environment
+deactivate
 ```
 
 ### Node.js Commands
@@ -435,15 +456,25 @@ $env:Path += ";$env:ANDROID_HOME\tools\bin"
 - **Retrofit**: 2.9.0
 - **OkHttp**: 4.12.0
 - **Coroutines**: 1.7.3
+- **Navigation**: 2.7.4
+- **Lifecycle**: 2.7.0
+- **Timber**: 5.0.1
 
 ### Testing
 - **JUnit**: 4.13.2
 - **MockK**: 1.13.8
 - **Espresso**: 3.5.1
+- **AndroidX Test**: 1.5.0
+- **Robolectric**: 4.11.1
 
 ### Build
 - **Android Gradle Plugin**: 8.7.3
 - **KSP**: 2.1.0-1.0.29
+
+### Additional
+- **Security Crypto**: 1.1.0-alpha06
+- **Work Manager**: 2.9.0
+- **DataStore**: 1.0.0
 
 ## Notes & Best Practices
 
@@ -498,8 +529,10 @@ snyk_sca_scan(path = "abs-path")       # SCA scan
 
 # File Operations
 dir                                    # List files
+Get-ChildItem                          # List files (PowerShell)
 cd path                                # Change directory
 type file.txt                          # View file
+Get-Content file.txt                   # View file (PowerShell)
 ```
 
 ## Troubleshooting
@@ -523,6 +556,12 @@ type file.txt                          # View file
 
 **Issue**: Git push rejected
 **Solution**: Pull latest changes first: `git pull --rebase origin develop`
+
+**Issue**: PowerShell execution policy blocks scripts
+**Solution**: Run `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+**Issue**: Gradle daemon not starting
+**Solution**: Check `gradle.properties` settings, restart daemon with `.\gradlew.bat --stop`
 
 ## Additional Resources
 
