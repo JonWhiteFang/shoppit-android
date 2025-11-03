@@ -66,31 +66,31 @@ object ErrorMapper {
     private fun mapAppError(error: AppError): String {
         return when (error) {
             is AppError.NetworkError -> 
-                error.message
+                "Unable to connect. Please check your internet connection and try again."
             
             is AppError.DatabaseError -> 
-                "Database error occurred. Please try again."
+                "Unable to save your changes. Please try again."
             
             is AppError.AuthenticationError -> 
-                error.message
+                "Authentication failed. Please sign in again."
             
             is AppError.ValidationError -> 
                 error.message
             
             is AppError.PermissionDenied -> 
-                "Permission denied: ${error.permission}. Please enable it in Settings."
+                "Permission required. Please enable ${error.permission} in Settings."
             
             is AppError.VoiceParsingError -> 
-                error.message
+                "Couldn't understand the voice input. Please try again or type manually."
             
             is AppError.BarcodeScanError -> 
-                error.message
+                "Couldn't scan the barcode. Please try again or enter manually."
             
             is AppError.NotFoundError -> 
-                error.message
+                "Item not found. It may have been deleted."
             
             is AppError.UnknownError -> 
-                "An unexpected error occurred: ${error.message}"
+                "Something went wrong. Please try again."
         }
     }
     
@@ -118,22 +118,22 @@ object ErrorMapper {
     fun getSuggestedAction(error: Throwable): String? {
         return when (error) {
             is PersistenceError.CorruptionDetected -> 
-                "Clear app data in Settings > Apps > Shoppit > Storage"
+                "Clear app data: Settings > Apps > Shoppit > Storage > Clear Data"
             
             is PersistenceError.MigrationFailed -> 
-                "Reinstall the app to fix database issues"
+                "Please reinstall the app to fix this issue"
             
             is PersistenceError.CacheFull -> 
-                "Clear checked items or delete old templates"
+                "Clear checked items or delete old meals to free up space"
             
             is AppError.NetworkError -> 
                 "Check your internet connection and try again"
             
             is AppError.PermissionDenied -> 
-                "Go to Settings > Apps > Shoppit > Permissions to enable"
+                "Enable permission: Settings > Apps > Shoppit > Permissions"
             
             is AppError.VoiceParsingError -> 
-                "Try typing the item name manually instead"
+                "Try typing the item name instead"
             
             is AppError.BarcodeScanError -> 
                 "Try entering the item name manually"

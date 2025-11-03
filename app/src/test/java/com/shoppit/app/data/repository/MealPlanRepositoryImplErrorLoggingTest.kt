@@ -54,18 +54,15 @@ class MealPlanRepositoryImplErrorLoggingTest {
         val exception = RuntimeException("Query failed")
         every { 
             mealPlanDao.getMealPlansForWeek(startDate.toEpochDay(), endDate.toEpochDay()) 
-        } returns flowOf<List<MealPlanEntity>>().apply {
+        } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getMealPlansForWeek(startDate, endDate).first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getMealPlansForWeek(startDate, endDate).first()
 
         // Then
+        assertTrue(result.isFailure)
         verify { 
             errorLogger.logError(
                 any(), 
@@ -82,18 +79,15 @@ class MealPlanRepositoryImplErrorLoggingTest {
         val exception = RuntimeException("Query failed")
         every { 
             mealPlanDao.getMealPlansForDate(date.toEpochDay()) 
-        } returns flowOf<List<MealPlanEntity>>().apply {
+        } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getMealPlansForDate(date).first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getMealPlansForDate(date).first()
 
         // Then
+        assertTrue(result.isFailure)
         verify { 
             errorLogger.logError(
                 any(), 
@@ -108,18 +102,15 @@ class MealPlanRepositoryImplErrorLoggingTest {
         // Given
         val mealPlanId = 123L
         val exception = RuntimeException("Query failed")
-        every { mealPlanDao.getMealPlanById(mealPlanId) } returns flowOf<MealPlanEntity?>().apply {
+        every { mealPlanDao.getMealPlanById(mealPlanId) } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getMealPlanById(mealPlanId).first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getMealPlanById(mealPlanId).first()
 
         // Then
+        assertTrue(result.isFailure)
         verify { 
             errorLogger.logError(
                 any(), 

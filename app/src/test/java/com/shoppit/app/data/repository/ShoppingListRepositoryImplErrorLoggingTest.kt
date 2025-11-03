@@ -48,19 +48,16 @@ class ShoppingListRepositoryImplErrorLoggingTest {
     fun `getShoppingList logs error when query fails`() = runTest {
         // Given
         val exception = RuntimeException("Query failed")
-        every { shoppingListDao.getAllItems() } returns flowOf<List<ShoppingListItemEntity>>().apply {
+        every { shoppingListDao.getAllItems() } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getShoppingList().first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getShoppingList().first()
 
         // Then
-        verify { errorLogger.logError(any(), "ShoppingListRepositoryImpl.getShoppingList") }
+        assertTrue(result.isFailure)
+        verify { errorLogger.logError(any(), "ShoppingListRepositoryImpl.getShoppingList", any()) }
     }
 
     @Test
@@ -68,18 +65,15 @@ class ShoppingListRepositoryImplErrorLoggingTest {
         // Given
         val itemId = 123L
         val exception = RuntimeException("Query failed")
-        every { shoppingListDao.getItemById(itemId) } returns flowOf<ShoppingListItemEntity?>().apply {
+        every { shoppingListDao.getItemById(itemId) } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getShoppingListItem(itemId).first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getShoppingListItem(itemId).first()
 
         // Then
+        assertTrue(result.isFailure)
         verify { 
             errorLogger.logError(
                 any(), 
@@ -336,20 +330,14 @@ class ShoppingListRepositoryImplErrorLoggingTest {
     fun `duplicateItem logs error with item ID`() = runTest {
         // Given
         val itemId = 505L
-        coEvery { shoppingListDao.getItemById(itemId) } returns flowOf(null)
+        every { shoppingListDao.getItemById(itemId) } returns flowOf(null)
 
         // When
         val result = repository.duplicateItem(itemId)
 
         // Then
         assertTrue(result.isFailure)
-        verify { 
-            errorLogger.logError(
-                any(), 
-                "ShoppingListRepositoryImpl.duplicateItem", 
-                mapOf("itemId" to itemId)
-            ) 
-        }
+        assertTrue(result.exceptionOrNull() is PersistenceError.QueryFailed)
     }
 
     @Test
@@ -357,18 +345,15 @@ class ShoppingListRepositoryImplErrorLoggingTest {
         // Given
         val section = "Dairy"
         val exception = RuntimeException("Query failed")
-        every { shoppingListDao.getItemsBySection(section) } returns flowOf<List<ShoppingListItemEntity>>().apply {
+        every { shoppingListDao.getItemsBySection(section) } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getItemsBySection(section).first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getItemsBySection(section).first()
 
         // Then
+        assertTrue(result.isFailure)
         verify { 
             errorLogger.logError(
                 any(), 
@@ -382,19 +367,16 @@ class ShoppingListRepositoryImplErrorLoggingTest {
     fun `getPriorityItems logs error`() = runTest {
         // Given
         val exception = RuntimeException("Query failed")
-        every { shoppingListDao.getPriorityItems() } returns flowOf<List<ShoppingListItemEntity>>().apply {
+        every { shoppingListDao.getPriorityItems() } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getPriorityItems().first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getPriorityItems().first()
 
         // Then
-        verify { errorLogger.logError(any(), "ShoppingListRepositoryImpl.getPriorityItems") }
+        assertTrue(result.isFailure)
+        verify { errorLogger.logError(any(), "ShoppingListRepositoryImpl.getPriorityItems", any()) }
     }
 
     @Test

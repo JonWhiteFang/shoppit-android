@@ -61,20 +61,17 @@ class MealRepositoryImplErrorLoggingTest {
     fun `getMeals logs error when query fails`() = runTest {
         // Given
         val exception = RuntimeException("Database error")
-        every { mealDao.getAllMeals() } returns flowOf<List<MealEntity>>().apply {
+        every { mealDao.getAllMeals() } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
         every { mealListCache.get(any()) } returns null
 
         // When
-        try {
-            repository.getMeals().first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getMeals().first()
 
         // Then
-        verify { errorLogger.logError(any(), "MealRepositoryImpl.getMeals") }
+        assertTrue(result.isFailure)
+        verify { errorLogger.logError(any(), "MealRepositoryImpl.getMeals", any()) }
     }
 
     @Test
@@ -82,19 +79,16 @@ class MealRepositoryImplErrorLoggingTest {
         // Given
         val mealId = 123L
         val exception = RuntimeException("Database error")
-        every { mealDao.getMealById(mealId) } returns flowOf<MealEntity?>().apply {
+        every { mealDao.getMealById(mealId) } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
         every { mealDetailCache.get(mealId) } returns null
 
         // When
-        try {
-            repository.getMealById(mealId).first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getMealById(mealId).first()
 
         // Then
+        assertTrue(result.isFailure)
         verify { 
             errorLogger.logError(
                 any(), 
@@ -219,18 +213,15 @@ class MealRepositoryImplErrorLoggingTest {
         val limit = 10
         val offset = 20
         val exception = RuntimeException("Pagination query failed")
-        every { mealDao.getMealsPaginated(limit, offset) } returns flowOf<List<MealEntity>>().apply {
+        every { mealDao.getMealsPaginated(limit, offset) } returns kotlinx.coroutines.flow.flow {
             throw exception
         }
 
         // When
-        try {
-            repository.getMealsPaginated(limit, offset).first()
-        } catch (e: Exception) {
-            // Expected
-        }
+        val result = repository.getMealsPaginated(limit, offset).first()
 
         // Then
+        assertTrue(result.isFailure)
         verify { 
             errorLogger.logError(
                 any(), 
