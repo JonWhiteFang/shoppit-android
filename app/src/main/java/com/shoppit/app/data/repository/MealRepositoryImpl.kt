@@ -1,17 +1,18 @@
 package com.shoppit.app.data.repository
 
+import android.database.sqlite.SQLiteConstraintException
 import com.shoppit.app.data.cache.CacheConfig
 import com.shoppit.app.data.cache.CacheManager
+import com.shoppit.app.data.error.PersistenceError
+import com.shoppit.app.data.error.PersistenceLogger
+import com.shoppit.app.data.error.ValidationError
 import com.shoppit.app.data.local.dao.MealDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
 import com.shoppit.app.data.performance.PerformanceMonitor
+import com.shoppit.app.di.IoDispatcher
 import com.shoppit.app.di.MealDetailCache
 import com.shoppit.app.di.MealListCache
-import android.database.sqlite.SQLiteConstraintException
-import com.shoppit.app.data.error.PersistenceError
-import com.shoppit.app.data.error.PersistenceLogger
-import com.shoppit.app.data.error.ValidationError
 import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.EntityType
 import com.shoppit.app.domain.model.Meal
@@ -19,10 +20,13 @@ import com.shoppit.app.domain.model.SyncOperation
 import com.shoppit.app.domain.repository.MealRepository
 import com.shoppit.app.domain.repository.SyncEngine
 import com.shoppit.app.domain.validator.MealValidator
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.system.measureTimeMillis
 
@@ -47,7 +51,8 @@ class MealRepositoryImpl @Inject constructor(
     private val mealValidator: MealValidator,
     private val syncEngine: SyncEngine,
     private val errorLogger: ErrorLogger,
-    private val performanceMonitor: PerformanceMonitor
+    private val performanceMonitor: PerformanceMonitor,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : MealRepository {
     
     companion object {
@@ -94,6 +99,7 @@ class MealRepositoryImpl @Inject constructor(
                 errorLogger.logError(e, "MealRepositoryImpl.getMeals")
                 emit(Result.failure(PersistenceError.QueryFailed("getAllMeals", e)))
             }
+            .flowOn(ioDispatcher) // Execute on IO dispatcher
     }
     
     /**
@@ -143,6 +149,7 @@ class MealRepositoryImpl @Inject constructor(
                 errorLogger.logError(e, "MealRepositoryImpl.getMealById", mapOf("mealId" to id))
                 emit(Result.failure(PersistenceError.QueryFailed("getMealById", e)))
             }
+            .flowOn(ioDispatcher) // Execute on IO dispatcher
     }
     
     /**
@@ -153,7 +160,7 @@ class MealRepositoryImpl @Inject constructor(
      * @param meal The meal to add
      * @return Result with the ID of the newly created meal or PersistenceError
      */
-    override suspend fun addMeal(meal: Meal): Result<Long> {
+    override suspend fun addMeal(meal: Meal): Result<Long> = withContext(ioDispatcher) {
         PersistenceLogger.logValidationStart("Meal")
         
         // Validate meal data first
@@ -163,13 +170,13 @@ class MealRepositoryImpl @Inject constructor(
                 ValidationError(it.field, it.message, it.code) 
             }
             PersistenceLogger.logValidationFailure("Meal", errors)
-            return Result.failure(PersistenceError.ValidationFailed(errors))
+            return@withContext Result.failure(PersistenceError.ValidationFailed(errors))
         }
         
         PersistenceLogger.logValidationSuccess("Meal")
         PersistenceLogger.logOperationStart("addMeal")
         
-        return try {
+        return@withContext try {
             val id = mealDao.insertMeal(meal.toEntity())
             // Invalidate meal list cache since we added a new meal
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
@@ -199,7 +206,7 @@ class MealRepositoryImpl @Inject constructor(
      * @param meal The meal with updated data
      * @return Result indicating success or PersistenceError
      */
-    override suspend fun updateMeal(meal: Meal): Result<Unit> {
+    override suspend fun updateMeal(meal: Meal): Result<Unit> = withContext(ioDispatcher) {
         PersistenceLogger.logValidationStart("Meal")
         
         // Validate meal data first
@@ -209,13 +216,13 @@ class MealRepositoryImpl @Inject constructor(
                 ValidationError(it.field, it.message, it.code) 
             }
             PersistenceLogger.logValidationFailure("Meal", errors)
-            return Result.failure(PersistenceError.ValidationFailed(errors))
+            return@withContext Result.failure(PersistenceError.ValidationFailed(errors))
         }
         
         PersistenceLogger.logValidationSuccess("Meal")
         PersistenceLogger.logOperationStart("updateMeal", "id=${meal.id}")
         
-        return try {
+        return@withContext try {
             mealDao.updateMeal(meal.toEntity())
             // Invalidate both list and detail caches
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
@@ -246,10 +253,10 @@ class MealRepositoryImpl @Inject constructor(
      * @param mealId The ID of the meal to delete
      * @return Result indicating success or PersistenceError
      */
-    override suspend fun deleteMeal(mealId: Long): Result<Unit> {
+    override suspend fun deleteMeal(mealId: Long): Result<Unit> = withContext(ioDispatcher) {
         PersistenceLogger.logOperationStart("deleteMeal", "id=$mealId")
         
-        return try {
+        return@withContext try {
             mealDao.deleteMealById(mealId)
             // Invalidate both list and detail caches
             mealListCache.invalidate(MEAL_LIST_CACHE_KEY)
@@ -277,7 +284,7 @@ class MealRepositoryImpl @Inject constructor(
      * @param meals The list of meals to add
      * @return Result with list of IDs of newly created meals or PersistenceError
      */
-    override suspend fun addMeals(meals: List<Meal>): Result<List<Long>> {
+    override suspend fun addMeals(meals: List<Meal>): Result<List<Long>> = withContext(ioDispatcher) {
         PersistenceLogger.logValidationStart("Meal batch (${meals.size} items)")
         
         // Validate all meals first
@@ -295,13 +302,13 @@ class MealRepositoryImpl @Inject constructor(
         
         if (validationErrors.isNotEmpty()) {
             PersistenceLogger.logValidationFailure("Meal batch", validationErrors)
-            return Result.failure(PersistenceError.ValidationFailed(validationErrors))
+            return@withContext Result.failure(PersistenceError.ValidationFailed(validationErrors))
         }
         
         PersistenceLogger.logValidationSuccess("Meal batch")
         PersistenceLogger.logOperationStart("addMeals", "count=${meals.size}")
         
-        return try {
+        return@withContext try {
             val entities = meals.map { it.toEntity() }
             val ids = mealDao.insertMeals(entities)
             // Invalidate meal list cache since we added new meals
@@ -348,5 +355,6 @@ class MealRepositoryImpl @Inject constructor(
                 errorLogger.logError(e, "MealRepositoryImpl.getMealsPaginated", mapOf("limit" to limit, "offset" to offset))
                 emit(Result.failure(PersistenceError.QueryFailed("getMealsPaginated", e)))
             }
+            .flowOn(ioDispatcher) // Execute on IO dispatcher
     }
 }

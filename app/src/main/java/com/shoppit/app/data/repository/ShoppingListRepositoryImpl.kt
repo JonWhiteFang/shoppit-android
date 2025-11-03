@@ -4,6 +4,7 @@ import com.shoppit.app.data.error.PersistenceError
 import com.shoppit.app.data.local.dao.ShoppingListDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
+import com.shoppit.app.di.IoDispatcher
 import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.BudgetSummary
 import com.shoppit.app.domain.model.EntityType
@@ -11,6 +12,7 @@ import com.shoppit.app.domain.model.ShoppingListItem
 import com.shoppit.app.domain.model.SyncOperation
 import com.shoppit.app.domain.repository.ShoppingListRepository
 import com.shoppit.app.domain.repository.SyncEngine
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -20,7 +22,8 @@ import javax.inject.Inject
 class ShoppingListRepositoryImpl @Inject constructor(
     private val shoppingListDao: ShoppingListDao,
     private val syncEngine: SyncEngine,
-    private val errorLogger: ErrorLogger
+    private val errorLogger: ErrorLogger,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ShoppingListRepository {
     
     override fun getShoppingList(): Flow<Result<List<ShoppingListItem>>> {

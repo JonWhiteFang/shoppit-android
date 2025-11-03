@@ -4,8 +4,10 @@ import com.shoppit.app.data.error.PersistenceError
 import com.shoppit.app.data.local.dao.StoreSectionDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
+import com.shoppit.app.di.IoDispatcher
 import com.shoppit.app.domain.model.StoreSection
 import com.shoppit.app.domain.repository.StoreSectionRepository
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -15,7 +17,8 @@ import javax.inject.Inject
  * Implementation of StoreSectionRepository that manages store section configurations using Room database.
  */
 class StoreSectionRepositoryImpl @Inject constructor(
-    private val storeSectionDao: StoreSectionDao
+    private val storeSectionDao: StoreSectionDao,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : StoreSectionRepository {
     
     override fun getAllSections(): Flow<Result<List<StoreSection>>> {

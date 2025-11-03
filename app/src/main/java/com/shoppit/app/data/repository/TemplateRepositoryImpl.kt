@@ -5,10 +5,12 @@ import com.shoppit.app.data.local.dao.TemplateDao
 import com.shoppit.app.data.mapper.toDomainModel
 import com.shoppit.app.data.mapper.toEntity
 import com.shoppit.app.data.mapper.toTemplateItemEntities
+import com.shoppit.app.di.IoDispatcher
 import com.shoppit.app.domain.model.ShoppingListItem
 import com.shoppit.app.domain.model.ShoppingTemplate
 import com.shoppit.app.domain.model.TemplateItem
 import com.shoppit.app.domain.repository.TemplateRepository
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -20,7 +22,8 @@ import javax.inject.Inject
  * Handles template CRUD operations with transaction support for template and items.
  */
 class TemplateRepositoryImpl @Inject constructor(
-    private val templateDao: TemplateDao
+    private val templateDao: TemplateDao,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : TemplateRepository {
     
     override fun getAllTemplates(): Flow<Result<List<ShoppingTemplate>>> {

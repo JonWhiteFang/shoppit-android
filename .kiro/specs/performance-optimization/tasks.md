@@ -165,33 +165,33 @@
   - Test with slow network conditions
   - _Requirements: 9.5_
 
-- [ ] 6. Background Task Optimization
+- [x] 6. Background Task Optimization
   - Ensure all background operations use proper dispatchers
   - Optimize coroutine usage for non-blocking operations
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 6.1 Create dispatcher qualifier annotations
+- [x] 6.1 Create dispatcher qualifier annotations
   - Define @IoDispatcher, @DefaultDispatcher, @MainDispatcher annotations
   - Create DispatcherModule for Hilt injection
   - Update all repositories to inject dispatchers
   - Verify dispatcher usage with code review
   - _Requirements: 7.1, 7.4_
 
-- [ ] 6.2 Optimize repository coroutine usage
+- [x] 6.2 Optimize repository coroutine usage
   - Ensure all Flow operations use flowOn(ioDispatcher)
   - Use withContext for suspend functions
   - Verify no blocking operations on main thread
   - Add dispatcher tests
   - _Requirements: 7.1, 7.2_
 
-- [ ] 6.3 Add progress indicators for long operations
+- [x] 6.3 Add progress indicators for long operations
   - Show loading states during sync operations
   - Display progress for batch operations
   - Use SnackBar for background task completion
   - Test with simulated slow operations
   - _Requirements: 7.3_
 
-- [ ] 6.4 Implement error handling for background tasks
+- [x] 6.4 Implement error handling for background tasks
   - Catch exceptions in coroutine scopes
   - Update UI on main thread after errors
   - Log background task failures

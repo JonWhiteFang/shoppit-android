@@ -30,5 +30,28 @@ object DispatcherModule {
      */
     @Provides
     @Singleton
+    @IoDispatcher
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+    
+    /**
+     * Provides the Default dispatcher for CPU-intensive work.
+     * Use for data processing, computations, and other CPU-bound operations.
+     * 
+     * @return Default dispatcher
+     */
+    @Provides
+    @Singleton
+    @DefaultDispatcher
+    fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
+    
+    /**
+     * Provides the Main dispatcher for UI updates.
+     * Use for operations that must run on the main thread.
+     * 
+     * @return Main dispatcher
+     */
+    @Provides
+    @Singleton
+    @MainDispatcher
+    fun provideMainDispatcher(): CoroutineDispatcher = Dispatchers.Main
 }

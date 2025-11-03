@@ -4,9 +4,11 @@ import com.shoppit.app.data.error.PersistenceError
 import com.shoppit.app.data.local.dao.ItemHistoryDao
 import com.shoppit.app.data.local.entity.ItemHistoryEntity
 import com.shoppit.app.data.mapper.toDomainModel
+import com.shoppit.app.di.IoDispatcher
 import com.shoppit.app.domain.model.ItemHistory
 import com.shoppit.app.domain.model.ShoppingListItem
 import com.shoppit.app.domain.repository.ItemHistoryRepository
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -16,7 +18,8 @@ import javax.inject.Inject
  * Implementation of ItemHistoryRepository that manages purchase history using Room database.
  */
 class ItemHistoryRepositoryImpl @Inject constructor(
-    private val itemHistoryDao: ItemHistoryDao
+    private val itemHistoryDao: ItemHistoryDao,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) : ItemHistoryRepository {
     
     override fun getRecentHistory(limit: Int): Flow<Result<List<ItemHistory>>> {
