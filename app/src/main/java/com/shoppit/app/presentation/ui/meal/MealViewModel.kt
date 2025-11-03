@@ -56,17 +56,13 @@ class MealViewModel @Inject constructor(
     private val _errorEvent = MutableSharedFlow<ErrorEvent>()
     val errorEvent: SharedFlow<ErrorEvent> = _errorEvent
     
-    // Search query state
-    private val _searchQuery = MutableStateFlow(
-        savedStateHandle.get<String>(KEY_SEARCH_QUERY) ?: ""
-    )
-    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+    // Search query state - using SavedStateHandle.getStateFlow for automatic persistence
+    // Note: getStateFlow reads from SavedStateHandle on creation, ensuring state persistence
+    val searchQuery: StateFlow<String> = savedStateHandle.getStateFlow(KEY_SEARCH_QUERY, "")
     
-    // Selected tags state
-    private val _selectedTags = MutableStateFlow<Set<MealTag>>(
-        savedStateHandle.get<Set<MealTag>>(KEY_SELECTED_TAGS) ?: emptySet()
-    )
-    val selectedTags: StateFlow<Set<MealTag>> = _selectedTags.asStateFlow()
+    // Selected tags state - using SavedStateHandle.getStateFlow for automatic persistence  
+    // Note: getStateFlow reads from SavedStateHandle on creation, ensuring state persistence
+    val selectedTags: StateFlow<Set<MealTag>> = savedStateHandle.getStateFlow(KEY_SELECTED_TAGS, emptySet())
     
     // All meals from repository (unfiltered)
     private var allMeals: List<com.shoppit.app.domain.model.Meal> = emptyList()
@@ -137,11 +133,15 @@ class MealViewModel @Inject constructor(
 
     /**
      * Deletes a meal by its ID.
-     * On success, the meal list will automatically update via the Flow and emits success event.
+     * On success, reloads the meal list to reflect the deletion and emits success event.
      * On failure, updates the UI state to show an error, logs the error, and emits error event.
      *
      * Requirements:
      * - 1.1: Display user-friendly error messages
+     * - 5.1: Reload meal list after successful deletion
+     * - 5.2: Update UI state with new data
+     * - 5.3: Maintain search query and selected tags during reload
+     * - 5.4: Display error without corrupting state (search/filter state preserved)
      * - 9.2: Display success message on successful deletion
      * - 10.1: Log errors with context
      *
@@ -151,7 +151,10 @@ class MealViewModel @Inject constructor(
         viewModelScope.launch {
             deleteMealUseCase(mealId).fold(
                 onSuccess = {
-                    // Meal list updates automatically via Flow
+                    // Reload meals after successful deletion (Requirement 5.1)
+                    // This preserves search query and selected tags (Requirement 5.3)
+                    loadMeals()
+                    
                     // Emit success event (Requirement 9.2)
                     _errorEvent.emit(
                         ErrorEvent.Success("Meal deleted successfully")
@@ -165,7 +168,8 @@ class MealViewModel @Inject constructor(
                         additionalData = mapOf("mealId" to mealId.toString())
                     )
                     
-                    // Update UI state to error
+                    // Update UI state to error (Requirement 5.4)
+                    // Note: Search query and selected tags are preserved as separate state
                     _uiState.update { 
                         MealListUiState.Error(error.message ?: "Failed to delete meal")
                     }
@@ -183,22 +187,22 @@ class MealViewModel @Inject constructor(
      * Applies search and tag filters to the meal list.
      * Updates UI state with filtered results and counts.
      */
-    private fun applyFilters() {
-        val query = _searchQuery.value
-        val tags = _selectedTags.value
+    private fun applyFilters(query: String? = null, tags: Set<MealTag>? = null) {
+        val searchQueryValue = query ?: searchQuery.value
+        val selectedTagsValue = tags ?: selectedTags.value
         
         // Apply search filter
-        val searchFiltered = searchMealsUseCase(allMeals, query)
+        val searchFiltered = searchMealsUseCase(allMeals, searchQueryValue)
         
         // Apply tag filter
-        val tagFiltered = filterMealsByTagsUseCase(searchFiltered, tags)
+        val tagFiltered = filterMealsByTagsUseCase(searchFiltered, selectedTagsValue)
         
         _uiState.update { 
             MealListUiState.Success(
                 meals = tagFiltered,
                 totalCount = allMeals.size,
                 filteredCount = tagFiltered.size,
-                isFiltered = query.isNotBlank() || tags.isNotEmpty()
+                isFiltered = searchQueryValue.isNotBlank() || selectedTagsValue.isNotEmpty()
             )
         }
     }
@@ -206,28 +210,32 @@ class MealViewModel @Inject constructor(
     /**
      * Updates the search query and saves it to SavedStateHandle.
      * Applies filters to update the meal list.
+     * 
+     * Requirements:
+     * - 6.3: Update state in SavedStateHandle immediately when changed
      */
     fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
         savedStateHandle[KEY_SEARCH_QUERY] = query
-        applyFilters()
+        applyFilters(query = query)
     }
     
     /**
      * Toggles a tag in the selected tags set.
      * Adds the tag if not present, removes it if present.
      * Saves state and applies filters.
+     * 
+     * Requirements:
+     * - 6.3: Update state in SavedStateHandle immediately when changed
      */
     fun toggleTag(tag: MealTag) {
-        val currentTags = _selectedTags.value.toMutableSet()
+        val currentTags = selectedTags.value.toMutableSet()
         if (currentTags.contains(tag)) {
             currentTags.remove(tag)
         } else {
             currentTags.add(tag)
         }
-        _selectedTags.value = currentTags
         savedStateHandle[KEY_SELECTED_TAGS] = currentTags
-        applyFilters()
+        applyFilters(tags = currentTags)
     }
     
     /**
@@ -235,8 +243,6 @@ class MealViewModel @Inject constructor(
      * Resets state and applies filters to show all meals.
      */
     fun clearFilters() {
-        _searchQuery.value = ""
-        _selectedTags.value = emptySet()
         savedStateHandle[KEY_SEARCH_QUERY] = ""
         savedStateHandle[KEY_SELECTED_TAGS] = emptySet<MealTag>()
         applyFilters()

@@ -68,7 +68,7 @@ class MealPlannerViewModel @Inject constructor(
     val uiState: StateFlow<MealPlannerUiState> = _uiState.asStateFlow()
 
     // Error events for snackbar display (one-time events)
-    private val _errorEvent = MutableSharedFlow<ErrorEvent>()
+    private val _errorEvent = MutableSharedFlow<ErrorEvent>(replay = 1, extraBufferCapacity = 1)
     val errorEvent: SharedFlow<ErrorEvent> = _errorEvent.asSharedFlow()
 
     // Suggestion state management
@@ -187,6 +187,22 @@ class MealPlannerViewModel @Inject constructor(
      * Requirements: 1.1, 10.1-10.2
      */
     fun onSlotClick(date: LocalDate, mealType: MealType) {
+        // Get existing plan for this slot if any
+        val existingPlan = uiState.value.weekData?.plansByDate?.get(date)
+            ?.find { it.mealPlan.mealType == mealType }?.mealPlan
+        
+        // Set selected slot for meal selection
+        _uiState.update {
+            it.copy(
+                showMealSelection = true,
+                selectedSlot = MealSlot(
+                    date = date,
+                    mealType = mealType,
+                    existingPlan = existingPlan
+                )
+            )
+        }
+        
         // Show suggestions instead of meal selection dialog
         showSuggestions(date, mealType)
     }
