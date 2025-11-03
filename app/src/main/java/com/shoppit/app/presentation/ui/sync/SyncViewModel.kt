@@ -2,6 +2,8 @@ package com.shoppit.app.presentation.ui.sync
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.shoppit.app.domain.error.AppError
+import com.shoppit.app.domain.error.ErrorLogger
 import com.shoppit.app.domain.model.SyncStatus
 import com.shoppit.app.domain.repository.AuthRepository
 import com.shoppit.app.domain.repository.SyncEngine
@@ -18,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SyncViewModel @Inject constructor(
     private val syncEngine: SyncEngine,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val errorLogger: ErrorLogger
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SyncUiState())
@@ -111,25 +114,13 @@ class SyncViewModel @Inject constructor(
                         loadPendingChanges()
                     },
                     onFailure = { error ->
-                        Timber.e(error, "Manual sync failed")
-                        _uiState.update {
-                            it.copy(
-                                isSyncing = false,
-                                errorMessage = error.message ?: "Sync failed",
-                                showError = true
-                            )
-                        }
+                        errorLogger.logError(error, "SyncViewModel.triggerManualSync")
+                        handleSyncError(error)
                     }
                 )
             } catch (e: Exception) {
-                Timber.e(e, "Manual sync exception")
-                _uiState.update {
-                    it.copy(
-                        isSyncing = false,
-                        errorMessage = e.message ?: "Sync failed",
-                        showError = true
-                    )
-                }
+                errorLogger.logError(e, "SyncViewModel.triggerManualSync")
+                handleSyncError(e)
             }
         }
     }
@@ -147,6 +138,34 @@ class SyncViewModel @Inject constructor(
     fun dismissErrorMessage() {
         _uiState.update { it.copy(showError = false, errorMessage = null) }
     }
+
+    /**
+     * Handle sync errors with user-friendly messages.
+     * Network errors show "Using offline data" message.
+     * Other errors show specific error messages.
+     */
+    private fun handleSyncError(error: Throwable) {
+        val (errorMessage, isOfflineMode) = when (error) {
+            is AppError.NetworkError -> {
+                "Unable to sync. Using offline data." to true
+            }
+            is AppError.AuthenticationError -> {
+                "Authentication failed. Please sign in again." to false
+            }
+            else -> {
+                error.message ?: "Sync failed. Using offline data." to true
+            }
+        }
+
+        _uiState.update {
+            it.copy(
+                isSyncing = false,
+                errorMessage = errorMessage,
+                showError = true,
+                isOfflineMode = isOfflineMode
+            )
+        }
+    }
 }
 
 /**
@@ -161,5 +180,6 @@ data class SyncUiState(
     val errorMessage: String? = null,
     val showError: Boolean = false,
     val successMessage: String? = null,
-    val showSuccess: Boolean = false
+    val showSuccess: Boolean = false,
+    val isOfflineMode: Boolean = false
 )

@@ -251,14 +251,14 @@ This implementation plan breaks down the error handling and validation feature i
     - Test AppError instances include cause parameter
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 10.1_
 
-- [ ] 15. Implement offline error handling
-  - [ ] 15.1 Update SyncViewModel with offline error handling
+- [x] 15. Implement offline error handling
+  - [x] 15.1 Update SyncViewModel with offline error handling
     - Display user-friendly message when sync fails due to network
     - Show "Using offline data" message in snackbar
     - Continue displaying cached data on sync failure
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
   
-  - [ ] 15.2 Add network status indicator to main screens
+  - [x] 15.2 Add network status indicator to main screens
     - Show subtle indicator when app is offline
     - Update indicator when network status changes
     - _Requirements: 5.1, 5.2_

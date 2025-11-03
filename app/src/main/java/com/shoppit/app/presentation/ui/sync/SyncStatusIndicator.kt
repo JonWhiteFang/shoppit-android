@@ -92,21 +92,31 @@ fun SyncStatusIndicator(
                 }
             }
             
-            syncState.syncStatus == SyncStatus.OFFLINE -> {
+            syncState.syncStatus == SyncStatus.OFFLINE || syncState.isOfflineMode -> {
                 Icon(
                     imageVector = Icons.Default.CloudOff,
-                    contentDescription = "Offline",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    contentDescription = if (syncState.isOfflineMode) "Using offline data" else "Offline",
+                    tint = if (syncState.isOfflineMode) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
-                if (showText && syncState.pendingChangesCount > 0) {
-                    Text(
-                        text = "${syncState.pendingChangesCount} pending",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                if (showText) {
+                    if (syncState.isOfflineMode) {
+                        Text(
+                            text = "Offline mode",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    } else if (syncState.pendingChangesCount > 0) {
+                        Text(
+                            text = "${syncState.pendingChangesCount} pending",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
             
@@ -393,6 +403,7 @@ private fun getSyncStatusDescription(syncState: SyncUiState): String {
         syncState.syncStatus == SyncStatus.SUCCESS && syncState.lastSyncTime != null -> 
             "Synced ${formatSyncTime(syncState.lastSyncTime)}"
         syncState.syncStatus == SyncStatus.ERROR -> "Sync failed, tap to retry"
+        syncState.isOfflineMode -> "Using offline data due to network error"
         syncState.syncStatus == SyncStatus.OFFLINE && syncState.pendingChangesCount > 0 -> 
             "Offline with ${syncState.pendingChangesCount} pending changes"
         syncState.syncStatus == SyncStatus.IDLE && syncState.isAuthenticated -> 
