@@ -254,10 +254,14 @@ fun MealList(
             items = meals,
             key = { meal -> meal.id }
         ) { meal ->
+            // Remember callbacks to avoid recreating them on each recomposition
+            val onClickCallback = remember(meal.id) { { onMealClick(meal.id) } }
+            val onDeleteCallback = remember(meal.id) { { onDeleteMeal(meal.id) } }
+            
             MealCard(
                 meal = meal,
-                onClick = { onMealClick(meal.id) },
-                onDelete = { onDeleteMeal(meal.id) }
+                onClick = onClickCallback,
+                onDelete = onDeleteCallback
             )
         }
     }
@@ -286,10 +290,13 @@ fun MealCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     
+    // Remember the onClick callback to avoid recreating it
+    val onCardClick = remember(onClick) { onClick }
+    
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(onClick = onCardClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(

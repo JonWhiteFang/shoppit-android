@@ -63,7 +63,10 @@ fun WeekCalendarView(
         }
 
         // Meal type rows
-        items(MealType.entries.toTypedArray()) { mealType ->
+        items(
+            items = MealType.entries.toTypedArray(),
+            key = { mealType -> mealType.name }
+        ) { mealType ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly

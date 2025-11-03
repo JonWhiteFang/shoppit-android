@@ -275,7 +275,7 @@ fun AddEditMealContent(
             // Current ingredients list
             itemsIndexed(
                 items = uiState.meal.ingredients,
-                key = { index, _ -> index }
+                key = { index, ingredient -> "${ingredient.name}_${ingredient.quantity}_${ingredient.unit}_$index" }
             ) { index, ingredient ->
                 IngredientListItem(
                     ingredient = ingredient,

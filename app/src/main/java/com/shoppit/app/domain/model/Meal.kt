@@ -1,5 +1,7 @@
 package com.shoppit.app.domain.model
 
+import androidx.compose.runtime.Immutable
+
 /**
  * Domain model representing a meal with its ingredients.
  * Pure Kotlin data class with no Android dependencies.
@@ -12,6 +14,7 @@ package com.shoppit.app.domain.model
  * @property createdAt Timestamp when the meal was created
  * @property updatedAt Timestamp when the meal was last updated
  */
+@Immutable
 data class Meal(
     val id: Long = 0,
     val name: String,

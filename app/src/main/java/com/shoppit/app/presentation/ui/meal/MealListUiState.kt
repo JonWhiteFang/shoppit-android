@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.meal
 
+import androidx.compose.runtime.Stable
 import com.shoppit.app.domain.model.Meal
 
 /**
@@ -19,6 +20,7 @@ sealed interface MealListUiState {
      * @property filteredCount Number of meals after applying filters
      * @property isFiltered Whether any filters are currently active
      */
+    @Stable
     data class Success(
         val meals: List<Meal>,
         val totalCount: Int = meals.size,

@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.planner
 
+import androidx.compose.runtime.Stable
 import com.shoppit.app.domain.model.Meal
 import com.shoppit.app.domain.model.MealPlan
 import com.shoppit.app.domain.model.MealSuggestion
@@ -13,6 +14,7 @@ import java.time.LocalDate
  * UI state for the meal planner screen.
  * Manages weekly calendar view, meal selection, and user interactions.
  */
+@Stable
 data class MealPlannerUiState(
     val weekData: WeekPlanData? = null,
     val currentWeekStart: LocalDate = LocalDate.now().with(DayOfWeek.MONDAY),
@@ -27,6 +29,7 @@ data class MealPlannerUiState(
  * Represents a slot in the meal planner calendar.
  * Each slot corresponds to a specific date and meal type combination.
  */
+@Stable
 data class MealSlot(
     val date: LocalDate,
     val mealType: MealType,
@@ -54,6 +57,7 @@ sealed interface SuggestionUiState {
      * @property suggestions List of meal suggestions with scores
      * @property context The context used to generate these suggestions
      */
+    @Stable
     data class Success(
         val suggestions: List<MealSuggestion>,
         val context: SuggestionContext

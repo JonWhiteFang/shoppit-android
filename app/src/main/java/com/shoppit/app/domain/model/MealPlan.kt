@@ -1,5 +1,6 @@
 package com.shoppit.app.domain.model
 
+import androidx.compose.runtime.Immutable
 import java.time.LocalDate
 
 /**
@@ -13,6 +14,7 @@ import java.time.LocalDate
  * @property mealType The type of meal (breakfast, lunch, dinner, snack)
  * @property createdAt Timestamp when the meal plan was created
  */
+@Immutable
 data class MealPlan(
     val id: Long = 0,
     val mealId: Long,

@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.shopping
 
+import androidx.compose.runtime.Stable
 import com.shoppit.app.domain.model.IngredientSource
 import com.shoppit.app.domain.model.ItemCategory
 import com.shoppit.app.domain.model.ShoppingListData
@@ -18,6 +19,7 @@ sealed class ConfirmationAction {
  * UI state for the shopping list screen.
  * Contains all state needed to render the shopping list UI.
  */
+@Stable
 data class ShoppingListUiState(
     val shoppingListData: ShoppingListData? = null,
     val isLoading: Boolean = false,
