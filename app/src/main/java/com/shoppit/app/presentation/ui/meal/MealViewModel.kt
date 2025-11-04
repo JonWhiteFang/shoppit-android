@@ -66,6 +66,12 @@ class MealViewModel @Inject constructor(
     
     // All meals from repository (unfiltered)
     private var allMeals: List<com.shoppit.app.domain.model.Meal> = emptyList()
+    
+    // Filtered meals (after search and tag filters)
+    private var filteredMeals: List<com.shoppit.app.domain.model.Meal> = emptyList()
+    
+    // Current pagination state
+    private var paginationState = PaginationState()
 
     init {
         loadMeals()
@@ -186,8 +192,11 @@ class MealViewModel @Inject constructor(
     /**
      * Applies search and tag filters to the meal list.
      * Updates UI state with filtered results and counts.
+     * Supports pagination for large datasets.
+     * 
+     * Requirements: 5.5
      */
-    private fun applyFilters(query: String? = null, tags: Set<MealTag>? = null) {
+    private fun applyFilters(query: String? = null, tags: Set<MealTag>? = null, resetPagination: Boolean = true) {
         val searchQueryValue = query ?: searchQuery.value
         val selectedTagsValue = tags ?: selectedTags.value
         
@@ -195,14 +204,25 @@ class MealViewModel @Inject constructor(
         val searchFiltered = searchMealsUseCase(allMeals, searchQueryValue)
         
         // Apply tag filter
-        val tagFiltered = filterMealsByTagsUseCase(searchFiltered, selectedTagsValue)
+        filteredMeals = filterMealsByTagsUseCase(searchFiltered, selectedTagsValue)
+        
+        // Reset pagination when filters change
+        if (resetPagination) {
+            paginationState = PaginationState(
+                totalItems = filteredMeals.size
+            )
+        }
+        
+        // Get paginated meals
+        val paginatedMeals = filteredMeals.take(paginationState.loadedItemsCount)
         
         _uiState.update { 
             MealListUiState.Success(
-                meals = tagFiltered,
+                meals = paginatedMeals,
                 totalCount = allMeals.size,
-                filteredCount = tagFiltered.size,
-                isFiltered = searchQueryValue.isNotBlank() || selectedTagsValue.isNotEmpty()
+                filteredCount = filteredMeals.size,
+                isFiltered = searchQueryValue.isNotBlank() || selectedTagsValue.isNotEmpty(),
+                paginationState = paginationState
             )
         }
     }
@@ -246,6 +266,35 @@ class MealViewModel @Inject constructor(
         savedStateHandle[KEY_SEARCH_QUERY] = ""
         savedStateHandle[KEY_SELECTED_TAGS] = emptySet<MealTag>()
         applyFilters()
+    }
+    
+    /**
+     * Loads the next page of meals.
+     * Updates pagination state and applies filters without resetting pagination.
+     * 
+     * Requirements: 5.5
+     */
+    fun loadNextPage() {
+        if (!paginationState.hasMorePages || paginationState.isLoadingMore) {
+            return
+        }
+        
+        // Update pagination state to loading
+        paginationState = paginationState.copy(
+            isLoadingMore = true
+        )
+        
+        // Simulate async loading (in real scenario, this would be a suspend function)
+        viewModelScope.launch {
+            // Update pagination state with next page
+            paginationState = paginationState.copy(
+                currentPage = paginationState.currentPage + 1,
+                isLoadingMore = false
+            )
+            
+            // Apply filters without resetting pagination
+            applyFilters(resetPagination = false)
+        }
     }
     
     companion object {

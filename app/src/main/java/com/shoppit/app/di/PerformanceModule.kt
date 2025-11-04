@@ -2,6 +2,7 @@ package com.shoppit.app.di
 
 import com.shoppit.app.data.performance.EnhancedPerformanceMonitor
 import com.shoppit.app.data.performance.EnhancedPerformanceMonitorImpl
+import com.shoppit.app.data.performance.PerformanceLogger
 import com.shoppit.app.data.performance.PerformanceMonitor
 import com.shoppit.app.data.performance.PerformanceMonitorImpl
 import dagger.Binds
@@ -29,10 +30,9 @@ object PerformanceModule {
     @Provides
     @Singleton
     fun provideEnhancedPerformanceMonitor(
-        baseMonitor: PerformanceMonitorImpl,
-        logger: PerformanceLogger
+        baseMonitor: PerformanceMonitorImpl
     ): EnhancedPerformanceMonitor {
-        return EnhancedPerformanceMonitorImpl(baseMonitor, logger)
+        return EnhancedPerformanceMonitorImpl(baseMonitor, PerformanceLogger())
     }
 }
 

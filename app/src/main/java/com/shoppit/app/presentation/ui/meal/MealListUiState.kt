@@ -19,13 +19,15 @@ sealed interface MealListUiState {
      * @property totalCount Total number of meals in the library
      * @property filteredCount Number of meals after applying filters
      * @property isFiltered Whether any filters are currently active
+     * @property paginationState Pagination state for lazy loading
      */
     @Stable
     data class Success(
         val meals: List<Meal>,
         val totalCount: Int = meals.size,
         val filteredCount: Int = meals.size,
-        val isFiltered: Boolean = false
+        val isFiltered: Boolean = false,
+        val paginationState: PaginationState = PaginationState()
     ) : MealListUiState
     
     /**

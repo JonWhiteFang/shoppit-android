@@ -1,5 +1,6 @@
 package com.shoppit.app.presentation.ui.meal
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -44,8 +46,61 @@ import com.shoppit.app.domain.model.MealTag
 import com.shoppit.app.presentation.ui.common.EmptyState
 import com.shoppit.app.presentation.ui.common.ErrorScreen
 import com.shoppit.app.presentation.ui.common.ErrorSnackbarHandler
+import com.shoppit.app.presentation.ui.common.ListPerformanceMonitor
 import com.shoppit.app.presentation.ui.common.LoadingScreen
 import com.shoppit.app.presentation.ui.theme.ShoppitTheme
+
+/**
+ * Placeholder composable shown while loading items.
+ * Displays a skeleton card to indicate loading state.
+ * 
+ * Requirements: 5.5
+ */
+@Composable
+fun MealCardPlaceholder(
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Placeholder for meal name
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .padding(vertical = 8.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.small
+                        )
+                )
+                // Placeholder for ingredient count
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.4f)
+                        .padding(vertical = 4.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.small
+                        )
+                )
+            }
+        }
+    }
+}
 
 /**
  * Stateful composable for the meal list screen.
@@ -94,6 +149,7 @@ fun MealListScreen(
         onAddMealClick = onAddMealClick,
         onDeleteMeal = viewModel::deleteMeal,
         onRetry = viewModel::loadMeals,
+        onLoadMore = viewModel::loadNextPage,
         modifier = modifier
     )
 }
@@ -138,6 +194,7 @@ fun MealListContent(
     onAddMealClick: () -> Unit,
     onDeleteMeal: (Long) -> Unit,
     onRetry: () -> Unit,
+    onLoadMore: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     MealListKeyboardHandler(
@@ -203,8 +260,10 @@ fun MealListContent(
                             )
                             MealList(
                                 meals = uiState.meals,
+                                paginationState = uiState.paginationState,
                                 onMealClick = onMealClick,
-                                onDeleteMeal = onDeleteMeal
+                                onDeleteMeal = onDeleteMeal,
+                                onLoadMore = onLoadMore
                             )
                         }
                     }
@@ -223,26 +282,73 @@ fun MealListContent(
 }
 
 /**
- * Composable that displays a list of meals using LazyColumn.
+ * Composable that displays a list of meals using LazyColumn with pagination support.
  *
  * Requirements:
  * - 2.2: Display meals in list view
  * - 2.5: Handle meal click for navigation
+ * - 5.5: Implement lazy loading with pagination
  *
  * @param meals List of meals to display
+ * @param paginationState Current pagination state
  * @param onMealClick Callback when a meal is clicked
  * @param onDeleteMeal Callback when a meal is deleted
+ * @param onLoadMore Callback when more items should be loaded
  * @param modifier Optional modifier for the list
  */
 @Composable
 fun MealList(
     meals: List<Meal>,
+    paginationState: PaginationState,
     onMealClick: (Long) -> Unit,
     onDeleteMeal: (Long) -> Unit,
+    onLoadMore: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     // Requirement 6.1: Preserve scroll position across navigation
     val listState = rememberLazyListState()
+    
+    // Requirements: 2.1, 2.2 - Monitor list performance
+    ListPerformanceMonitor(
+        listState = listState,
+        listName = "MealList",
+        enabled = com.shoppit.app.BuildConfig.DEBUG
+    )
+    
+    // Remember prefetch state to avoid unnecessary recompositions
+    val prefetchTriggered = remember { mutableStateOf(false) }
+    
+    // Detect when user scrolls near the end and trigger load more
+    // Requirements: 5.5 - Prefetch next page before scroll end
+    LaunchedEffect(listState, paginationState.hasMorePages, paginationState.isLoadingMore) {
+        snapshotFlow { 
+            val layoutInfo = listState.layoutInfo
+            val lastVisibleIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = layoutInfo.totalItemsCount
+            Pair(lastVisibleIndex, totalItems)
+        }
+            .collect { (lastVisibleIndex, totalItems) ->
+                val threshold = totalItems - PaginationState.PREFETCH_THRESHOLD
+                
+                // Trigger prefetch when:
+                // 1. User scrolled past threshold
+                // 2. There are more pages to load
+                // 3. Not currently loading
+                // 4. Haven't already triggered prefetch for this page
+                if (lastVisibleIndex >= threshold && 
+                    paginationState.hasMorePages && 
+                    !paginationState.isLoadingMore &&
+                    !prefetchTriggered.value) {
+                    prefetchTriggered.value = true
+                    onLoadMore()
+                }
+                
+                // Reset prefetch trigger when loading completes
+                if (!paginationState.isLoadingMore && prefetchTriggered.value) {
+                    prefetchTriggered.value = false
+                }
+            }
+    }
     
     LazyColumn(
         state = listState,
@@ -264,16 +370,39 @@ fun MealList(
                 onDelete = onDeleteCallback
             )
         }
+        
+        // Show loading indicator at the bottom when loading more
+        if (paginationState.isLoadingMore) {
+            item(key = "loading_more") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                }
+            }
+        }
+        
+        // Show placeholder items when loading initial page
+        if (meals.isEmpty() && paginationState.isLoadingMore) {
+            items(5, key = { "placeholder_$it" }) {
+                MealCardPlaceholder()
+            }
+        }
     }
 }
 
 /**
  * Composable that displays a single meal card with swipe-to-delete functionality.
+ * Optimized for minimal recomposition.
  *
  * Requirements:
  * - 2.3: Display meal name and ingredient count
  * - 2.5: Handle click for navigation
  * - 5.1: Display confirmation dialog before deletion
+ * - 5.3: Minimize composable complexity
  * - 5.4: Cancel deletion when user dismisses dialog
  *
  * @param meal The meal to display
@@ -290,13 +419,10 @@ fun MealCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     
-    // Remember the onClick callback to avoid recreating it
-    val onCardClick = remember(onClick) { onClick }
-    
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onCardClick),
+            .clickable(onClick = onClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -306,6 +432,7 @@ fun MealCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Use extracted component for meal content
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -313,13 +440,11 @@ fun MealCard(
                 Text(
                     text = meal.name,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
-                Text(
-                    text = "${meal.ingredients.size} ingredient${if (meal.ingredients.size != 1) "s" else ""}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                IngredientCountText(count = meal.ingredients.size)
             }
             
             androidx.compose.material3.IconButton(
@@ -402,7 +527,9 @@ private fun MealListContentLoadingPreview() {
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {},
-            onRetry = {}
+            onRetry = {},
+            onLoadMore = {},
+            onLoadMore = {}
         )
     }
 }
@@ -518,7 +645,8 @@ private fun MealListContentWithFiltersPreview() {
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {},
-            onRetry = {}
+            onRetry = {},
+            onLoadMore = {}
         )
     }
 }
@@ -543,7 +671,8 @@ private fun MealListContentNoResultsPreview() {
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {},
-            onRetry = {}
+            onRetry = {},
+            onLoadMore = {}
         )
     }
 }
