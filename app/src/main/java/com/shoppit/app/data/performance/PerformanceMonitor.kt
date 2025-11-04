@@ -117,6 +117,36 @@ interface PerformanceMonitor {
      * Requirements: 9.1, 10.2
      */
     fun getSlowNavigations(threshold: Long = 100): List<NavigationMetrics>
+    
+    /**
+     * Tracks UI frame rendering time.
+     * 
+     * @param screenName The name of the screen being rendered
+     * @param frameTime The frame rendering duration in milliseconds
+     * 
+     * Requirements: 2.5, 10.1, 10.4
+     */
+    fun trackFrameTime(screenName: String, frameTime: Long)
+    
+    /**
+     * Gets frame drop statistics for a specific screen.
+     * 
+     * @param screenName The name of the screen (null for all screens)
+     * @return Frame drop statistics
+     * 
+     * Requirements: 2.5, 10.4
+     */
+    fun getFrameDropStats(screenName: String? = null): FrameDropStats
+    
+    /**
+     * Gets slow frames exceeding threshold.
+     * 
+     * @param threshold The minimum frame time in milliseconds (default: 16.67ms for 60 FPS)
+     * @return List of slow frame metrics
+     * 
+     * Requirements: 2.5, 10.4
+     */
+    fun getSlowFrames(threshold: Double = 16.67): List<FrameMetrics>
 }
 
 /**
@@ -178,4 +208,40 @@ data class NavigationMetrics(
     val lastTransition: Long,
     val minDuration: Long,
     val maxDuration: Long
+)
+
+/**
+ * Statistics for frame drops and rendering performance.
+ *
+ * @property totalFrames Total number of frames rendered
+ * @property droppedFrames Number of frames that exceeded 16.67ms (60 FPS target)
+ * @property avgFrameTime Average frame rendering time in milliseconds
+ * @property maxFrameTime Maximum frame rendering time in milliseconds
+ * @property frameDropRate Percentage of dropped frames (0.0 to 1.0)
+ * 
+ * Requirements: 2.5, 10.4
+ */
+data class FrameDropStats(
+    val totalFrames: Int,
+    val droppedFrames: Int,
+    val avgFrameTime: Double,
+    val maxFrameTime: Long,
+    val frameDropRate: Double
+)
+
+/**
+ * Metrics for individual frame rendering.
+ *
+ * @property screenName Name of the screen being rendered
+ * @property frameTime Frame rendering duration in milliseconds
+ * @property timestamp When the frame was rendered
+ * @property isDropped Whether this frame exceeded the 16.67ms threshold
+ * 
+ * Requirements: 2.5, 10.4
+ */
+data class FrameMetrics(
+    val screenName: String,
+    val frameTime: Long,
+    val timestamp: Long,
+    val isDropped: Boolean
 )

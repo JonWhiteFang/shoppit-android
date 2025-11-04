@@ -20,6 +20,8 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
         private const val WARNING_QUERY_THRESHOLD = 50L // milliseconds
         private const val SLOW_NAVIGATION_THRESHOLD = 100L // milliseconds (Requirement 9.1)
         private const val TARGET_NAVIGATION_TIME = 100L // milliseconds (Requirement 9.1)
+        private const val TARGET_FRAME_TIME = 16.67 // milliseconds (60 FPS target, Requirement 2.5)
+        private const val MAX_FRAME_HISTORY = 1000 // Keep last 1000 frames
     }
     
     // Query tracking
@@ -28,6 +30,11 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
     
     // Navigation tracking (Requirement 9.4, 10.2)
     private val navigationMetrics = ConcurrentHashMap<String, MutableNavigationMetrics>()
+    
+    // Frame tracking (Requirement 2.5, 10.1, 10.4)
+    private val frameMetrics = ConcurrentHashMap<String, MutableFrameMetrics>()
+    private val frameHistory = mutableListOf<FrameMetrics>()
+    private val frameHistoryLock = Any()
     
     // Cache tracking
     private val cacheHits = AtomicInteger(0)
@@ -93,6 +100,11 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
     override fun reset() {
         queryMetrics.clear()
         transactionMetrics.clear()
+        navigationMetrics.clear()
+        frameMetrics.clear()
+        synchronized(frameHistoryLock) {
+            frameHistory.clear()
+        }
         cacheHits.set(0)
         cacheMisses.set(0)
         latestMemoryMetrics = null
@@ -185,6 +197,73 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
             .filter { it.avgDuration >= threshold }
             .map { it.toNavigationMetrics() }
             .sortedByDescending { it.avgDuration }
+    }
+    
+    override fun trackFrameTime(screenName: String, frameTime: Long) {
+        val metrics = frameMetrics.getOrPut(screenName) { MutableFrameMetrics(screenName) }
+        metrics.addFrame(frameTime)
+        
+        val isDropped = frameTime > TARGET_FRAME_TIME
+        
+        // Add to frame history
+        synchronized(frameHistoryLock) {
+            frameHistory.add(
+                FrameMetrics(
+                    screenName = screenName,
+                    frameTime = frameTime,
+                    timestamp = System.currentTimeMillis(),
+                    isDropped = isDropped
+                )
+            )
+            
+            // Keep only last MAX_FRAME_HISTORY frames
+            if (frameHistory.size > MAX_FRAME_HISTORY) {
+                frameHistory.removeAt(0)
+            }
+        }
+        
+        // Log slow frames (Requirement 2.5)
+        if (isDropped) {
+            Timber.w("Slow frame detected on $screenName: ${frameTime}ms (target: ${TARGET_FRAME_TIME}ms)")
+        }
+    }
+    
+    override fun getFrameDropStats(screenName: String?): FrameDropStats {
+        val relevantMetrics = if (screenName != null) {
+            frameMetrics[screenName]?.let { listOf(it) } ?: emptyList()
+        } else {
+            frameMetrics.values.toList()
+        }
+        
+        if (relevantMetrics.isEmpty()) {
+            return FrameDropStats(
+                totalFrames = 0,
+                droppedFrames = 0,
+                avgFrameTime = 0.0,
+                maxFrameTime = 0,
+                frameDropRate = 0.0
+            )
+        }
+        
+        val totalFrames = relevantMetrics.sumOf { it.frameCount }
+        val droppedFrames = relevantMetrics.sumOf { it.droppedFrameCount }
+        val avgFrameTime = relevantMetrics.map { it.avgFrameTime }.average()
+        val maxFrameTime = relevantMetrics.maxOf { it.maxFrameTime }
+        val frameDropRate = if (totalFrames > 0) droppedFrames.toDouble() / totalFrames else 0.0
+        
+        return FrameDropStats(
+            totalFrames = totalFrames,
+            droppedFrames = droppedFrames,
+            avgFrameTime = avgFrameTime,
+            maxFrameTime = maxFrameTime,
+            frameDropRate = frameDropRate
+        )
+    }
+    
+    override fun getSlowFrames(threshold: Double): List<FrameMetrics> {
+        return synchronized(frameHistoryLock) {
+            frameHistory.filter { it.frameTime > threshold }.toList()
+        }
     }
     
     /**
@@ -283,6 +362,44 @@ class PerformanceMonitorImpl @Inject constructor() : PerformanceMonitor {
                 minDuration = _minDuration.get().let { if (it == Long.MAX_VALUE) 0 else it },
                 maxDuration = _maxDuration.get()
             )
+        }
+    }
+    
+    /**
+     * Mutable metrics for tracking frame rendering performance.
+     * Thread-safe using atomic operations.
+     * 
+     * Requirements: 2.5, 10.1, 10.4
+     */
+    private class MutableFrameMetrics(val screenName: String) {
+        private val totalFrameTime = AtomicLong(0)
+        private val _frameCount = AtomicInteger(0)
+        private val _droppedFrameCount = AtomicInteger(0)
+        private val _maxFrameTime = AtomicLong(0)
+        
+        val frameCount: Int get() = _frameCount.get()
+        val droppedFrameCount: Int get() = _droppedFrameCount.get()
+        val avgFrameTime: Double get() {
+            val count = frameCount
+            return if (count > 0) totalFrameTime.get().toDouble() / count else 0.0
+        }
+        val maxFrameTime: Long get() = _maxFrameTime.get()
+        
+        fun addFrame(frameTime: Long) {
+            totalFrameTime.addAndGet(frameTime)
+            _frameCount.incrementAndGet()
+            
+            // Track dropped frames (exceeding 16.67ms for 60 FPS)
+            if (frameTime > TARGET_FRAME_TIME) {
+                _droppedFrameCount.incrementAndGet()
+            }
+            
+            // Update max
+            var currentMax = _maxFrameTime.get()
+            while (frameTime > currentMax) {
+                if (_maxFrameTime.compareAndSet(currentMax, frameTime)) break
+                currentMax = _maxFrameTime.get()
+            }
         }
     }
 }
