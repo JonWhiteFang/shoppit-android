@@ -46,14 +46,14 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [ ] 2. Implement file scanning and parsing infrastructure
+- [x] 2. Implement file scanning and parsing infrastructure
   - Implement FileScanner to discover Kotlin files
   - Add .gitignore pattern support
   - Add layer detection logic (Data/Domain/UI)
   - Integrate Kotlin PSI parser
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2.1 Implement FileScanner
+- [x] 2.1 Implement FileScanner
   - Create `FileScannerImpl` class
   - Implement recursive directory scanning
   - Add file filtering based on extensions (.kt, .kts)
@@ -61,14 +61,14 @@ The implementation follows a bottom-up approach:
   - Add layer detection based on package structure
   - _Requirements: 1.1, 1.2, 1.3, 1.5_
 
-- [ ] 2.2 Add Kotlin PSI parsing
+- [x] 2.2 Add Kotlin PSI parsing
   - Add Kotlin compiler dependency to build.gradle.kts
   - Create `KotlinParser` utility class
   - Implement file parsing to KtFile AST
   - Add error handling for parse failures
   - _Requirements: 1.2, 1.4_
 
-- [ ] 2.3 Write tests for file scanning
+- [x] 2.3 Write tests for file scanning
   - Create test fixtures with sample Kotlin files
   - Test directory scanning
   - Test file filtering

@@ -134,6 +134,9 @@ dependencies {
     // Logging
     implementation(libs.timber)
     
+    // Kotlin Compiler for PSI parsing
+    implementation(libs.kotlin.compiler.embeddable)
+    
     // Security
     implementation(libs.security.crypto)
     implementation(libs.work.runtime)

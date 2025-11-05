@@ -20,6 +20,7 @@ work = "2.9.0"
 datastore = "1.0.0"
 robolectric = "4.11.1"
 benchmark = "1.2.4"
+kotlin-compiler = "2.1.0"
 
 [libraries]
 # Compose
@@ -87,6 +88,9 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 
 # Robolectric
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+
+# Kotlin Compiler (for PSI parsing)
+kotlin-compiler-embeddable = { group = "org.jetbrains.kotlin", name = "kotlin-compiler-embeddable", version.ref = "kotlin-compiler" }
 
 # Benchmark
 benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }

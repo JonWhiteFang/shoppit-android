@@ -17,6 +17,34 @@
 
 ## Recent Scans
 
+### November 5, 2025 - Task 2: File Scanning and Parsing Infrastructure
+**Scan Type:** SAST  
+**Scope:** `app/src/main/java/com/shoppit/app/analysis`  
+**Result:** ✅ No issues found  
+**Files Created:**
+- `FileScannerImpl.kt` - Implementation of file scanning with recursive directory traversal
+- `KotlinParser.kt` - Kotlin PSI parser for AST generation
+- `FileScannerImplTest.kt` - Comprehensive unit tests for file scanner
+
+**Dependencies Added:**
+- `kotlin-compiler-embeddable:2.1.0` - For Kotlin PSI parsing
+
+**Changes:**
+- Implemented FileScannerImpl with recursive directory scanning
+- Added support for .kt and .kts file extensions
+- Implemented exclusion pattern matching (build/, .gradle/, generated/)
+- Added layer detection based on package structure (DATA, DOMAIN, UI, DI, TEST)
+- Created KotlinParser utility for parsing Kotlin files into AST
+- Added comprehensive error handling for parse failures
+- Created 20+ unit tests covering all scanner functionality
+
+**Requirements Satisfied:**
+- 1.1: Systematic file analysis with recursive scanning
+- 1.2: File parsing with Kotlin PSI
+- 1.3: Exclusion pattern support
+- 1.4: Error handling for parse failures
+- 1.5: Layer detection logic
+
 ### November 5, 2025 - Task 1: Code Quality Analysis - Project Structure Setup
 **Scan Type:** SAST  
 **Scope:** `app/src/main/java/com/shoppit/app/analysis`  
