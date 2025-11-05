@@ -528,7 +528,6 @@ private fun MealListContentLoadingPreview() {
             onAddMealClick = {},
             onDeleteMeal = {},
             onRetry = {},
-            onLoadMore = {},
             onLoadMore = {}
         )
     }
@@ -549,7 +548,8 @@ private fun MealListContentEmptyPreview() {
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {},
-            onRetry = {}
+            onRetry = {},
+            onLoadMore = {}
         )
     }
 }
@@ -592,7 +592,8 @@ private fun MealListContentSuccessPreview() {
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {},
-            onRetry = {}
+            onRetry = {},
+            onLoadMore = {}
         )
     }
 }
@@ -612,7 +613,8 @@ private fun MealListContentErrorPreview() {
             onMealClick = {},
             onAddMealClick = {},
             onDeleteMeal = {},
-            onRetry = {}
+            onRetry = {},
+            onLoadMore = {}
         )
     }
 }

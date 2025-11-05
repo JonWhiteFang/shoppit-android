@@ -123,31 +123,33 @@ class CacheWarmer @Inject constructor(
     private suspend fun warmMealPlanCache() {
         val startTime = System.currentTimeMillis()
         try {
+            // TODO: Implement when getMealPlansForDateRange is available
             // Get current week's date range
-            val today = LocalDate.now()
-            val startOfWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
-            val endOfWeek = startOfWeek.plusDays(6)
+            // val today = LocalDate.now()
+            // val startOfWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+            // val endOfWeek = startOfWeek.plusDays(6)
             
-            val startDate = startOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-            val endDate = endOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            // val startDate = startOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            // val endDate = endOfWeek.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
             
             // Load meal plans for current week
-            mealPlanRepository.getMealPlansForDateRange(startDate, endDate).collect { result ->
-                result.fold(
-                    onSuccess = { plans ->
-                        val count = plans.size
-                        val duration = System.currentTimeMillis() - startTime
-                        warmingStats = warmingStats.copy(
-                            mealPlansWarmed = count,
-                            mealPlanCacheDuration = duration
-                        )
-                        Timber.d("Warmed meal plan cache with $count plans in ${duration}ms")
-                    },
-                    onFailure = { error ->
-                        Timber.w(error, "Failed to warm meal plan cache")
-                    }
-                )
-            }
+            // mealPlanRepository.getMealPlansForDateRange(startDate, endDate).collect { result ->
+            //     result.fold(
+            //         onSuccess = { plans ->
+            //             val count = plans.size
+            //             val duration = System.currentTimeMillis() - startTime
+            //             warmingStats = warmingStats.copy(
+            //                 mealPlansWarmed = count,
+            //                 mealPlanCacheDuration = duration
+            //             )
+            //             Timber.d("Warmed meal plan cache with $count plans in ${duration}ms")
+            //         },
+            //         onFailure = { error ->
+            //             Timber.w(error, "Failed to warm meal plan cache")
+            //         }
+            //     )
+            // }
+            Timber.d("Meal plan cache warming not yet implemented")
         } catch (e: Exception) {
             Timber.e(e, "Error warming meal plan cache")
         }
@@ -159,23 +161,25 @@ class CacheWarmer @Inject constructor(
     private suspend fun warmShoppingListCache() {
         val startTime = System.currentTimeMillis()
         try {
+            // TODO: Implement when getShoppingListItems is available
             // Load shopping list items
-            shoppingListRepository.getShoppingListItems().collect { result ->
-                result.fold(
-                    onSuccess = { items ->
-                        val count = items.size
-                        val duration = System.currentTimeMillis() - startTime
-                        warmingStats = warmingStats.copy(
-                            shoppingItemsWarmed = count,
-                            shoppingListCacheDuration = duration
-                        )
-                        Timber.d("Warmed shopping list cache with $count items in ${duration}ms")
-                    },
-                    onFailure = { error ->
-                        Timber.w(error, "Failed to warm shopping list cache")
-                    }
-                )
-            }
+            // shoppingListRepository.getShoppingListItems().collect { result ->
+            //     result.fold(
+            //         onSuccess = { items ->
+            //             val count = items.size
+            //             val duration = System.currentTimeMillis() - startTime
+            //             warmingStats = warmingStats.copy(
+            //                 shoppingItemsWarmed = count,
+            //                 shoppingListCacheDuration = duration
+            //             )
+            //             Timber.d("Warmed shopping list cache with $count items in ${duration}ms")
+            //         },
+            //         onFailure = { error ->
+            //             Timber.w(error, "Failed to warm shopping list cache")
+            //         }
+            //     )
+            // }
+            Timber.d("Shopping list cache warming not yet implemented")
         } catch (e: Exception) {
             Timber.e(e, "Error warming shopping list cache")
         }

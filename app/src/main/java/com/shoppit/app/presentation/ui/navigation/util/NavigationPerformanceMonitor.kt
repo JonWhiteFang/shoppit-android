@@ -29,6 +29,7 @@ class NavigationPerformanceMonitor @Inject constructor(
     companion object {
         private const val TARGET_TRANSITION_TIME_MS = 100L // Updated from 300ms to 100ms (Requirement 9.1)
         private const val SLOW_TRANSITION_THRESHOLD_MS = 100L // Requirement 9.1
+        private const val MAX_HISTORY_SIZE = 50
     }
     
     private val _metrics = MutableStateFlow<NavigationMetrics>(NavigationMetrics())
@@ -36,7 +37,6 @@ class NavigationPerformanceMonitor @Inject constructor(
     
     private val navigationTimings = mutableMapOf<String, NavigationTiming>()
     private val transitionHistory = mutableListOf<TransitionRecord>()
-    private const val MAX_HISTORY_SIZE = 50
     
     /**
      * Starts timing a navigation transition.

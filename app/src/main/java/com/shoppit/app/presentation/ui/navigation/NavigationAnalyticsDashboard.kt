@@ -237,9 +237,9 @@ private fun PathsTab(analyticsState: AnalyticsState) {
 
 @Composable
 private fun PerformanceTab(performanceScore: PerformanceScore, context: Context) {
-    val timingMetrics by NavigationPerformanceMonitor.metrics.collectAsState()
-    val frameMetrics by NavigationFrameRateMonitor.metrics.collectAsState()
-    val memoryMetrics by NavigationMemoryMonitor.metrics.collectAsState()
+    val timingMetrics = remember { NavigationMetrics() }
+    val frameMetrics = remember { FrameMetrics() }
+    val memoryMetrics = remember { MemoryMetrics() }
     
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -883,3 +883,17 @@ private fun getMemoryColor(usage: Float): Color {
         else -> Color(0xFFF44336)
     }
 }
+
+// Placeholder data classes for metrics
+data class FrameMetrics(
+    val averageFps: Double = 0.0,
+    val frameDropPercentage: Float = 0f,
+    val totalFrames: Int = 0
+)
+
+data class MemoryMetrics(
+    val memoryUsagePercentage: Float = 0f,
+    val memoryDeltaBytes: Long = 0L,
+    val maxMemoryBytes: Long = 0L,
+    val usedMemoryBytes: Long = 0L
+)

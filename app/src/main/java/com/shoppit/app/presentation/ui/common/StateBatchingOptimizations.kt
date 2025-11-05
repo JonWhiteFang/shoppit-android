@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * State batching optimizations for performance (Task 7.4).
@@ -181,7 +183,7 @@ class StateBatcher<T>(
 class DebouncedStateFlow<T>(
     initialValue: T,
     private val delayMillis: Long = 300,
-    private val scope: kotlinx.coroutines.CoroutineScope,
+    private val scope: CoroutineScope,
     private val onDebounced: suspend (T) -> Unit
 ) {
     private val _state = MutableStateFlow(initialValue)
@@ -194,7 +196,7 @@ class DebouncedStateFlow<T>(
         }
     
     init {
-        scope.kotlinx.coroutines.launch {
+        scope.launch {
             _state
                 .debounce(delayMillis)
                 .distinctUntilChanged()
