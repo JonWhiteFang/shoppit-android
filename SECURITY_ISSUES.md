@@ -17,6 +17,33 @@
 
 ## Recent Scans
 
+### November 5, 2025 - Task 11: Naming Analyzer Implementation
+**Scan Type:** SAST  
+**Scope:** `app/src/main/java/com/shoppit/app/analysis`  
+**Result:** ✅ No issues found  
+**Files Created:**
+- `NamingAnalyzer.kt` - Analyzer for validating naming conventions
+- `NamingAnalyzerTest.kt` - Comprehensive unit tests for naming validation
+
+**Changes:**
+- Implemented NamingAnalyzer with naming convention validation
+- Added file naming validation (PascalCase for Kotlin files)
+- Added class naming validation (PascalCase for classes, interfaces, objects)
+- Added function naming validation (camelCase with special handling for operators and test functions)
+- Added constant naming validation (UPPER_SNAKE_CASE for const val and companion object val)
+- Added private mutable state validation (underscore prefix for MutableStateFlow, MutableSharedFlow, mutableStateOf)
+- Implemented helper functions for case checking (isPascalCase, isCamelCase, isUpperSnakeCase)
+- Implemented case conversion functions (toPascalCase, toCamelCase, toUpperSnakeCase)
+- Created 40+ comprehensive unit tests covering all validation scenarios
+- All findings include detailed recommendations, before/after examples, and references
+
+**Requirements Satisfied:**
+- 10.1: Verify files follow project naming conventions
+- 10.2: Verify classes use PascalCase naming
+- 10.3: Verify functions use camelCase naming
+- 10.4: Verify constants use UPPER_SNAKE_CASE naming
+- 10.5: Verify private mutable state uses underscore prefix
+
 ### November 5, 2025 - Task 10: Performance Analyzer Implementation
 **Scan Type:** SAST  
 **Scope:** `app/src/main/java/com/shoppit/app/analysis`  
