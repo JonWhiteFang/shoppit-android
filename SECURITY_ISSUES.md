@@ -17,6 +17,35 @@
 
 ## Recent Scans
 
+### November 5, 2025 - Task 3: Code Smell Analyzer Implementation
+**Scan Type:** SAST  
+**Scope:** `app/src/main/java/com/shoppit/app/analysis`  
+**Result:** ✅ No issues found  
+**Files Created:**
+- `CodeSmellAnalyzer.kt` - Analyzer for detecting code smells and anti-patterns
+- `CodeSmellAnalyzerTest.kt` - Comprehensive unit tests for code smell detection
+
+**Changes:**
+- Implemented CodeSmellAnalyzer with Kotlin PSI AST traversal
+- Added detection for long functions (> 50 lines)
+- Added detection for large classes (> 300 lines)
+- Added detection for high cyclomatic complexity (> 15)
+- Added detection for deep nesting (> 4 levels)
+- Added detection for too many parameters (> 5)
+- Implemented cyclomatic complexity calculation algorithm
+- Implemented nesting depth calculation algorithm
+- Created 20+ comprehensive unit tests covering all detection scenarios
+- All findings include detailed recommendations, before/after examples, and references
+
+**Requirements Satisfied:**
+- 2.1: Long function detection
+- 2.2: Large class detection
+- 2.3: Too many parameters detection
+- 2.4: Cyclomatic complexity calculation
+- 2.5: Deep nesting detection
+- 2.6: Code smell reporting with recommendations
+- 2.7: Actionable findings with code examples
+
 ### November 5, 2025 - Task 2: File Scanning and Parsing Infrastructure
 **Scan Type:** SAST  
 **Scope:** `app/src/main/java/com/shoppit/app/analysis`  
