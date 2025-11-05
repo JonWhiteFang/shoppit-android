@@ -24,6 +24,12 @@ android {
     }
 
     buildTypes {
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            isDebuggable = false
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -134,6 +140,9 @@ dependencies {
     
     // DataStore
     implementation(libs.datastore.preferences)
+    
+    // Profile installer for benchmarking
+    implementation(libs.profileinstaller)
     
     // Testing
     testImplementation(libs.junit)

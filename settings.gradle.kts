@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Shoppit"
 include(":app")
+include(":macrobenchmark")
