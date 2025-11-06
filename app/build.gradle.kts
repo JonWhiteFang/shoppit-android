@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -91,6 +92,16 @@ ksp {
     arg("room.expandProjection", "true")
 }
 
+// Detekt configuration
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+    config.setFrom("$projectDir/detekt-config.yml")
+    baseline = file("$projectDir/detekt-baseline.xml")
+    parallel = true
+    ignoreFailures = false
+}
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core)
@@ -164,4 +175,8 @@ dependencies {
     // Debug
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
+    
+    // Detekt
+    detektPlugins(libs.detekt.formatting)
+    detektPlugins(libs.detekt.compose)
 }

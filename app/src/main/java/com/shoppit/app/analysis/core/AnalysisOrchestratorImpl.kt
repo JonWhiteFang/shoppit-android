@@ -29,7 +29,9 @@ class AnalysisOrchestratorImpl(
     private val resultAggregator: ResultAggregator,
     private val reportGenerator: ReportGenerator,
     private val baselineManager: BaselineManager,
-    private val projectRoot: String = "app/src/main/java"
+    private val detektIntegration: DetektIntegration,
+    private val projectRoot: String = "app/src/main/java",
+    private val enableDetekt: Boolean = true
 ) : AnalysisOrchestrator {
     
     /**
@@ -76,8 +78,18 @@ class AnalysisOrchestratorImpl(
                 // Run all analyzers
                 val findings = analyzeFiles(filteredFiles, analyzerRegistry.values.toList())
                 
+                // Run Detekt if enabled
+                val detektFindings = if (enableDetekt) {
+                    runDetektAnalysis(listOf(projectRoot))
+                } else {
+                    emptyList()
+                }
+                
+                // Combine findings
+                val allFindings = findings + detektFindings
+                
                 // Aggregate results
-                val aggregatedResult = resultAggregator.aggregate(findings)
+                val aggregatedResult = resultAggregator.aggregate(allFindings)
                 
                 // Generate report
                 val baseline = baselineManager.loadBaseline()
@@ -160,8 +172,18 @@ class AnalysisOrchestratorImpl(
                 // Run all analyzers
                 val findings = analyzeFiles(filteredFiles, analyzerRegistry.values.toList())
                 
+                // Run Detekt if enabled (on specified paths)
+                val detektFindings = if (enableDetekt) {
+                    runDetektAnalysis(paths)
+                } else {
+                    emptyList()
+                }
+                
+                // Combine findings
+                val allFindings = findings + detektFindings
+                
                 // Aggregate results
-                val aggregatedResult = resultAggregator.aggregate(findings)
+                val aggregatedResult = resultAggregator.aggregate(allFindings)
                 
                 // Generate report (without baseline comparison for incremental)
                 val report = reportGenerator.generate(aggregatedResult, null)
@@ -261,8 +283,18 @@ class AnalysisOrchestratorImpl(
                 // Run selected analyzers
                 val findings = analyzeFiles(filteredFiles, selectedAnalyzers)
                 
+                // Run Detekt if enabled and requested
+                val detektFindings = if (enableDetekt && analyzers.contains("detekt")) {
+                    runDetektAnalysis(paths ?: listOf(projectRoot))
+                } else {
+                    emptyList()
+                }
+                
+                // Combine findings
+                val allFindings = findings + detektFindings
+                
                 // Aggregate results
-                val aggregatedResult = resultAggregator.aggregate(findings)
+                val aggregatedResult = resultAggregator.aggregate(allFindings)
                 
                 // Generate report
                 val report = reportGenerator.generate(aggregatedResult, null)
@@ -370,6 +402,37 @@ class AnalysisOrchestratorImpl(
         }
         
         return@withContext findings
+    }
+    
+    /**
+     * Runs Detekt analysis on the specified paths.
+     * 
+     * This method integrates Detekt findings into the overall analysis.
+     * Errors are caught and logged but don't stop the analysis.
+     * 
+     * @param paths List of paths to analyze with Detekt
+     * @return List of findings from Detekt
+     */
+    private suspend fun runDetektAnalysis(paths: List<String>): List<Finding> {
+        return try {
+            Timber.i("Running Detekt analysis on ${paths.size} paths")
+            
+            val result = detektIntegration.runDetekt(paths)
+            
+            result.fold(
+                onSuccess = { findings ->
+                    Timber.i("Detekt found ${findings.size} issues")
+                    findings
+                },
+                onFailure = { error ->
+                    Timber.e(error, "Error running Detekt")
+                    emptyList()
+                }
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "Unexpected error running Detekt")
+            emptyList()
+        }
     }
     
     /**

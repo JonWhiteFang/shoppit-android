@@ -673,19 +673,19 @@ The implementation follows a bottom-up approach:
   - Incorporate into report
   - _Requirements: 17.1, 17.2, 17.3_
 
-- [ ] 19.1 Add Detekt dependency and configuration
+- [x] 19.1 Add Detekt dependency and configuration
   - Add detekt-gradle-plugin to build.gradle.kts
   - Create detekt-config.yml with project-specific rules
   - Configure Compose rules plugin
   - _Requirements: 17.1_
 
-- [ ] 19.2 Create DetektIntegration class
+- [x] 19.2 Create DetektIntegration class
   - Run Detekt programmatically
   - Parse Detekt XML/JSON output
   - Convert to Finding model
   - _Requirements: 17.1, 17.2_
 
-- [ ] 19.3 Integrate Detekt findings into report
+- [x] 19.3 Integrate Detekt findings into report
   - Add Detekt findings to aggregated results
   - Mark findings as from Detekt
   - _Requirements: 17.2, 17.3_
