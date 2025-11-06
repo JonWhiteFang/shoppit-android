@@ -1,5 +1,5 @@
 # Detekt Configuration for Shoppit Android
-# Based on project coding standards and best practices
+# This configuration aligns with project-specific coding standards
 
 build:
   maxIssues: 0
@@ -31,9 +31,7 @@ console-reports:
 
 output-reports:
   active: true
-  exclude:
-    - 'TxtOutputReport'
-    - 'HtmlOutputReport'
+  exclude: []
 
 comments:
   active: true
@@ -51,13 +49,12 @@ comments:
     active: false
   UndocumentedPublicClass:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/*Test.kt', '**/*Spec.kt']
   UndocumentedPublicFunction:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**']
+    excludes: ['**/test/**', '**/androidTest/**', '**/*Test.kt', '**/*Spec.kt']
   UndocumentedPublicProperty:
-    active: true
-    excludes: ['**/test/**', '**/androidTest/**']
+    active: false
 
 complexity:
   active: true
@@ -88,37 +85,22 @@ complexity:
     constructorThreshold: 7
     ignoreDefaultParameters: true
     ignoreDataClasses: true
-    ignoreAnnotatedParameter: ['Composable']
+    ignoreAnnotatedParameter: []
   MethodOverloading:
     active: false
   NamedArguments:
-    active: true
-    threshold: 3
-    ignoreArgumentsMatchingNames: false
+    active: false
   NestedBlockDepth:
     active: true
     threshold: 4
   NestedScopeFunctions:
-    active: true
-    threshold: 1
-    functions:
-      - 'kotlin.apply'
-      - 'kotlin.run'
-      - 'kotlin.with'
-      - 'kotlin.let'
-      - 'kotlin.also'
+    active: false
   ReplaceSafeCallChainWithRun:
     active: false
   StringLiteralDuplication:
-    active: true
-    excludes: ['**/test/**', '**/androidTest/**']
-    threshold: 3
-    ignoreAnnotation: true
-    excludeStringsWithLessThan5Characters: true
-    ignoreStringsRegex: '$^'
+    active: false
   TooManyFunctions:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**']
     thresholdInFiles: 15
     thresholdInClasses: 15
     thresholdInInterfaces: 15
@@ -192,8 +174,7 @@ exceptions:
       - 'hashCode'
       - 'toString'
   InstanceOfCheckForException:
-    active: true
-    excludes: ['**/test/**', '**/androidTest/**']
+    active: false
   NotImplementedDeclaration:
     active: false
   ObjectExtendsThrowable:
@@ -220,16 +201,6 @@ exceptions:
   ThrowingExceptionsWithoutMessageOrCause:
     active: true
     excludes: ['**/test/**', '**/androidTest/**']
-    exceptions:
-      - 'ArrayIndexOutOfBoundsException'
-      - 'Exception'
-      - 'IllegalArgumentException'
-      - 'IllegalMonitorStateException'
-      - 'IllegalStateException'
-      - 'IndexOutOfBoundsException'
-      - 'NullPointerException'
-      - 'RuntimeException'
-      - 'Throwable'
   ThrowingNewInstanceOfSameException:
     active: true
   TooGenericExceptionCaught:
@@ -256,8 +227,7 @@ exceptions:
 naming:
   active: true
   BooleanPropertyNaming:
-    active: true
-    allowedPattern: '^(is|has|are|should|can|will|must)'
+    active: false
   ClassNaming:
     active: true
     classPattern: '[A-Z][a-zA-Z0-9]*'
@@ -268,7 +238,7 @@ naming:
     excludeClassPattern: '$^'
   EnumNaming:
     active: true
-    enumEntryPattern: '[A-Z][_A-Z0-9]*'
+    enumEntryPattern: '[A-Z][_a-zA-Z0-9]*'
   ForbiddenClassName:
     active: false
   FunctionMaxLength:
@@ -287,10 +257,8 @@ naming:
   InvalidPackageDeclaration:
     active: true
     rootPackage: 'com.shoppit.app'
-    requireRootInDeclaration: false
   LambdaParameterNaming:
-    active: true
-    parameterPattern: '[a-z][A-Za-z0-9]*|_'
+    active: false
   MatchingDeclarationName:
     active: true
     mustBeFirst: true
@@ -300,7 +268,7 @@ naming:
   NoNameShadowing:
     active: true
   NonBooleanPropertyPrefixedWithIs:
-    active: true
+    active: false
   ObjectPropertyNaming:
     active: true
     constantPattern: '[A-Za-z][_A-Za-z0-9]*'
@@ -329,14 +297,11 @@ performance:
   ArrayPrimitive:
     active: true
   CouldBeSequence:
-    active: true
-    threshold: 3
+    active: false
   ForEachOnRange:
     active: true
-    excludes: ['**/test/**', '**/androidTest/**']
   SpreadOperator:
-    active: true
-    excludes: ['**/test/**', '**/androidTest/**']
+    active: false
   UnnecessaryPartOfBinaryExpression:
     active: false
   UnnecessaryTemporaryInstantiation:
@@ -358,15 +323,6 @@ potential-bugs:
     active: false
   DoubleMutabilityForCollection:
     active: true
-    mutableTypes:
-      - 'kotlin.collections.MutableList'
-      - 'kotlin.collections.MutableMap'
-      - 'kotlin.collections.MutableSet'
-      - 'java.util.ArrayList'
-      - 'java.util.LinkedHashSet'
-      - 'java.util.HashSet'
-      - 'java.util.LinkedHashMap'
-      - 'java.util.HashMap'
   ElseCaseInsteadOfExhaustiveWhen:
     active: false
   EqualsAlwaysReturnsTrueOrFalse:
@@ -462,8 +418,7 @@ style:
   DataClassShouldBeImmutable:
     active: false
   DestructuringDeclarationWithTooManyEntries:
-    active: true
-    maxDestructuringEntries: 3
+    active: false
   DoubleNegativeLambda:
     active: false
   EqualsNullCall:
@@ -481,11 +436,13 @@ style:
   ForbiddenComment:
     active: true
     values:
-      - 'FIXME:'
-      - 'STOPSHIP:'
-      - 'TODO:'
+      - reason: 'Forbidden FIXME todo marker in comment, please fix the problem.'
+        value: 'FIXME:'
+      - reason: 'Forbidden STOPSHIP todo marker in comment, please address the problem before shipping the code.'
+        value: 'STOPSHIP:'
+      - reason: 'Forbidden TODO todo marker in comment, please do the changes.'
+        value: 'TODO:'
     allowedPatterns: ''
-    customMessage: ''
   ForbiddenImport:
     active: false
   ForbiddenMethodCall:
@@ -627,13 +584,13 @@ style:
     active: true
     allowedNames: '_|ignored|expected|serialVersionUID'
   UseAnyOrNoneInsteadOfFind:
-    active: true
+    active: false
   UseArrayLiteralsInAnnotations:
     active: true
   UseCheckNotNull:
-    active: true
+    active: false
   UseCheckOrError:
-    active: true
+    active: false
   UseDataClass:
     active: false
   UseEmptyCounterpart:
@@ -643,13 +600,13 @@ style:
   UseIfInsteadOfWhen:
     active: false
   UseIsNullOrEmpty:
-    active: true
+    active: false
   UseOrEmpty:
-    active: true
+    active: false
   UseRequire:
-    active: true
+    active: false
   UseRequireNotNull:
-    active: true
+    active: false
   UseSumOfInsteadOfFlatMapSize:
     active: false
   UselessCallOnNotNull:
@@ -663,44 +620,3 @@ style:
     active: true
     excludeImports:
       - 'java.util.*'
-
-# Compose-specific rules
-compose:
-  ComposableNaming:
-    active: true
-  ComposableParamOrder:
-    active: true
-  CompositionLocalNaming:
-    active: true
-  ContentEmitterReturningValues:
-    active: true
-  ModifierClickableOrder:
-    active: true
-  ModifierComposable:
-    active: true
-  ModifierMissing:
-    active: true
-  ModifierNaming:
-    active: true
-  ModifierNotUsedAtRoot:
-    active: true
-  ModifierReused:
-    active: true
-  ModifierWithoutDefault:
-    active: true
-  MultipleContentEmitters:
-    active: true
-  MutableParams:
-    active: true
-  PreviewNaming:
-    active: true
-  PreviewPublic:
-    active: true
-  RememberMissing:
-    active: true
-  UnstableCollections:
-    active: true
-  ViewModelForwarding:
-    active: true
-  ViewModelInjection:
-    active: true

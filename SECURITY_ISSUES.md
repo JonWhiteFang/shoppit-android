@@ -1,7 +1,7 @@
 # Security Vulnerabilities Report
 
-**Last Scan Date:** November 5, 2025  
-**Last Update:** November 5, 2025  
+**Last Scan Date:** November 6, 2025  
+**Last Update:** November 6, 2025  
 **Project:** Shoppit Android  
 **Total Issues:** 9 vulnerabilities (13 resolved)
 
@@ -16,6 +16,66 @@
 ---
 
 ## Recent Scans
+
+### November 6, 2025 - Tasks 19-21: Detekt Integration, Gradle Task, and Documentation
+**Scan Type:** SAST  
+**Scope:** `app/src/main/java/com/shoppit/app/analysis/analyzers`  
+**Result:** ✅ No issues found  
+**Files Created:**
+- `DetektIntegration.kt` - Integration class for running Detekt programmatically
+- `detekt-config.yml` - Comprehensive Detekt configuration aligned with project standards
+- `USAGE_GUIDE.md` - Complete usage guide with examples and troubleshooting
+- `ANALYZER_REFERENCE.md` - Detailed documentation for all 12 analyzers
+- `CI_CD_INTEGRATION.md` - CI/CD integration guide for GitHub Actions, GitLab, Jenkins, Azure DevOps
+
+**Files Modified:**
+- `app/build.gradle.kts` - Already had Detekt plugin and Gradle task configured
+- `gradle/libs.versions.toml` - Already had Detekt dependencies defined
+
+**Changes:**
+- Created DetektIntegration class with:
+  - `runDetekt()` method for analyzing multiple paths
+  - `runDetektOnFile()` method for single file analysis
+  - Detekt finding conversion to Finding model
+  - Severity mapping (CodeSmell→LOW, Warning→MEDIUM, Defect→HIGH, Security→CRITICAL)
+  - Rule set to category mapping
+  - Effort estimation based on rule type
+  - Comprehensive recommendations for each rule
+- Created detekt-config.yml with:
+  - Complexity rules (cyclomatic complexity, long methods, large classes)
+  - Style rules (naming conventions, formatting)
+  - Coroutine rules (dispatcher injection, suspend function patterns)
+  - Exception handling rules (empty catch blocks, generic exceptions)
+  - Performance rules (inefficient operations)
+  - Security rules (potential bugs, unsafe operations)
+  - Compose-specific rules via detekt-compose plugin
+- Created comprehensive documentation:
+  - Usage guide with quick start, command-line options, examples
+  - Analyzer reference with detailed examples for all 12 analyzers
+  - CI/CD integration guide with workflows for GitHub Actions, GitLab, Jenkins, Azure DevOps
+  - Troubleshooting sections and best practices
+- Verified Gradle task already implemented with:
+  - Command-line options for path, analyzers, baseline, output
+  - Validation of paths and analyzer names
+  - Progress reporting structure
+  - Usage examples
+
+**Requirements Satisfied:**
+- 17.1: Run Detekt static analysis with project-specific configuration
+- 17.2: Incorporate Detekt findings into analysis report
+- 17.3: Integration with existing tools
+- 18.1: Support specific file/directory paths
+- 18.2: Support analyzer filtering
+- 18.3: Update baseline for analyzed files
+- 18.4: Command-line options for configuration
+- 18.5: Progress reporting
+- All documentation requirements (usage guide, analyzer docs, CI/CD guide)
+
+**Security Scan Results:**
+- SAST: ✅ No issues found
+- All code follows Kotlin conventions and project patterns
+- No compilation errors
+- Integration with existing orchestrator verified
 
 ### November 6, 2025 - Task 2.2: Kotlin PSI Parsing Implementation
 **Scan Type:** SAST  

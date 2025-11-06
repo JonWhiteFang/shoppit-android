@@ -67,6 +67,7 @@ class AnalysisOrchestratorImpl(
     override suspend fun analyzeAll(): AnalysisResult = withContext(Dispatchers.Default) {
         Timber.i("Starting complete code quality analysis")
         
+        var result: AnalysisResult? = null
         val executionTime = measureTime {
             try {
                 // Scan all files
@@ -106,7 +107,7 @@ class AnalysisOrchestratorImpl(
                 
                 Timber.i("Analysis complete: ${aggregatedResult.findings.size} findings in ${filteredFiles.size} files")
                 
-                return@withContext AnalysisResult(
+                result = AnalysisResult(
                     findings = aggregatedResult.findings,
                     metrics = aggregatedResult.metrics,
                     executionTime = Duration.ZERO, // Will be set after measureTime
@@ -119,7 +120,7 @@ class AnalysisOrchestratorImpl(
         }
         
         // Return result with actual execution time
-        return@withContext AnalysisResult(
+        return@withContext result?.copy(executionTime = executionTime) ?: AnalysisResult(
             findings = emptyList(),
             metrics = resultAggregator.calculateMetrics(emptyList()),
             executionTime = executionTime,
@@ -142,6 +143,7 @@ class AnalysisOrchestratorImpl(
     override suspend fun analyzeIncremental(paths: List<String>): AnalysisResult = withContext(Dispatchers.Default) {
         Timber.i("Starting incremental analysis for ${paths.size} paths")
         
+        var result: AnalysisResult? = null
         val executionTime = measureTime {
             try {
                 // Collect all files from the specified paths
@@ -193,7 +195,7 @@ class AnalysisOrchestratorImpl(
                 
                 Timber.i("Incremental analysis complete: ${aggregatedResult.findings.size} findings in ${filteredFiles.size} files")
                 
-                return@withContext AnalysisResult(
+                result = AnalysisResult(
                     findings = aggregatedResult.findings,
                     metrics = aggregatedResult.metrics,
                     executionTime = Duration.ZERO, // Will be set after measureTime
@@ -206,7 +208,7 @@ class AnalysisOrchestratorImpl(
         }
         
         // Return result with actual execution time
-        return@withContext AnalysisResult(
+        return@withContext result?.copy(executionTime = executionTime) ?: AnalysisResult(
             findings = emptyList(),
             metrics = resultAggregator.calculateMetrics(emptyList()),
             executionTime = executionTime,
@@ -232,6 +234,7 @@ class AnalysisOrchestratorImpl(
     ): AnalysisResult = withContext(Dispatchers.Default) {
         Timber.i("Starting filtered analysis with ${analyzers.size} analyzers")
         
+        var result: AnalysisResult? = null
         val executionTime = measureTime {
             try {
                 // Get files to analyze
@@ -270,12 +273,13 @@ class AnalysisOrchestratorImpl(
                 
                 if (selectedAnalyzers.isEmpty()) {
                     Timber.w("No valid analyzers selected")
-                    return@withContext AnalysisResult(
+                    result = AnalysisResult(
                         findings = emptyList(),
                         metrics = resultAggregator.calculateMetrics(emptyList()),
                         executionTime = Duration.ZERO,
                         filesAnalyzed = 0
                     )
+                    return@measureTime
                 }
                 
                 Timber.i("Running ${selectedAnalyzers.size} analyzers on ${filteredFiles.size} files")
@@ -304,7 +308,7 @@ class AnalysisOrchestratorImpl(
                 
                 Timber.i("Filtered analysis complete: ${aggregatedResult.findings.size} findings")
                 
-                return@withContext AnalysisResult(
+                result = AnalysisResult(
                     findings = aggregatedResult.findings,
                     metrics = aggregatedResult.metrics,
                     executionTime = Duration.ZERO, // Will be set after measureTime
@@ -317,7 +321,7 @@ class AnalysisOrchestratorImpl(
         }
         
         // Return result with actual execution time
-        return@withContext AnalysisResult(
+        return@withContext result?.copy(executionTime = executionTime) ?: AnalysisResult(
             findings = emptyList(),
             metrics = resultAggregator.calculateMetrics(emptyList()),
             executionTime = executionTime,
@@ -361,7 +365,7 @@ class AnalysisOrchestratorImpl(
      * Analyzes a single file with all applicable analyzers.
      * 
      * This method:
-     * 1. Reads the file content
+     * 1. Parses the file into a Kotlin AST
      * 2. Runs each applicable analyzer
      * 3. Collects findings from all analyzers
      * 4. Handles errors gracefully
@@ -377,8 +381,15 @@ class AnalysisOrchestratorImpl(
         val findings = mutableListOf<Finding>()
         
         try {
-            // Read file content
-            val fileContent = File(file.path).readText()
+            // Parse file into Kotlin AST
+            val ast = KotlinParser.use { parser ->
+                parser.parseFile(file.path)
+            }
+            
+            if (ast == null) {
+                Timber.w("Failed to parse ${file.relativePath}")
+                return@withContext findings
+            }
             
             // Run each applicable analyzer
             for (analyzer in analyzers) {
@@ -387,7 +398,7 @@ class AnalysisOrchestratorImpl(
                 }
                 
                 try {
-                    val analyzerFindings = analyzer.analyze(file, fileContent)
+                    val analyzerFindings = analyzer.analyze(file, ast)
                     findings.addAll(analyzerFindings)
                     
                     Timber.d("${analyzer.name} found ${analyzerFindings.size} issues in ${file.relativePath}")
@@ -397,7 +408,7 @@ class AnalysisOrchestratorImpl(
                 }
             }
         } catch (e: Exception) {
-            Timber.e(e, "Error reading file ${file.relativePath}")
+            Timber.e(e, "Error analyzing file ${file.relativePath}")
             // Continue with other files
         }
         
