@@ -40,7 +40,8 @@ class ShoppingListRepositoryImplErrorLoggingTest {
         repository = ShoppingListRepositoryImpl(
             shoppingListDao,
             syncEngine,
-            errorLogger
+            errorLogger,
+            kotlinx.coroutines.Dispatchers.IO // ioDispatcher
         )
     }
 

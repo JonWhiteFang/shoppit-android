@@ -43,7 +43,10 @@ class PreferencesRepositoryImplTest {
     fun setup() {
         mockkStatic("androidx.datastore.preferences.core.PreferencesKt")
         dataStore = mockk()
-        repository = PreferencesRepositoryImpl(dataStore)
+        repository = PreferencesRepositoryImpl(
+            dataStore,
+            kotlinx.coroutines.Dispatchers.IO // ioDispatcher
+        )
     }
     
     @After

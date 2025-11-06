@@ -53,7 +53,9 @@ class MealRepositoryImplErrorLoggingTest {
             mealDetailCache,
             mealValidator,
             syncEngine,
-            errorLogger
+            errorLogger,
+            mockk(relaxed = true), // performanceMonitor
+            kotlinx.coroutines.Dispatchers.IO // ioDispatcher
         )
     }
 

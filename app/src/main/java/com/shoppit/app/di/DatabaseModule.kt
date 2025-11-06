@@ -107,12 +107,6 @@ object DatabaseModule {
     
     @Provides
     @Singleton
-    fun providePerformanceMonitor(): PerformanceMonitor {
-        return PerformanceMonitorImpl()
-    }
-    
-    @Provides
-    @Singleton
     fun provideBackupManager(
         @ApplicationContext context: Context,
         database: AppDatabase

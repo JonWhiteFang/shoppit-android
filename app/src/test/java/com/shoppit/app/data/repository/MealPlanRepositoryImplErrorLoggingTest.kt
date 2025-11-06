@@ -42,7 +42,8 @@ class MealPlanRepositoryImplErrorLoggingTest {
         repository = MealPlanRepositoryImpl(
             mealPlanDao,
             syncEngine,
-            errorLogger
+            errorLogger,
+            kotlinx.coroutines.Dispatchers.IO // ioDispatcher
         )
     }
 

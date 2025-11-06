@@ -1,6 +1,7 @@
 package com.shoppit.app.data.cache
 
 import com.shoppit.app.data.performance.PerformanceMonitor
+import com.shoppit.app.di.IoDispatcher
 import com.shoppit.app.domain.repository.MealPlanRepository
 import com.shoppit.app.domain.repository.MealRepository
 import com.shoppit.app.domain.repository.ShoppingListRepository
@@ -29,7 +30,7 @@ class CacheWarmer @Inject constructor(
     private val mealPlanRepository: MealPlanRepository,
     private val shoppingListRepository: ShoppingListRepository,
     private val performanceMonitor: PerformanceMonitor,
-    private val ioDispatcher: CoroutineDispatcher
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher
 ) {
     
     private var warmingStats = CacheWarmingStats()
