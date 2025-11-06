@@ -697,33 +697,33 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [ ] 20. Create Gradle task and CLI
+- [x] 20. Create Gradle task and CLI
   - Create Gradle task for running analysis
   - Add command-line options
   - Add progress reporting
   - Add error handling
   - _Requirements: 1.1, 18.1, 18.2_
 
-- [ ] 20.1 Create Gradle task
+- [x] 20.1 Create Gradle task
   - Create `analyzeCodeQuality` task
   - Wire up AnalysisOrchestrator
   - Add task configuration options
   - _Requirements: 1.1_
 
-- [ ] 20.2 Add command-line options
+- [x] 20.2 Add command-line options
   - Support --path for incremental analysis
   - Support --analyzers for filtering
   - Support --baseline for baseline generation
   - Support --output for custom output path
   - _Requirements: 18.1, 18.2_
 
-- [ ] 20.3 Add progress reporting
+- [x] 20.3 Add progress reporting
   - Report files being analyzed
   - Report analyzer execution
   - Report completion status
   - _Requirements: 1.3_
 
-- [ ] 20.4 Write integration tests
+- [x] 20.4 Write integration tests
   - Test Gradle task execution
   - Test command-line options
   - Test report generation

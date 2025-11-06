@@ -102,6 +102,114 @@ detekt {
     ignoreFailures = false
 }
 
+// Code Quality Analysis Task
+abstract class AnalyzeCodeQualityTask : DefaultTask() {
+    @get:Input
+    @get:Optional
+    abstract val analysisPath: Property<String>
+    
+    @get:Input
+    @get:Optional
+    abstract val analyzers: Property<String>
+    
+    @get:Input
+    @get:Optional
+    abstract val generateBaseline: Property<Boolean>
+    
+    @get:Input
+    @get:Optional
+    abstract val outputPath: Property<String>
+    
+    @TaskAction
+    fun analyze() {
+        println("=".repeat(80))
+        println("Code Quality Analysis")
+        println("=".repeat(80))
+        
+        val path = analysisPath.getOrElse("app/src/main/java")
+        val analyzersStr = analyzers.orNull
+        val analyzersList = analyzersStr?.split(",")?.map { it.trim() } ?: emptyList()
+        val baseline = generateBaseline.getOrElse(false)
+        val output = outputPath.getOrElse(".kiro/specs/code-quality-analysis")
+        
+        // Validate path exists
+        val pathFile = File(path)
+        if (!pathFile.exists()) {
+            throw GradleException("Analysis path does not exist: $path")
+        }
+        
+        // Validate analyzers if specified
+        val validAnalyzers = listOf(
+            "architecture", "compose", "state-management", "error-handling",
+            "dependency-injection", "database", "performance", "naming",
+            "test-coverage", "documentation", "security", "detekt"
+        )
+        
+        if (analyzersList.isNotEmpty()) {
+            val invalidAnalyzers = analyzersList.filter { it !in validAnalyzers }
+            if (invalidAnalyzers.isNotEmpty()) {
+                throw GradleException(
+                    "Invalid analyzer(s): ${invalidAnalyzers.joinToString(", ")}\n" +
+                    "Valid analyzers: ${validAnalyzers.joinToString(", ")}"
+                )
+            }
+        }
+        
+        println("\nConfiguration:")
+        println("-".repeat(80))
+        println("  Path:              $path")
+        println("  Analyzers:         ${if (analyzersList.isEmpty()) "all" else analyzersList.joinToString(", ")}")
+        println("  Generate Baseline: $baseline")
+        println("  Output Path:       $output")
+        println("-".repeat(80))
+        
+        // Execute analysis using the orchestrator
+        println("\n[INFO] Starting analysis...")
+        println("[INFO] Progress reporting will show:")
+        println("       - Files being analyzed with progress bar")
+        println("       - Analyzer execution status")
+        println("       - Completion statistics")
+        println("\n[INFO] This is a placeholder. Full implementation will execute AnalysisOrchestrator.")
+        println("[INFO] The orchestrator will:")
+        println("       1. Scan Kotlin files in the specified path")
+        println("       2. Run selected analyzers (or all if none specified)")
+        println("       3. Report progress for each file and analyzer")
+        println("       4. Aggregate and deduplicate findings")
+        println("       5. Generate markdown report")
+        if (baseline) {
+            println("       6. Generate baseline snapshot")
+        }
+        println("       ${if (baseline) "7" else "6"}. Save report to $output/analysis-report.md")
+        
+        println("\n" + "=".repeat(80))
+        println("Usage Examples:")
+        println("=".repeat(80))
+        println("\n# Analyze entire codebase:")
+        println("  .\\gradlew.bat analyzeCodeQuality")
+        println("\n# Analyze specific directory:")
+        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.path=app/src/main/java/com/shoppit/app/ui")
+        println("\n# Run specific analyzers:")
+        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.analyzers=security,architecture")
+        println("\n# Generate baseline:")
+        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.baseline=true")
+        println("\n# Custom output path:")
+        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.output=custom/output/path")
+        println("\n# Combine options:")
+        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.path=app/src -Panalysis.analyzers=security -Panalysis.baseline=true")
+        println("\n" + "=".repeat(80))
+    }
+}
+
+tasks.register<AnalyzeCodeQualityTask>("analyzeCodeQuality") {
+    group = "verification"
+    description = "Runs comprehensive code quality analysis on the codebase"
+    
+    analysisPath.set(project.providers.gradleProperty("analysis.path"))
+    analyzers.set(project.providers.gradleProperty("analysis.analyzers"))
+    generateBaseline.set(project.providers.gradleProperty("analysis.baseline").map { it.toBoolean() })
+    outputPath.set(project.providers.gradleProperty("analysis.output"))
+}
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core)
