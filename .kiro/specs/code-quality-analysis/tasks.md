@@ -590,37 +590,37 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [ ] 17. Implement Baseline Manager
+- [x] 17. Implement Baseline Manager
   - Load existing baseline
   - Save current analysis as baseline
   - Compare current with baseline
   - Save analysis to history
   - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
 
-- [ ] 17.1 Create BaselineManagerImpl class
+- [x] 17.1 Create BaselineManagerImpl class
   - Implement BaselineManager interface
   - Add JSON serialization
   - _Requirements: 16.1, 16.2_
 
-- [ ] 17.2 Implement baseline loading and saving
+- [x] 17.2 Implement baseline loading and saving
   - Load baseline from JSON file
   - Save metrics and finding IDs
   - Handle missing baseline gracefully
   - _Requirements: 16.1, 16.2_
 
-- [ ] 17.3 Implement comparison logic
+- [x] 17.3 Implement comparison logic
   - Compare metrics (improved/regressed)
   - Identify resolved findings
   - Identify new findings
   - Calculate improvement percentages
   - _Requirements: 16.3, 16.6_
 
-- [ ] 17.4 Implement history tracking
+- [x] 17.4 Implement history tracking
   - Save each analysis run to history
   - Maintain historical trend data
   - _Requirements: 16.6_
 
-- [ ] 17.5 Write tests for Baseline Manager
+- [x] 17.5 Write tests for Baseline Manager
   - Test baseline loading/saving
   - Test comparison logic
   - Test history tracking
