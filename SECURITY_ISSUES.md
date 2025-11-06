@@ -17,6 +17,40 @@
 
 ## Recent Scans
 
+### November 6, 2025 - Task 19: Detekt Integration
+**Scan Type:** SAST  
+**Scope:** `app/src`  
+**Result:** ✅ 8 low severity issues (test code only)  
+**Files Modified:**
+- `gradle/libs.versions.toml` - Added Detekt API, CLI, and Core dependencies
+- `app/build.gradle.kts` - Added Detekt implementation dependencies
+- `DetektIntegration.kt` - Already implemented with Detekt API integration
+- `DetektIntegrationImplTest.kt` - Created comprehensive unit tests
+
+**Changes:**
+- Added Detekt API dependencies (detekt-api, detekt-cli, detekt-core) to version catalog
+- Added implementation dependencies to app build.gradle.kts for programmatic Detekt usage
+- Verified existing DetektIntegration implementation compiles without errors
+- Verified existing AnalysisOrchestratorImpl integrates Detekt findings correctly
+- Created comprehensive unit tests for DetektIntegration covering:
+  - Issue conversion to Finding model
+  - Severity to priority mapping (CodeSmell→LOW, Warning→MEDIUM, Defect→HIGH, Security→CRITICAL)
+  - Debt to effort mapping (≤5min→TRIVIAL, 6-30min→SMALL, 31-120min→MEDIUM, >120min→LARGE)
+  - Rule set to category mapping
+  - Error handling for missing config and invalid paths
+- All tests pass with no compilation errors
+- Detekt configuration already exists at app/detekt-config.yml with comprehensive rules
+
+**Requirements Satisfied:**
+- 17.1: Run Detekt static analysis with project-specific configuration
+- 17.2: Incorporate Detekt findings into analysis report
+- 17.3: Integration with existing tools
+
+**Security Scan Results:**
+- SAST: 8 low severity issues (hardcoded passwords in test code only)
+- SCA: Failed due to JAVA_HOME environment issue (not related to code changes)
+- All issues are in test files and are accepted risks
+
 ### November 6, 2025 - Task 16: Report Generator Implementation
 **Scan Type:** SAST  
 **Scope:** `app/src/main/java/com/shoppit/app/analysis`  

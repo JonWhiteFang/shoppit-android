@@ -177,6 +177,9 @@ dependencies {
     debugImplementation(libs.compose.ui.test.manifest)
     
     // Detekt
+    implementation(libs.detekt.api)
+    implementation(libs.detekt.cli)
+    implementation(libs.detekt.core)
     detektPlugins(libs.detekt.formatting)
     detektPlugins(libs.detekt.compose)
 }
