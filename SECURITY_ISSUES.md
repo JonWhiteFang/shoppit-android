@@ -17,6 +17,47 @@
 
 ## Recent Scans
 
+### November 6, 2025 - Task 16: Report Generator Implementation
+**Scan Type:** SAST  
+**Scope:** `app/src/main/java/com/shoppit/app/analysis`  
+**Result:** ✅ No issues found  
+**Files Created:**
+- `ReportGeneratorImpl.kt` - Implementation of markdown report generation
+- `ReportGeneratorImplTest.kt` - Comprehensive unit tests for report generator
+
+**Changes:**
+- Implemented ReportGeneratorImpl with complete markdown formatting
+- Added executive summary generation with key metrics, code metrics, and top issues
+- Added findings section generation grouped by priority and category
+- Added improvement recommendations grouped by effort level (Trivial, Small, Medium, Large)
+- Added baseline comparison showing improvements and regressions
+- Added next steps section with prioritized action items
+- Implemented markdown formatting utilities for code blocks, tables, and lists
+- Implemented helper methods for formatting findings with all details:
+  - File path and line number
+  - Description and code snippet
+  - Recommendation with before/after examples
+  - Effort estimation and auto-fix indication
+  - References to documentation
+- Created 30+ comprehensive unit tests covering:
+  - Executive summary generation with and without baseline
+  - Findings generation with grouping and formatting
+  - Complete report structure validation
+  - Improvement recommendations by effort
+  - Next steps based on priority distribution
+  - Baseline comparison with improvements and regressions
+- All code follows Kotlin conventions and project patterns
+- All tests pass with no compilation errors
+
+**Requirements Satisfied:**
+- 15.1: Generate structured markdown report
+- 15.2: Include executive summary with key metrics
+- 15.3: Group recommendations by category
+- 15.4: Include file path, line number, and code snippet for each issue
+- 15.5: Provide before/after code examples for each recommendation
+- 15.6: Include estimated effort for each recommendation
+- 15.7: Save report to `.kiro/specs/code-quality-analysis/analysis-report.md`
+
 ### November 6, 2025 - Task 15: Result Aggregator Implementation
 **Scan Type:** SAST  
 **Scope:** `app/src/main/java/com/shoppit/app/analysis/core`  
