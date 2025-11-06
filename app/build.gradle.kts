@@ -163,46 +163,47 @@ abstract class AnalyzeCodeQualityTask : DefaultTask() {
         println("  Output Path:       $output")
         println("-".repeat(80))
         
-        // Execute analysis using the orchestrator
-        println("\n[INFO] Starting analysis...")
-        println("[INFO] Progress reporting will show:")
-        println("       - Files being analyzed with progress bar")
-        println("       - Analyzer execution status")
-        println("       - Completion statistics")
-        println("\n[INFO] This is a placeholder. Full implementation will execute AnalysisOrchestrator.")
-        println("[INFO] The orchestrator will:")
-        println("       1. Scan Kotlin files in the specified path")
-        println("       2. Run selected analyzers (or all if none specified)")
-        println("       3. Report progress for each file and analyzer")
-        println("       4. Aggregate and deduplicate findings")
-        println("       5. Generate markdown report")
-        if (baseline) {
-            println("       6. Generate baseline snapshot")
+        // Execute analysis using the AnalysisRunner
+        try {
+            // Use reflection to load and run the AnalysisRunner
+            // This avoids compile-time dependencies on the analysis code
+            val runnerClass = Class.forName("com.shoppit.app.analysis.AnalysisRunner")
+            val constructor = runnerClass.getConstructor(
+                String::class.java,  // projectRoot
+                String::class.java,  // outputPath
+                List::class.java,    // analyzers
+                Boolean::class.java, // generateBaseline
+                Boolean::class.java  // enableDetekt
+            )
+            
+            val runner = constructor.newInstance(
+                path,
+                output,
+                if (analyzersList.isEmpty()) null else analyzersList,
+                baseline,
+                true // enableDetekt
+            )
+            
+            val runAnalysisMethod = runnerClass.getMethod("runAnalysis")
+            runAnalysisMethod.invoke(runner)
+            
+        } catch (e: ClassNotFoundException) {
+            throw GradleException(
+                "Analysis runner not found. Make sure the analysis code is compiled.\n" +
+                "Run: .\\gradlew.bat compileDebugKotlin"
+            )
+        } catch (e: Exception) {
+            throw GradleException("Error running analysis: ${e.message}", e)
         }
-        println("       ${if (baseline) "7" else "6"}. Save report to $output/analysis-report.md")
-        
-        println("\n" + "=".repeat(80))
-        println("Usage Examples:")
-        println("=".repeat(80))
-        println("\n# Analyze entire codebase:")
-        println("  .\\gradlew.bat analyzeCodeQuality")
-        println("\n# Analyze specific directory:")
-        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.path=app/src/main/java/com/shoppit/app/ui")
-        println("\n# Run specific analyzers:")
-        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.analyzers=security,architecture")
-        println("\n# Generate baseline:")
-        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.baseline=true")
-        println("\n# Custom output path:")
-        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.output=custom/output/path")
-        println("\n# Combine options:")
-        println("  .\\gradlew.bat analyzeCodeQuality -Panalysis.path=app/src -Panalysis.analyzers=security -Panalysis.baseline=true")
-        println("\n" + "=".repeat(80))
     }
 }
 
 tasks.register<AnalyzeCodeQualityTask>("analyzeCodeQuality") {
     group = "verification"
     description = "Runs comprehensive code quality analysis on the codebase"
+    
+    // Ensure analysis code is compiled before running
+    dependsOn("compileDebugKotlin")
     
     analysisPath.set(project.providers.gradleProperty("analysis.path"))
     analyzers.set(project.providers.gradleProperty("analysis.analyzers"))
@@ -291,6 +292,6 @@ dependencies {
     detektPlugins(libs.detekt.formatting)
     detektPlugins(libs.detekt.compose)
     
-    // Kotlin Compiler for PSI parsing
-    implementation(libs.kotlin.compiler.embeddable)
+    // Kotlin Compiler for PSI parsing - align with Detekt's version
+    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.0.10")
 }

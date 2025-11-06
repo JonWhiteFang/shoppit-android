@@ -7,7 +7,8 @@ import com.shoppit.app.analysis.models.Effort
 import com.shoppit.app.analysis.models.FileInfo
 import com.shoppit.app.analysis.models.Finding
 import com.shoppit.app.analysis.models.Priority
-import java.util.UUID
+import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.isPrivate
 
 /**
  * Analyzer that validates state management patterns in ViewModels and repositories.
@@ -15,7 +16,6 @@ import java.util.UUID
  * Validates:
  * - Private mutable state is not exposed publicly
  * - State updates use _state.update { } pattern
- * - Sealed classes are used for mutually exclusive states
  * - flowOn(Dispatchers.IO) is applied for database operations
  * - ViewModels use viewModelScope for coroutines
  * 
@@ -29,7 +29,7 @@ class StateManagementAnalyzer : CodeAnalyzer {
     
     override val category: AnalysisCategory = AnalysisCategory.STATE_MANAGEMENT
     
-    override suspend fun analyze(file: FileInfo, fileContent: String): List<Finding> {
+    override suspend fun analyze(file: FileInfo, ast: KtFile): List<Finding> {
         val findings = mutableListOf<Finding>()
         
         // Only analyze UI layer (ViewModels) and Data layer (Repositories)
@@ -38,24 +38,50 @@ class StateManagementAnalyzer : CodeAnalyzer {
         }
         
         // Check if file is a ViewModel
-        val isViewModel = fileContent.contains(": ViewModel()") || 
-                         fileContent.contains("@HiltViewModel")
+        val isViewModel = isViewModelFile(ast)
         
         // Check if file is a Repository
         val isRepository = file.relativePath.contains("/repository/") &&
                           file.relativePath.endsWith("Impl.kt")
         
-        if (isViewModel) {
-            // Validate ViewModel state management patterns
-            findings.addAll(checkStateExposure(file, fileContent))
-            findings.addAll(checkStateUpdatePattern(file, fileContent))
-            findings.addAll(checkViewModelScope(file, fileContent))
-        }
-        
-        if (isRepository || isViewModel) {
-            // Validate Flow dispatcher usage
-            findings.addAll(checkFlowDispatcher(file, fileContent))
-        }
+        ast.accept(object : KtTreeVisitorVoid() {
+            override fun visitClass(klass: KtClass) {
+                super.visitClass(klass)
+                
+                if (isViewModel) {
+                    // Validate ViewModel state management patterns
+                    findings.addAll(checkStateExposure(file, klass))
+                    findings.addAll(checkViewModelScope(file, klass))
+                }
+            }
+            
+            override fun visitProperty(property: KtProperty) {
+                super.visitProperty(property)
+                
+                if (isViewModel) {
+                    // Check for exposed MutableStateFlow
+                    findings.addAll(checkMutableStateFlowExposure(file, property))
+                }
+            }
+            
+            override fun visitBinaryExpression(expression: KtBinaryExpression) {
+                super.visitBinaryExpression(expression)
+                
+                if (isViewModel) {
+                    // Check for direct state mutations
+                    findings.addAll(checkDirectStateMutation(file, expression))
+                }
+            }
+            
+            override fun visitNamedFunction(function: KtNamedFunction) {
+                super.visitNamedFunction(function)
+                
+                if (isRepository || isViewModel) {
+                    // Check for missing flowOn
+                    findings.addAll(checkFlowDispatcher(file, function))
+                }
+            }
+        })
         
         return findings
     }
@@ -67,29 +93,42 @@ class StateManagementAnalyzer : CodeAnalyzer {
     }
     
     /**
+     * Checks if file contains a ViewModel class.
+     */
+    private fun isViewModelFile(ast: KtFile): Boolean {
+        var isViewModel = false
+        
+        ast.accept(object : KtTreeVisitorVoid() {
+            override fun visitClass(klass: KtClass) {
+                super.visitClass(klass)
+                
+                // Check if extends ViewModel
+                klass.superTypeListEntries.forEach { entry ->
+                    val typeName = entry.typeAsUserType?.referencedName
+                    if (typeName == "ViewModel") {
+                        isViewModel = true
+                    }
+                }
+                
+                // Check for @HiltViewModel annotation
+                if (klass.annotationEntries.any { it.shortName?.asString() == "HiltViewModel" }) {
+                    isViewModel = true
+                }
+            }
+        })
+        
+        return isViewModel
+    }
+    
+    /**
      * Checks if private mutable state is exposed publicly.
-     * Requirement 5.1
      */
-    private fun checkStateExposure(file: FileInfo, fileContent: String): List<Finding> {
+    private fun checkStateExposure(file: FileInfo, klass: KtClass): List<Finding> {
         val findings = mutableListOf<Finding>()
-        val lines = fileContent.lines()
         
-        lines.forEachIndexed { index, line ->
-            val trimmed = line.trim()
-            
-            // Look for public MutableStateFlow properties
-            if (isMutableStateFlowProperty(trimmed) && !isPrivate(trimmed)) {
-                // Check if it's a public property (not private or protected)
-                if (isPublicProperty(trimmed)) {
-                    findings.add(
-                        createExposedMutableStateFinding(
-                            file,
-                            index + 1,
-                            trimmed,
-                            extractPropertyName(trimmed)
-                        )
-                    )
-                }
+        klass.declarations.filterIsInstance<KtProperty>().forEach { property ->
+            if (isMutableStateFlow(property) && !property.isPrivate()) {
+                findings.add(createExposedMutableStateFinding(file, property))
             }
         }
         
@@ -97,70 +136,44 @@ class StateManagementAnalyzer : CodeAnalyzer {
     }
     
     /**
-     * Checks if state updates use the _state.update { } pattern.
-     * Requirement 5.2
+     * Checks if property is a MutableStateFlow that's exposed publicly.
      */
-    private fun checkStateUpdatePattern(file: FileInfo, fileContent: String): List<Finding> {
+    private fun checkMutableStateFlowExposure(file: FileInfo, property: KtProperty): List<Finding> {
         val findings = mutableListOf<Finding>()
-        val lines = fileContent.lines()
         
-        lines.forEachIndexed { index, line ->
-            val trimmed = line.trim()
-            
-            // Look for direct state assignments (e.g., _state.value = ...)
-            if (isDirectStateAssignment(trimmed)) {
-                val propertyName = extractStatePropertyName(trimmed)
-                
-                findings.add(
-                    createDirectStateMutationFinding(
-                        file,
-                        index + 1,
-                        trimmed,
-                        propertyName
-                    )
-                )
-            }
+        if (isMutableStateFlow(property) && !property.isPrivate()) {
+            findings.add(createExposedMutableStateFinding(file, property))
         }
         
         return findings
     }
     
     /**
-     * Checks if Flow operations use flowOn(Dispatchers.IO).
-     * Requirement 5.4
+     * Checks if property is a MutableStateFlow.
      */
-    private fun checkFlowDispatcher(file: FileInfo, fileContent: String): List<Finding> {
+    private fun isMutableStateFlow(property: KtProperty): Boolean {
+        val typeReference = property.typeReference?.text ?: return false
+        return typeReference.contains("MutableStateFlow")
+    }
+    
+    /**
+     * Checks for direct state mutations instead of update { }.
+     */
+    private fun checkDirectStateMutation(file: FileInfo, expression: KtBinaryExpression): List<Finding> {
         val findings = mutableListOf<Finding>()
-        val lines = fileContent.lines()
         
-        var i = 0
-        while (i < lines.size) {
-            val line = lines[i].trim()
-            
-            // Look for Flow-returning functions
-            if (isFlowReturningFunction(line)) {
-                // Extract function name
-                val functionName = extractFunctionName(line)
+        // Check for pattern: _state.value = ...
+        if (expression.operationReference.text == "=") {
+            val left = expression.left
+            if (left is KtDotQualifiedExpression) {
+                val receiver = left.receiverExpression.text
+                val selector = left.selectorExpression?.text
                 
-                // Check if function body contains database operations
-                val functionBody = extractFunctionBody(lines, i)
-                
-                if (containsDatabaseOperation(functionBody) && 
-                    !containsFlowOn(functionBody)) {
-                    findings.add(
-                        createMissingFlowOnFinding(
-                            file,
-                            i + 1,
-                            line,
-                            functionName
-                        )
-                    )
+                // Check if it's a state property assignment
+                if (receiver.startsWith("_") && selector == "value") {
+                    findings.add(createDirectStateMutationFinding(file, expression, receiver))
                 }
-                
-                // Skip to end of function
-                i += functionBody.lines().size
             }
-            i++
         }
         
         return findings
@@ -168,159 +181,127 @@ class StateManagementAnalyzer : CodeAnalyzer {
     
     /**
      * Checks if ViewModels use viewModelScope for coroutines.
-     * Requirement 5.5
      */
-    private fun checkViewModelScope(file: FileInfo, fileContent: String): List<Finding> {
+    private fun checkViewModelScope(file: FileInfo, klass: KtClass): List<Finding> {
         val findings = mutableListOf<Finding>()
-        val lines = fileContent.lines()
         
-        lines.forEachIndexed { index, line ->
-            val trimmed = line.trim()
-            
-            // Look for coroutine launches not using viewModelScope
-            if (isCoroutineLaunch(trimmed) && !usesViewModelScope(trimmed)) {
-                findings.add(
-                    createMissingViewModelScopeFinding(
-                        file,
-                        index + 1,
-                        trimmed
-                    )
-                )
+        klass.accept(object : KtTreeVisitorVoid() {
+            override fun visitCallExpression(expression: KtCallExpression) {
+                super.visitCallExpression(expression)
+                
+                // Check for launch calls
+                if (expression.calleeExpression?.text == "launch") {
+                    // Check if it's using viewModelScope
+                    val parent = expression.parent
+                    if (parent is KtDotQualifiedExpression) {
+                        val receiver = parent.receiverExpression.text
+                        if (receiver != "viewModelScope") {
+                            findings.add(createMissingViewModelScopeFinding(file, expression))
+                        }
+                    } else {
+                        // Direct launch without scope
+                        findings.add(createMissingViewModelScopeFinding(file, expression))
+                    }
+                }
             }
+        })
+        
+        return findings
+    }
+    
+    /**
+     * Checks if Flow operations use flowOn(Dispatchers.IO).
+     */
+    private fun checkFlowDispatcher(file: FileInfo, function: KtNamedFunction): List<Finding> {
+        val findings = mutableListOf<Finding>()
+        
+        // Check if function returns Flow
+        val returnType = function.typeReference?.text ?: return findings
+        if (!returnType.contains("Flow<")) {
+            return findings
+        }
+        
+        // Check if function body contains database operations
+        val hasDatabaseOp = containsDatabaseOperation(function)
+        if (!hasDatabaseOp) {
+            return findings
+        }
+        
+        // Check if flowOn is used
+        val hasFlowOn = containsFlowOn(function)
+        if (!hasFlowOn) {
+            findings.add(createMissingFlowOnFinding(file, function))
         }
         
         return findings
     }
     
-    // Helper methods for pattern detection
-    
-    private fun isMutableStateFlowProperty(line: String): Boolean {
-        return line.contains("MutableStateFlow") && 
-               (line.contains("val ") || line.contains("var "))
-    }
-    
-    private fun isPrivate(line: String): Boolean {
-        return line.startsWith("private ")
-    }
-    
-    private fun isPublicProperty(line: String): Boolean {
-        // If it doesn't start with private, protected, or internal, it's public
-        return !line.startsWith("private ") && 
-               !line.startsWith("protected ") && 
-               !line.startsWith("internal ")
-    }
-    
-    private fun extractPropertyName(line: String): String {
-        return line.substringAfter("val ")
-            .substringAfter("var ")
-            .substringBefore(":")
-            .substringBefore("=")
-            .trim()
-    }
-    
-    private fun isDirectStateAssignment(line: String): Boolean {
-        // Look for patterns like: _state.value = ... or _uiState.value = ...
-        return line.matches(Regex(".*_[a-zA-Z]+\\.value\\s*=.*")) &&
-               !line.contains(".update")
-    }
-    
-    private fun extractStatePropertyName(line: String): String {
-        val match = Regex("(_[a-zA-Z]+)\\.value").find(line)
-        return match?.groupValues?.get(1) ?: "_state"
-    }
-    
-    private fun isFlowReturningFunction(line: String): Boolean {
-        return line.contains("fun ") && 
-               (line.contains(": Flow<") || line.contains(":Flow<"))
-    }
-    
-    private fun extractFunctionName(line: String): String {
-        return line.substringAfter("fun ")
-            .substringBefore("(")
-            .trim()
-    }
-    
-    private fun extractFunctionBody(lines: List<String>, startIndex: Int): String {
-        val body = StringBuilder()
-        var braceCount = 0
-        var foundStart = false
-        var currentIndex = startIndex
+    /**
+     * Checks if function contains database operations.
+     */
+    private fun containsDatabaseOperation(function: KtNamedFunction): Boolean {
+        var hasDatabaseOp = false
         
-        while (currentIndex < lines.size) {
-            val line = lines[currentIndex]
-            
-            for (char in line) {
-                if (char == '{') {
-                    braceCount++
-                    foundStart = true
-                } else if (char == '}') {
-                    braceCount--
+        function.accept(object : KtTreeVisitorVoid() {
+            override fun visitDotQualifiedExpression(expression: KtDotQualifiedExpression) {
+                super.visitDotQualifiedExpression(expression)
+                
+                val receiver = expression.receiverExpression.text
+                val selector = expression.selectorExpression?.text ?: ""
+                
+                // Check for DAO calls
+                if (receiver.endsWith("Dao") || receiver.endsWith("dao") ||
+                    selector.startsWith("insert") || selector.startsWith("update") ||
+                    selector.startsWith("delete") || selector.startsWith("query") ||
+                    selector.startsWith("get") || selector.startsWith("find")) {
+                    hasDatabaseOp = true
                 }
             }
-            
-            if (foundStart) {
-                body.append(line).append("\n")
-            }
-            
-            if (braceCount == 0 && foundStart) {
-                break
-            }
-            
-            currentIndex++
-        }
+        })
         
-        return body.toString()
+        return hasDatabaseOp
     }
     
-    private fun containsDatabaseOperation(functionBody: String): Boolean {
-        // Check for DAO calls or database operations
-        return functionBody.contains("Dao.") ||
-               functionBody.contains("dao.") ||
-               functionBody.contains("database.") ||
-               functionBody.contains("Room.") ||
-               functionBody.contains(".query(") ||
-               functionBody.contains(".insert(") ||
-               functionBody.contains(".update(") ||
-               functionBody.contains(".delete(")
+    /**
+     * Checks if function contains flowOn call.
+     */
+    private fun containsFlowOn(function: KtNamedFunction): Boolean {
+        var hasFlowOn = false
+        
+        function.accept(object : KtTreeVisitorVoid() {
+            override fun visitCallExpression(expression: KtCallExpression) {
+                super.visitCallExpression(expression)
+                
+                if (expression.calleeExpression?.text == "flowOn") {
+                    hasFlowOn = true
+                }
+            }
+        })
+        
+        return hasFlowOn
     }
-    
-    private fun containsFlowOn(functionBody: String): Boolean {
-        return functionBody.contains("flowOn(") ||
-               functionBody.contains(".flowOn(")
-    }
-    
-    private fun isCoroutineLaunch(line: String): Boolean {
-        return line.contains("launch") && line.contains("{")
-    }
-    
-    private fun usesViewModelScope(line: String): Boolean {
-        return line.contains("viewModelScope.launch")
-    }
-    
-    // Finding creation methods
     
     /**
      * Creates finding for exposed mutable state.
      */
     private fun createExposedMutableStateFinding(
         file: FileInfo,
-        lineNumber: Int,
-        codeLine: String,
-        propertyName: String
+        property: KtProperty
     ): Finding {
+        val propertyName = property.name ?: "state"
+        
         return Finding(
-            id = UUID.randomUUID().toString(),
+            id = "state-exposed-mutable-${file.path}-${getLineNumber(property)}",
             analyzer = id,
             category = category,
             priority = Priority.HIGH,
             title = "Public MutableStateFlow Exposed",
             description = "Property '$propertyName' exposes MutableStateFlow publicly. " +
-                    "This violates the principle of encapsulation and allows external code to " +
-                    "mutate the state directly, bypassing any validation or business logic. " +
+                    "This violates encapsulation and allows external code to mutate state directly. " +
                     "ViewModels should expose immutable StateFlow and keep MutableStateFlow private.",
-            file = file.relativePath,
-            lineNumber = lineNumber,
-            codeSnippet = codeLine,
+            file = file.path,
+            lineNumber = getLineNumber(property),
+            codeSnippet = property.text,
             recommendation = "Make the MutableStateFlow property private and expose an immutable " +
                     "StateFlow using asStateFlow(). This ensures state can only be modified " +
                     "through controlled methods within the ViewModel.",
@@ -343,11 +324,10 @@ class StateManagementAnalyzer : CodeAnalyzer {
                     }
                 }
             """.trimIndent(),
-            autoFixable = false,
             effort = Effort.SMALL,
             references = listOf(
                 "https://developer.android.com/kotlin/flow/stateflow-and-sharedflow",
-                "https://developer.android.com/topic/architecture/ui-layer#expose-ui-state"
+                "docs/compose-patterns.md"
             )
         )
     }
@@ -357,25 +337,22 @@ class StateManagementAnalyzer : CodeAnalyzer {
      */
     private fun createDirectStateMutationFinding(
         file: FileInfo,
-        lineNumber: Int,
-        codeLine: String,
+        expression: KtBinaryExpression,
         propertyName: String
     ): Finding {
         return Finding(
-            id = UUID.randomUUID().toString(),
+            id = "state-direct-mutation-${file.path}-${getLineNumber(expression)}",
             analyzer = id,
             category = category,
             priority = Priority.MEDIUM,
             title = "Direct State Mutation Instead of update { }",
             description = "State property '$propertyName' is being mutated directly using '.value = '. " +
-                    "Direct mutations can lead to race conditions in concurrent scenarios and make " +
-                    "state updates harder to track. The recommended pattern is to use '.update { }' " +
-                    "which provides atomic updates and better thread safety.",
-            file = file.relativePath,
-            lineNumber = lineNumber,
-            codeSnippet = codeLine,
+                    "Direct mutations can lead to race conditions. Use '.update { }' for atomic updates.",
+            file = file.path,
+            lineNumber = getLineNumber(expression),
+            codeSnippet = expression.text,
             recommendation = "Replace direct value assignment with the .update { } pattern. " +
-                    "This ensures atomic updates and makes state transitions more explicit and traceable.",
+                    "This ensures atomic updates and makes state transitions more explicit.",
             beforeExample = """
                 fun loadMeals() {
                     _uiState.value = MealUiState.Loading
@@ -396,11 +373,9 @@ class StateManagementAnalyzer : CodeAnalyzer {
                     }
                 }
             """.trimIndent(),
-            autoFixable = false,
             effort = Effort.TRIVIAL,
             references = listOf(
-                "https://developer.android.com/kotlin/flow/stateflow-and-sharedflow#update-stateflow",
-                "https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/update.html"
+                "https://developer.android.com/kotlin/flow/stateflow-and-sharedflow#update-stateflow"
             )
         )
     }
@@ -410,26 +385,24 @@ class StateManagementAnalyzer : CodeAnalyzer {
      */
     private fun createMissingFlowOnFinding(
         file: FileInfo,
-        lineNumber: Int,
-        codeLine: String,
-        functionName: String
+        function: KtNamedFunction
     ): Finding {
+        val functionName = function.name ?: "function"
+        
         return Finding(
-            id = UUID.randomUUID().toString(),
+            id = "state-missing-flowon-${file.path}-${getLineNumber(function)}",
             analyzer = id,
             category = category,
             priority = Priority.HIGH,
             title = "Missing flowOn(Dispatchers.IO) for Database Operation",
             description = "Function '$functionName' returns a Flow and performs database operations " +
                     "but does not use flowOn(Dispatchers.IO). Database operations should not run on " +
-                    "the main thread as they can block the UI and cause ANR (Application Not Responding) errors. " +
-                    "Use flowOn(Dispatchers.IO) to ensure database operations run on the IO dispatcher.",
-            file = file.relativePath,
-            lineNumber = lineNumber,
-            codeSnippet = codeLine,
+                    "the main thread as they can block the UI and cause ANR errors.",
+            file = file.path,
+            lineNumber = getLineNumber(function),
+            codeSnippet = getCodeSnippet(function.text, maxLines = 10),
             recommendation = "Add .flowOn(Dispatchers.IO) to the Flow chain to ensure database " +
-                    "operations execute on the IO dispatcher. This should be applied after all " +
-                    "transformations but before returning the Flow.",
+                    "operations execute on the IO dispatcher.",
             beforeExample = """
                 override fun getMeals(): Flow<Result<List<Meal>>> = flow {
                     mealDao.getAllMeals()
@@ -452,11 +425,10 @@ class StateManagementAnalyzer : CodeAnalyzer {
                     emit(Result.failure(mapException(e)))
                 }.flowOn(Dispatchers.IO)
             """.trimIndent(),
-            autoFixable = false,
             effort = Effort.TRIVIAL,
             references = listOf(
                 "https://developer.android.com/kotlin/flow#modify-stream",
-                "https://kotlinlang.org/docs/flow.html#flow-context"
+                "docs/data-layer-patterns.md"
             )
         )
     }
@@ -466,25 +438,21 @@ class StateManagementAnalyzer : CodeAnalyzer {
      */
     private fun createMissingViewModelScopeFinding(
         file: FileInfo,
-        lineNumber: Int,
-        codeLine: String
+        expression: KtCallExpression
     ): Finding {
         return Finding(
-            id = UUID.randomUUID().toString(),
+            id = "state-missing-viewmodelscope-${file.path}-${getLineNumber(expression)}",
             analyzer = id,
             category = category,
             priority = Priority.MEDIUM,
             title = "Coroutine Launch Not Using viewModelScope",
             description = "Coroutine is launched without using viewModelScope. ViewModels should use " +
-                    "viewModelScope for launching coroutines to ensure they are automatically cancelled " +
-                    "when the ViewModel is cleared. This prevents memory leaks and ensures coroutines " +
-                    "don't continue running after the ViewModel is destroyed.",
-            file = file.relativePath,
-            lineNumber = lineNumber,
-            codeSnippet = codeLine,
+                    "viewModelScope to ensure coroutines are automatically cancelled when the ViewModel is cleared.",
+            file = file.path,
+            lineNumber = getLineNumber(expression),
+            codeSnippet = expression.text,
             recommendation = "Replace the coroutine launch with viewModelScope.launch. This ensures " +
-                    "the coroutine is tied to the ViewModel's lifecycle and will be automatically " +
-                    "cancelled when the ViewModel is cleared.",
+                    "the coroutine is tied to the ViewModel's lifecycle.",
             beforeExample = """
                 class MealViewModel : ViewModel() {
                     fun loadMeals() {
@@ -505,12 +473,30 @@ class StateManagementAnalyzer : CodeAnalyzer {
                     }
                 }
             """.trimIndent(),
-            autoFixable = false,
             effort = Effort.TRIVIAL,
             references = listOf(
-                "https://developer.android.com/topic/libraries/architecture/coroutines#viewmodelscope",
-                "https://developer.android.com/kotlin/coroutines/coroutines-best-practices#viewmodel-coroutines"
+                "https://developer.android.com/topic/libraries/architecture/coroutines#viewmodelscope"
             )
         )
+    }
+    
+    /**
+     * Gets a code snippet from text, limiting to max lines.
+     */
+    private fun getCodeSnippet(text: String, maxLines: Int = 10): String {
+        val lines = text.lines()
+        return if (lines.size <= maxLines) {
+            text
+        } else {
+            lines.take(maxLines).joinToString("\n") + "\n// ... (${lines.size - maxLines} more lines)"
+        }
+    }
+    
+    /**
+     * Gets the line number of a PSI element.
+     */
+    private fun getLineNumber(element: KtElement): Int {
+        val document = element.containingKtFile.viewProvider.document
+        return (document?.getLineNumber(element.textOffset) ?: 0) + 1
     }
 }
