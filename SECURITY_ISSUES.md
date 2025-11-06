@@ -17,6 +17,56 @@
 
 ## Recent Scans
 
+### November 6, 2025 - Task 2.2: Kotlin PSI Parsing Implementation
+**Scan Type:** SAST  
+**Scope:** `app/src/main/java/com/shoppit/app/analysis`  
+**Result:** ✅ No issues found  
+**Files Created:**
+- `KotlinParser.kt` - Utility class for parsing Kotlin files into PSI AST
+- Updated `CodeAnalyzer.kt` - Changed interface to use KtFile instead of String
+
+**Dependencies Added:**
+- `kotlin-compiler-embeddable:2.1.0` - For Kotlin PSI parsing
+
+**Changes:**
+- Implemented KotlinParser with Kotlin compiler environment initialization
+- Added parseFile() method for parsing from file path
+- Added parseContent() method for parsing from string
+- Added dispose() method for resource cleanup
+- Added companion object with create() and use() helper methods
+- Updated CodeAnalyzer interface to accept KtFile AST instead of String
+- All code follows Kotlin conventions and project patterns
+- No compilation errors
+
+**Requirements Satisfied:**
+- 1.2: Parse file syntax and extract code structure information
+- 1.4: Handle file parsing errors gracefully
+- 2.2: Add Kotlin PSI parsing capability
+
+### November 6, 2025 - Task 2.1: FileScanner Implementation
+**Scan Type:** SAST  
+**Scope:** `app/src/main/java/com/shoppit/app/analysis`  
+**Result:** ✅ No issues found  
+**Files Created:**
+- `FileScanner.kt` - Interface for file scanning
+- `FileScannerImpl.kt` - Implementation of file scanning with recursive directory traversal
+
+**Changes:**
+- Implemented FileScannerImpl with recursive directory scanning
+- Added support for .kt and .kts file extensions
+- Implemented exclusion pattern matching (build/, .gradle/, generated/, .idea/)
+- Added layer detection based on package structure (DATA, DOMAIN, UI, DI, TEST)
+- Implemented glob pattern matching for exclusions
+- Added relative path calculation from project root
+- All code follows Kotlin conventions and project patterns
+- No compilation errors
+
+**Requirements Satisfied:**
+- 1.1: Scan all Kotlin files recursively
+- 1.3: Report total number of files analyzed
+- 1.5: Skip excluded files and document exclusions
+- 2.1: Implement FileScanner with directory scanning, filtering, and layer detection
+
 ### November 6, 2025 - Task 19: Detekt Integration
 **Scan Type:** SAST  
 **Scope:** `app/src`  

@@ -3,21 +3,15 @@ package com.shoppit.app.analysis.core
 import com.shoppit.app.analysis.models.CodeLayer
 import com.shoppit.app.analysis.models.FileInfo
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.isRegularFile
-import kotlin.io.path.name
-import kotlin.io.path.pathString
 
 /**
- * Implementation of FileScanner that discovers Kotlin source files.
+ * Implementation of FileScanner for discovering and filtering Kotlin source files.
  *
- * Features:
- * - Recursive directory scanning
- * - File filtering based on extensions (.kt, .kts)
- * - Exclusion pattern matching (.gitignore, build directories)
- * - Layer detection based on package structure
+ * This scanner:
+ * - Recursively scans directories for .kt and .kts files
+ * - Respects .gitignore patterns
+ * - Excludes build directories and generated code
+ * - Detects code layer based on package structure
  */
 class FileScannerImpl(
     private val projectRoot: String,
@@ -26,22 +20,22 @@ class FileScannerImpl(
     
     companion object {
         /**
-         * Default patterns to exclude from scanning.
+         * Default patterns to exclude from analysis.
          */
         val DEFAULT_EXCLUDE_PATTERNS = listOf(
             "**/build/**",
             "**/.gradle/**",
             "**/generated/**",
             "**/.idea/**",
-            "**/.git/**",
-            "**/bin/**",
-            "**/out/**"
+            "**/.*",
+            "**/*.class",
+            "**/*.jar"
         )
         
         /**
-         * Kotlin file extensions to scan.
+         * Kotlin file extensions to include.
          */
-        private val KOTLIN_EXTENSIONS = setOf("kt", "kts")
+        val KOTLIN_EXTENSIONS = setOf(".kt", ".kts")
     }
     
     /**
@@ -61,7 +55,7 @@ class FileScannerImpl(
         val files = mutableListOf<FileInfo>()
         scanDirectoryRecursive(directory, files)
         
-        return files
+        return filterFiles(files)
     }
     
     /**
@@ -78,8 +72,7 @@ class FileScannerImpl(
                 }
                 file.isFile && isKotlinFile(file) -> {
                     if (!isExcluded(file.absolutePath)) {
-                        val fileInfo = createFileInfo(file)
-                        files.add(fileInfo)
+                        files.add(createFileInfo(file))
                     }
                 }
             }
@@ -103,8 +96,8 @@ class FileScannerImpl(
         }
         
         // Check if file is a Kotlin file
-        val extension = file.path.substringAfterLast('.', "")
-        if (extension !in KOTLIN_EXTENSIONS) {
+        val extension = File(file.path).extension
+        if (!KOTLIN_EXTENSIONS.contains(".$extension")) {
             return false
         }
         
@@ -132,46 +125,42 @@ class FileScannerImpl(
      * Gets the relative path from project root.
      */
     private fun getRelativePath(absolutePath: String): String {
-        val projectRootPath = Paths.get(projectRoot).normalize()
-        val filePath = Paths.get(absolutePath).normalize()
-        
-        return try {
-            projectRootPath.relativize(filePath).pathString
-        } catch (e: IllegalArgumentException) {
-            // If paths are on different drives or can't be relativized, return absolute path
+        val projectRootFile = File(projectRoot).absolutePath
+        return if (absolutePath.startsWith(projectRootFile)) {
+            absolutePath.substring(projectRootFile.length)
+                .trimStart('/', '\\')
+                .replace('\\', '/')
+        } else {
             absolutePath
         }
     }
     
     /**
      * Detects the code layer based on package structure.
-     *
-     * Layer detection rules:
-     * - /data/ -> DATA layer
-     * - /domain/ -> DOMAIN layer
-     * - /ui/ or /presentation/ -> UI layer
-     * - /di/ -> DI layer
-     * - /test/ or /androidTest/ -> TEST layer
      */
     private fun detectLayer(relativePath: String): CodeLayer? {
         val normalizedPath = relativePath.replace('\\', '/')
         
         return when {
+            // Test files
+            normalizedPath.contains("/test/") || 
+            normalizedPath.contains("/androidTest/") -> CodeLayer.TEST
+            
+            // Data layer
             normalizedPath.contains("/data/") -> CodeLayer.DATA
+            
+            // Domain layer
             normalizedPath.contains("/domain/") -> CodeLayer.DOMAIN
-            normalizedPath.contains("/ui/") || normalizedPath.contains("/presentation/") -> CodeLayer.UI
+            
+            // UI layer (includes presentation)
+            normalizedPath.contains("/ui/") || 
+            normalizedPath.contains("/presentation/") -> CodeLayer.UI
+            
+            // DI layer
             normalizedPath.contains("/di/") -> CodeLayer.DI
-            normalizedPath.contains("/test/") || normalizedPath.contains("/androidTest/") -> CodeLayer.TEST
+            
             else -> null
         }
-    }
-    
-    /**
-     * Checks if a file is a Kotlin file based on extension.
-     */
-    private fun isKotlinFile(file: File): Boolean {
-        val extension = file.extension.lowercase()
-        return extension in KOTLIN_EXTENSIONS
     }
     
     /**
@@ -186,22 +175,27 @@ class FileScannerImpl(
     }
     
     /**
-     * Matches a path against a glob pattern.
-     *
-     * Supports:
-     * - ** for matching any number of directories
-     * - * for matching any characters within a directory
+     * Checks if a path matches a glob pattern.
      */
     private fun matchesPattern(path: String, pattern: String): Boolean {
         val normalizedPattern = pattern.replace('\\', '/')
         
         // Convert glob pattern to regex
-        val regexPattern = normalizedPattern
+        val regex = normalizedPattern
             .replace(".", "\\.")
-            .replace("**", "DOUBLE_STAR")
+            .replace("**/", "(.*/)?")
+            .replace("**", ".*")
             .replace("*", "[^/]*")
-            .replace("DOUBLE_STAR", ".*")
+            .replace("?", "[^/]")
         
-        return path.matches(Regex(regexPattern))
+        return Regex(regex).containsMatchIn(path)
+    }
+    
+    /**
+     * Checks if a file is a Kotlin file based on extension.
+     */
+    private fun isKotlinFile(file: File): Boolean {
+        val extension = ".${file.extension}"
+        return KOTLIN_EXTENSIONS.contains(extension)
     }
 }

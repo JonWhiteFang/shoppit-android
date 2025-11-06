@@ -68,7 +68,7 @@ The implementation follows a bottom-up approach:
   - Add error handling for parse failures
   - _Requirements: 1.2, 1.4_
 
-- [x] 2.3 Write tests for file scanning
+- [ ]* 2.3 Write tests for file scanning
   - Create test fixtures with sample Kotlin files
   - Test directory scanning
   - Test file filtering
@@ -122,7 +122,7 @@ The implementation follows a bottom-up approach:
   - Suggest parameter objects
   - _Requirements: 2.3_
 
-- [x] 3.7 Write tests for Code Smell Analyzer
+- [ ]* 3.7 Write tests for Code Smell Analyzer
   - Test long function detection
   - Test large class detection
   - Test complexity calculation
@@ -163,7 +163,7 @@ The implementation follows a bottom-up approach:
   - Create Finding for multiple public functions
   - _Requirements: 3.4_
 
-- [x] 4.5 Write tests for Architecture Analyzer
+- [ ]* 4.5 Write tests for Architecture Analyzer
   - Test domain layer import validation
   - Test ViewModel StateFlow validation
   - Test use case structure validation
@@ -203,7 +203,7 @@ The implementation follows a bottom-up approach:
   - Create Findings for violations
   - _Requirements: 4.4, 4.5_
 
-- [x] 5.5 Write tests for Compose Analyzer
+- [ ]* 5.5 Write tests for Compose Analyzer
   - Test Modifier parameter detection
   - Test remember usage detection
   - Test LazyColumn validation
@@ -242,7 +242,7 @@ The implementation follows a bottom-up approach:
   - Create Finding for missing dispatcher
   - _Requirements: 5.4_
 
-- [x] 6.5 Write tests for State Management Analyzer
+- [ ]* 6.5 Write tests for State Management Analyzer
   - Test state exposure detection
   - Test update pattern validation
   - Test Flow dispatcher validation
@@ -280,7 +280,7 @@ The implementation follows a bottom-up approach:
   - Create Finding for empty catch blocks
   - _Requirements: 6.4_
 
-- [x] 7.5 Write tests for Error Handling Analyzer
+- [ ]* 7.5 Write tests for Error Handling Analyzer
   - Test exception mapping detection
   - Test Result type validation
   - Test empty catch block detection
@@ -318,7 +318,7 @@ The implementation follows a bottom-up approach:
   - Create Finding for missing annotations
   - _Requirements: 7.3_
 
-- [x] 8.5 Write tests for DI Analyzer
+- [ ]* 8.5 Write tests for DI Analyzer
   - Test ViewModel annotation detection
   - Test constructor injection validation
   - Test module annotation validation
@@ -353,7 +353,7 @@ The implementation follows a bottom-up approach:
   - Create Finding for SQL injection risks
   - _Requirements: 8.5_
 
-- [x] 9.4 Write tests for Database Analyzer
+- [ ]* 9.4 Write tests for Database Analyzer
   - Test DAO function validation
   - Test query parameterization
   - _Requirements: 8.1, 8.2, 8.5_
@@ -384,7 +384,7 @@ The implementation follows a bottom-up approach:
   - Create Finding with optimization
   - _Requirements: 9.2_
 
-- [x] 10.4 Write tests for Performance Analyzer
+- [ ]* 10.4 Write tests for Performance Analyzer
   - Test list operation detection
   - Test string concatenation detection
   - _Requirements: 9.1, 9.2_
@@ -413,7 +413,7 @@ The implementation follows a bottom-up approach:
   - Create Findings for violations
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [x] 11.3 Write tests for Naming Analyzer
+- [ ]* 11.3 Write tests for Naming Analyzer
   - Test file naming validation
   - Test class naming validation
   - Test function naming validation
@@ -440,7 +440,7 @@ The implementation follows a bottom-up approach:
   - Create Findings for missing tests
   - _Requirements: 11.1, 11.2, 11.3, 11.4_
 
-- [x] 12.3 Write tests for Test Coverage Analyzer
+- [ ]* 12.3 Write tests for Test Coverage Analyzer
   - Test ViewModel test detection
   - Test use case test detection
   - Test naming convention validation
@@ -472,7 +472,7 @@ The implementation follows a bottom-up approach:
   - Create Findings for undocumented complexity
   - _Requirements: 12.2_
 
-- [x] 13.4 Write tests for Documentation Analyzer
+- [ ]* 13.4 Write tests for Documentation Analyzer
   - Test KDoc detection
   - Test inline comment detection
   - _Requirements: 12.1, 12.2_
@@ -503,7 +503,7 @@ The implementation follows a bottom-up approach:
   - Create HIGH priority Findings
   - _Requirements: 13.2_
 
-- [x] 14.4 Write tests for Security Analyzer
+- [ ]* 14.4 Write tests for Security Analyzer
   - Test hardcoded secret detection
   - Test sensitive logging detection
   - _Requirements: 13.1, 13.2_
@@ -542,7 +542,7 @@ The implementation follows a bottom-up approach:
   - Calculate average function/class length
   - _Requirements: 14.6_
 
-- [x] 15.5 Write tests for Result Aggregator
+- [ ]* 15.5 Write tests for Result Aggregator
   - Test deduplication
   - Test priority assignment
   - Test metrics calculation
@@ -550,7 +550,7 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [x] 16. Implement Report Generator
+- [ ] 16. Implement Report Generator
   - Generate markdown report structure
   - Include executive summary
   - Group findings by category and priority
@@ -558,18 +558,18 @@ The implementation follows a bottom-up approach:
   - Include before/after examples
   - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6, 15.7_
 
-- [x] 16.1 Create ReportGeneratorImpl class
+- [ ] 16.1 Create ReportGeneratorImpl class
   - Implement ReportGenerator interface
   - Add markdown formatting utilities
   - _Requirements: 15.1, 15.2_
 
-- [x] 16.2 Implement executive summary generation
+- [ ] 16.2 Implement executive summary generation
   - Format key metrics
   - List top issues
   - Include trend data if baseline exists
   - _Requirements: 15.2_
 
-- [x] 16.3 Implement findings section generation
+- [ ] 16.3 Implement findings section generation
   - Group findings by priority
   - Group findings by category
   - Format each finding with all details
@@ -577,12 +577,12 @@ The implementation follows a bottom-up approach:
   - Include before/after examples
   - _Requirements: 15.3, 15.4, 15.5_
 
-- [x] 16.4 Implement improvement recommendations section
+- [ ] 16.4 Implement improvement recommendations section
   - Group by effort level
   - Provide actionable next steps
   - _Requirements: 15.6_
 
-- [x] 16.5 Write tests for Report Generator
+- [ ]* 16.5 Write tests for Report Generator
   - Test markdown formatting
   - Test executive summary generation
   - Test findings section generation
@@ -590,37 +590,37 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [x] 17. Implement Baseline Manager
+- [ ] 17. Implement Baseline Manager
   - Load existing baseline
   - Save current analysis as baseline
   - Compare current with baseline
   - Save analysis to history
   - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5, 16.6_
 
-- [x] 17.1 Create BaselineManagerImpl class
+- [ ] 17.1 Create BaselineManagerImpl class
   - Implement BaselineManager interface
   - Add JSON serialization
   - _Requirements: 16.1, 16.2_
 
-- [x] 17.2 Implement baseline loading and saving
+- [ ] 17.2 Implement baseline loading and saving
   - Load baseline from JSON file
   - Save metrics and finding IDs
   - Handle missing baseline gracefully
   - _Requirements: 16.1, 16.2_
 
-- [x] 17.3 Implement comparison logic
+- [ ] 17.3 Implement comparison logic
   - Compare metrics (improved/regressed)
   - Identify resolved findings
   - Identify new findings
   - Calculate improvement percentages
   - _Requirements: 16.3, 16.6_
 
-- [x] 17.4 Implement history tracking
+- [ ] 17.4 Implement history tracking
   - Save each analysis run to history
   - Maintain historical trend data
   - _Requirements: 16.6_
 
-- [x] 17.5 Write tests for Baseline Manager
+- [ ]* 17.5 Write tests for Baseline Manager
   - Test baseline loading/saving
   - Test comparison logic
   - Test history tracking
@@ -628,7 +628,7 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [x] 18. Implement Analysis Orchestrator
+- [ ] 18. Implement Analysis Orchestrator
   - Coordinate analyzer execution
   - Manage analysis lifecycle
   - Aggregate results
@@ -636,12 +636,12 @@ The implementation follows a bottom-up approach:
   - Update baseline
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 14.1, 15.1, 16.1, 17.1_
 
-- [x] 18.1 Create AnalysisOrchestratorImpl class
+- [ ] 18.1 Create AnalysisOrchestratorImpl class
   - Implement AnalysisOrchestrator interface
   - Add analyzer registry
   - _Requirements: 1.1, 1.2_
 
-- [x] 18.2 Implement full analysis workflow
+- [ ] 18.2 Implement full analysis workflow
   - Scan files
   - Parse Kotlin files
   - Run all analyzers in parallel
@@ -651,13 +651,13 @@ The implementation follows a bottom-up approach:
   - Handle errors gracefully
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 14.1, 15.1, 16.1, 17.1_
 
-- [x] 18.3 Implement incremental analysis
+- [ ] 18.3 Implement incremental analysis
   - Support specific file/directory paths
   - Support analyzer filtering
   - Update baseline for analyzed files only
   - _Requirements: 18.1, 18.2, 18.3, 18.4, 18.5_
 
-- [x] 18.4 Write tests for Analysis Orchestrator
+- [ ]* 18.4 Write tests for Analysis Orchestrator
   - Test full analysis workflow
   - Test incremental analysis
   - Test error handling
@@ -665,7 +665,7 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [x] 19. Integrate Detekt
+- [ ] 19. Integrate Detekt
   - Add Detekt dependency
   - Create Detekt configuration
   - Run Detekt analysis
@@ -673,57 +673,57 @@ The implementation follows a bottom-up approach:
   - Incorporate into report
   - _Requirements: 17.1, 17.2, 17.3_
 
-- [x] 19.1 Add Detekt dependency and configuration
+- [ ] 19.1 Add Detekt dependency and configuration
   - Add detekt-gradle-plugin to build.gradle.kts
   - Create detekt-config.yml with project-specific rules
   - Configure Compose rules plugin
   - _Requirements: 17.1_
 
-- [x] 19.2 Create DetektIntegration class
+- [ ] 19.2 Create DetektIntegration class
   - Run Detekt programmatically
   - Parse Detekt XML/JSON output
   - Convert to Finding model
   - _Requirements: 17.1, 17.2_
 
-- [x] 19.3 Integrate Detekt findings into report
+- [ ] 19.3 Integrate Detekt findings into report
   - Add Detekt findings to aggregated results
   - Mark findings as from Detekt
   - _Requirements: 17.2, 17.3_
 
-- [x] 19.4 Write tests for Detekt integration
+- [ ]* 19.4 Write tests for Detekt integration
   - Test Detekt execution
   - Test finding conversion
   - _Requirements: 17.1, 17.2_
 
 ---
 
-- [x] 20. Create Gradle task and CLI
+- [ ] 20. Create Gradle task and CLI
   - Create Gradle task for running analysis
   - Add command-line options
   - Add progress reporting
   - Add error handling
   - _Requirements: 1.1, 18.1, 18.2_
 
-- [x] 20.1 Create Gradle task
+- [ ] 20.1 Create Gradle task
   - Create `analyzeCodeQuality` task
   - Wire up AnalysisOrchestrator
   - Add task configuration options
   - _Requirements: 1.1_
 
-- [x] 20.2 Add command-line options
+- [ ] 20.2 Add command-line options
   - Support --path for incremental analysis
   - Support --analyzers for filtering
   - Support --baseline for baseline generation
   - Support --output for custom output path
   - _Requirements: 18.1, 18.2_
 
-- [x] 20.3 Add progress reporting
+- [ ] 20.3 Add progress reporting
   - Report files being analyzed
   - Report analyzer execution
   - Report completion status
   - _Requirements: 1.3_
 
-- [x] 20.4 Write integration tests
+- [ ]* 20.4 Write integration tests
   - Test Gradle task execution
   - Test command-line options
   - Test report generation
@@ -731,32 +731,32 @@ The implementation follows a bottom-up approach:
 
 ---
 
-- [x] 21. Create documentation and examples
+- [ ] 21. Create documentation and examples
   - Write usage guide
   - Document each analyzer
   - Provide example reports
   - Create CI/CD integration guide
   - _Requirements: All_
 
-- [x] 21.1 Write usage guide
+- [ ] 21.1 Write usage guide
   - Document how to run analysis
   - Document command-line options
   - Document configuration options
   - Document report interpretation
   - _Requirements: All_
 
-- [x] 21.2 Document analyzers
+- [ ] 21.2 Document analyzers
   - Document what each analyzer checks
   - Provide examples of violations
   - Provide examples of fixes
   - _Requirements: All_
 
-- [x] 21.3 Create example reports
+- [ ] 21.3 Create example reports
   - Run analysis on sample code
   - Include in documentation
   - _Requirements: 15.1_
 
-- [x] 21.4 Create CI/CD integration guide
+- [ ] 21.4 Create CI/CD integration guide
   - Document GitHub Actions integration
   - Document failure conditions
   - Provide workflow examples

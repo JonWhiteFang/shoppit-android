@@ -3,14 +3,14 @@ package com.shoppit.app.analysis.core
 import com.shoppit.app.analysis.models.FileInfo
 
 /**
- * Interface for scanning and discovering Kotlin source files.
+ * Interface for discovering and filtering Kotlin source files for analysis.
  */
 interface FileScanner {
     /**
      * Scans a directory recursively for Kotlin files.
      *
      * @param path Path to the directory to scan
-     * @return List of file information for all discovered Kotlin files
+     * @return List of file information for discovered Kotlin files
      */
     fun scanDirectory(path: String): List<FileInfo>
     

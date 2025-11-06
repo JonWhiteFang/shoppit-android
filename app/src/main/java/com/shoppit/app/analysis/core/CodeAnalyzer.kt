@@ -3,12 +3,11 @@ package com.shoppit.app.analysis.core
 import com.shoppit.app.analysis.models.AnalysisCategory
 import com.shoppit.app.analysis.models.FileInfo
 import com.shoppit.app.analysis.models.Finding
+import org.jetbrains.kotlin.psi.KtFile
 
 /**
  * Interface for code analyzers that examine Kotlin source files.
  * Each analyzer focuses on a specific aspect of code quality.
- * 
- * Note: The AST parameter type will be added when Kotlin PSI dependency is integrated (Task 2.2).
  */
 interface CodeAnalyzer {
     /**
@@ -30,12 +29,10 @@ interface CodeAnalyzer {
      * Analyzes a single Kotlin file and returns findings.
      *
      * @param file Metadata about the file being analyzed
-     * @param fileContent Content of the file as a string
+     * @param ast Parsed Kotlin file AST
      * @return List of findings discovered in the file
-     * 
-     * TODO: Replace fileContent parameter with KtFile AST in Task 2.2
      */
-    suspend fun analyze(file: FileInfo, fileContent: String): List<Finding>
+    suspend fun analyze(file: FileInfo, ast: KtFile): List<Finding>
     
     /**
      * Checks if this analyzer should be applied to the given file.

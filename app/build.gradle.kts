@@ -290,4 +290,7 @@ dependencies {
     implementation(libs.detekt.core)
     detektPlugins(libs.detekt.formatting)
     detektPlugins(libs.detekt.compose)
+    
+    // Kotlin Compiler for PSI parsing
+    implementation(libs.kotlin.compiler.embeddable)
 }
