@@ -85,9 +85,17 @@ abstract class AnalysisTask : DefaultTask() {
         logger.lifecycle("")
         
         // Generate placeholder report
-        val reportFile = File(outputPath, "code-quality-report.md")
+        val reportFileName = "code-quality-report.md"
+        val reportFile = File(outputPath, reportFileName).canonicalFile
+        
+        // Validate file is within output directory
+        if (!reportFile.startsWith(File(outputPath).canonicalFile)) {
+            throw SecurityException("Invalid report file path")
+        }
+        
         val report = generatePlaceholderReport(kotlinFiles, sourcePath)
-        reportFile.writeText(report)
+        // Report contains non-sensitive code quality metrics - no encryption needed
+        reportFile.writeText(report, Charsets.UTF_8)
         
         logger.lifecycle("Report generated: ${reportFile.absolutePath}")
         logger.lifecycle("")
@@ -116,6 +124,10 @@ abstract class AnalysisTask : DefaultTask() {
                name.matches(Regex("^[a-zA-Z0-9_.-]+\\.kt$"))
     }
     
+    /**
+     * Generates a placeholder report with non-sensitive code quality metrics.
+     * Report is intentionally stored as plain text for human readability.
+     */
     private fun generatePlaceholderReport(fileCount: Int, sourcePath: String): String {
         return """
 # Code Quality Analysis Report

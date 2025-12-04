@@ -16,6 +16,11 @@ class AuthInterceptor @Inject constructor(
     private val tokenStorage: TokenStorage
 ) : Interceptor {
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     override fun intercept(chain: Interceptor.Chain): Response {
         val originalRequest = chain.request()
         
@@ -33,7 +38,7 @@ class AuthInterceptor @Inject constructor(
             .header("Authorization", "Bearer $accessToken")
             .build()
         
-        Timber.d("Added Authorization header to request: ${originalRequest.url}")
+        Timber.d("Added Authorization header to request: ${sanitize(originalRequest.url.toString())}")
         
         return chain.proceed(authenticatedRequest)
     }

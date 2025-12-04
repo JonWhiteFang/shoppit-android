@@ -30,6 +30,11 @@ class RetryPolicy @Inject constructor() {
         private const val BACKOFF_FACTOR = 2.0
     }
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     /**
      * Executes a block with retry logic and exponential backoff.
      *
@@ -73,7 +78,7 @@ class RetryPolicy @Inject constructor() {
                 // Determine if error is retryable
                 val syncError = mapToSyncError(e)
                 if (!syncError.isRetryable()) {
-                    Timber.w(e, "Non-retryable error encountered: ${syncError.message}")
+                    Timber.w(e, "Non-retryable error encountered: ${sanitize(syncError.message)}")
                     return Result.failure(syncError)
                 }
                 
@@ -87,7 +92,7 @@ class RetryPolicy @Inject constructor() {
                 Timber.w(
                     e,
                     "Operation failed (attempt ${attempt + 1}/$maxAttempts), " +
-                            "retrying in ${delayMs}ms: ${syncError.message}"
+                            "retrying in ${delayMs}ms: ${sanitize(syncError.message)}"
                 )
                 
                 // Wait before retrying
@@ -120,7 +125,7 @@ class RetryPolicy @Inject constructor() {
         operation: String,
         block: suspend () -> T
     ): Result<T> {
-        Timber.d("Starting sync operation: $operation for $entityType $entityId")
+        Timber.d("Starting sync operation: ${sanitize(operation)} for ${sanitize(entityType)} $entityId")
         
         val result = executeWithRetry {
             block()
@@ -128,10 +133,10 @@ class RetryPolicy @Inject constructor() {
         
         result.fold(
             onSuccess = {
-                Timber.i("Successfully synced: $operation for $entityType $entityId")
+                Timber.i("Successfully synced: ${sanitize(operation)} for ${sanitize(entityType)} $entityId")
             },
             onFailure = { error ->
-                Timber.e(error, "Failed to sync: $operation for $entityType $entityId")
+                Timber.e(error, "Failed to sync: ${sanitize(operation)} for ${sanitize(entityType)} $entityId")
             }
         )
         

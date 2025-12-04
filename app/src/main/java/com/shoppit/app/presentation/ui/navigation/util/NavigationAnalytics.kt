@@ -43,6 +43,11 @@ object NavigationAnalytics {
     private val _analyticsState = MutableStateFlow(AnalyticsState())
     val analyticsState: StateFlow<AnalyticsState> = _analyticsState.asStateFlow()
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     init {
         updateAnalyticsState()
     }
@@ -84,7 +89,7 @@ object NavigationAnalytics {
         screenErrors.computeIfAbsent(route) { AtomicInteger(0) }.incrementAndGet()
         failureTypes.computeIfAbsent(errorType) { AtomicInteger(0) }.incrementAndGet()
         
-        Timber.e(exception, "Navigation Error [$errorType] on route '$route': $message")
+        Timber.e(exception, "Navigation Error [${sanitize(errorType)}] on route '${sanitize(route)}': ${sanitize(message)}")
         updateAnalyticsState()
         
         // TODO: Send to analytics service (Firebase Analytics, etc.)
@@ -112,7 +117,7 @@ object NavigationAnalytics {
         screenErrors.computeIfAbsent(route) { AtomicInteger(0) }.incrementAndGet()
         failureTypes.computeIfAbsent(failureType) { AtomicInteger(0) }.incrementAndGet()
         
-        Timber.w("Navigation Failure [$failureType] on route '$route': $message")
+        Timber.w("Navigation Failure [${sanitize(failureType)}] on route '${sanitize(route)}': ${sanitize(message)}")
         updateAnalyticsState()
         
         // TODO: Send to analytics service
@@ -136,7 +141,7 @@ object NavigationAnalytics {
     ) {
         screenViews.computeIfAbsent(route) { AtomicInteger(0) }.incrementAndGet()
         
-        Timber.d("Screen View: $route ${arguments?.let { "with args: $it" } ?: ""}")
+        Timber.d("Screen View: ${sanitize(route)} ${arguments?.let { "with args: $it" } ?: ""}")
         updateAnalyticsState()
         
         // TODO: Send to analytics service
@@ -164,7 +169,7 @@ object NavigationAnalytics {
         val path = "$from -> $to"
         navigationPaths.computeIfAbsent(path) { AtomicInteger(0) }.incrementAndGet()
         
-        Timber.d("Navigation Path: $path ${arguments?.let { "with args: $it" } ?: ""}")
+        Timber.d("Navigation Path: ${sanitize(from)} -> ${sanitize(to)} ${arguments?.let { "with args: $it" } ?: ""}")
         updateAnalyticsState()
         
         // TODO: Send to analytics service
@@ -206,7 +211,7 @@ object NavigationAnalytics {
             }
         }
         
-        Timber.d("Navigation Success: $from -> $to ${arguments?.let { "with args: $it" } ?: ""}")
+        Timber.d("Navigation Success: ${sanitize(from)} -> ${sanitize(to)} ${arguments?.let { "with args: $it" } ?: ""}")
         updateAnalyticsState()
         
         // TODO: Send to analytics service
@@ -232,7 +237,7 @@ object NavigationAnalytics {
         success: Boolean,
         destination: String? = null
     ) {
-        Timber.i("Deep Link Navigation: $uri -> ${if (success) "Success ($destination)" else "Failed"}")
+        Timber.i("Deep Link Navigation: ${sanitize(uri)} -> ${if (success) "Success (${destination?.let { sanitize(it) }})" else "Failed"}")
         
         // TODO: Send to analytics service
         // Example:
@@ -253,7 +258,7 @@ object NavigationAnalytics {
         from: String,
         to: String? = null
     ) {
-        Timber.d("Back Navigation: $from -> ${to ?: "previous"}")
+        Timber.d("Back Navigation: ${sanitize(from)} -> ${to?.let { sanitize(it) } ?: "previous"}")
         
         // TODO: Send to analytics service
         // Example:
@@ -273,7 +278,7 @@ object NavigationAnalytics {
         route: String,
         reason: String
     ) {
-        Timber.d("Navigation Cancelled on route '$route': $reason")
+        Timber.d("Navigation Cancelled on route '${sanitize(route)}': ${sanitize(reason)}")
         
         // TODO: Send to analytics service
         // Example:

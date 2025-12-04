@@ -10,6 +10,11 @@ object PersistenceLogger {
     
     private const val TAG_PREFIX = "Persistence"
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     // Migration logging
     fun logMigrationStart(fromVersion: Int, toVersion: Int) {
         Timber.tag("$TAG_PREFIX.Migration").i("Starting migration from v$fromVersion to v$toVersion")
@@ -30,19 +35,19 @@ object PersistenceLogger {
     
     // Cache logging
     fun logCacheHit(key: String) {
-        Timber.tag("$TAG_PREFIX.Cache").d("Cache HIT: $key")
+        Timber.tag("$TAG_PREFIX.Cache").d("Cache HIT: ${sanitize(key)}")
     }
     
     fun logCacheMiss(key: String) {
-        Timber.tag("$TAG_PREFIX.Cache").d("Cache MISS: $key")
+        Timber.tag("$TAG_PREFIX.Cache").d("Cache MISS: ${sanitize(key)}")
     }
     
     fun logCacheEviction(key: String, reason: String) {
-        Timber.tag("$TAG_PREFIX.Cache").d("Cache eviction: $key (reason: $reason)")
+        Timber.tag("$TAG_PREFIX.Cache").d("Cache eviction: ${sanitize(key)} (reason: ${sanitize(reason)})")
     }
     
     fun logCacheInvalidation(key: String) {
-        Timber.tag("$TAG_PREFIX.Cache").d("Cache invalidated: $key")
+        Timber.tag("$TAG_PREFIX.Cache").d("Cache invalidated: ${sanitize(key)}")
     }
     
     fun logCacheStats(hitRate: Double, size: Int, maxSize: Int) {
@@ -53,38 +58,39 @@ object PersistenceLogger {
     
     // Transaction logging
     fun logTransactionStart(operation: String) {
-        Timber.tag("$TAG_PREFIX.Transaction").d("Transaction started: $operation")
+        Timber.tag("$TAG_PREFIX.Transaction").d("Transaction started: ${sanitize(operation)}")
     }
     
     fun logTransactionCommit(operation: String, durationMs: Long) {
         Timber.tag("$TAG_PREFIX.Transaction").d(
-            "Transaction committed: $operation (${durationMs}ms)"
+            "Transaction committed: ${sanitize(operation)} (${durationMs}ms)"
         )
     }
     
     fun logTransactionRollback(operation: String, reason: String) {
         Timber.tag("$TAG_PREFIX.Transaction").w(
-            "Transaction rolled back: $operation (reason: $reason)"
+            "Transaction rolled back: ${sanitize(operation)} (reason: ${sanitize(reason)})"
         )
     }
     
     fun logTransactionRetry(operation: String, attempt: Int, maxAttempts: Int) {
         Timber.tag("$TAG_PREFIX.Transaction").w(
-            "Transaction retry: $operation (attempt $attempt/$maxAttempts)"
+            "Transaction retry: ${sanitize(operation)} (attempt $attempt/$maxAttempts)"
         )
     }
     
     // Query logging
     fun logQueryExecution(query: String, durationMs: Long) {
+        val sanitizedQuery = sanitize(query)
         if (durationMs > 100) {
-            Timber.tag("$TAG_PREFIX.Query").w("SLOW QUERY (${durationMs}ms): $query")
+            Timber.tag("$TAG_PREFIX.Query").w("SLOW QUERY (${durationMs}ms): $sanitizedQuery")
         } else {
-            Timber.tag("$TAG_PREFIX.Query").d("Query executed (${durationMs}ms): $query")
+            Timber.tag("$TAG_PREFIX.Query").d("Query executed (${durationMs}ms): $sanitizedQuery")
         }
     }
     
     fun logQueryFailure(query: String, error: Throwable) {
-        Timber.tag("$TAG_PREFIX.Query").e(error, "Query failed: $query")
+        Timber.tag("$TAG_PREFIX.Query").e(error, "Query failed: ${sanitize(query)}")
     }
     
     // Validation logging
@@ -133,7 +139,7 @@ object PersistenceLogger {
     
     // Corruption logging
     fun logCorruptionDetected(details: String) {
-        Timber.tag("$TAG_PREFIX.Corruption").e("DATABASE CORRUPTION DETECTED: $details")
+        Timber.tag("$TAG_PREFIX.Corruption").e("DATABASE CORRUPTION DETECTED: ${sanitize(details)}")
     }
     
     fun logCorruptionRecoveryStart() {
@@ -150,15 +156,15 @@ object PersistenceLogger {
     
     // Maintenance logging
     fun logMaintenanceStart(operation: String) {
-        Timber.tag("$TAG_PREFIX.Maintenance").i("Starting maintenance: $operation")
+        Timber.tag("$TAG_PREFIX.Maintenance").i("Starting maintenance: ${sanitize(operation)}")
     }
     
     fun logMaintenanceSuccess(operation: String, details: String) {
-        Timber.tag("$TAG_PREFIX.Maintenance").i("Maintenance completed: $operation - $details")
+        Timber.tag("$TAG_PREFIX.Maintenance").i("Maintenance completed: ${sanitize(operation)} - ${sanitize(details)}")
     }
     
     fun logMaintenanceFailure(operation: String, error: Throwable) {
-        Timber.tag("$TAG_PREFIX.Maintenance").e(error, "Maintenance failed: $operation")
+        Timber.tag("$TAG_PREFIX.Maintenance").e(error, "Maintenance failed: ${sanitize(operation)}")
     }
     
     fun logCleanupResult(orphanedRecords: Int, deletedRecords: Int, spaceReclaimed: Long) {
@@ -195,15 +201,16 @@ object PersistenceLogger {
     
     // General operation logging
     fun logOperationStart(operation: String, details: String = "") {
-        val message = if (details.isNotEmpty()) "$operation - $details" else operation
+        val sanitizedOp = sanitize(operation)
+        val message = if (details.isNotEmpty()) "$sanitizedOp - ${sanitize(details)}" else sanitizedOp
         Timber.tag("$TAG_PREFIX.Operation").d("Starting: $message")
     }
     
     fun logOperationSuccess(operation: String, durationMs: Long) {
-        Timber.tag("$TAG_PREFIX.Operation").d("Completed: $operation (${durationMs}ms)")
+        Timber.tag("$TAG_PREFIX.Operation").d("Completed: ${sanitize(operation)} (${durationMs}ms)")
     }
     
     fun logOperationFailure(operation: String, error: Throwable) {
-        Timber.tag("$TAG_PREFIX.Operation").e(error, "Failed: $operation")
+        Timber.tag("$TAG_PREFIX.Operation").e(error, "Failed: ${sanitize(operation)}")
     }
 }

@@ -19,6 +19,11 @@ import javax.inject.Singleton
 @Singleton
 class SyncErrorLogger @Inject constructor() {
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     /**
      * Logs a sync error with full context.
      *
@@ -92,10 +97,10 @@ class SyncErrorLogger @Inject constructor() {
             append("Successfully recovered from ${error.javaClass.simpleName}")
             append(" after $attemptNumber attempts")
             if (context.entityType != null) {
-                append(" for ${context.entityType} ${context.entityId}")
+                append(" for ${sanitize(context.entityType)} ${context.entityId}")
             }
             if (context.operation != null) {
-                append(" (${context.operation})")
+                append(" (${sanitize(context.operation)})")
             }
         }
         
@@ -114,12 +119,12 @@ class SyncErrorLogger @Inject constructor() {
             append("Failed to recover from ${error.javaClass.simpleName}")
             append(" after $maxAttempts attempts")
             if (context.entityType != null) {
-                append(" for ${context.entityType} ${context.entityId}")
+                append(" for ${sanitize(context.entityType)} ${context.entityId}")
             }
             if (context.operation != null) {
-                append(" (${context.operation})")
+                append(" (${sanitize(context.operation)})")
             }
-            append(": ${error.message}")
+            append(": ${sanitize(error.message)}")
         }
         
         Timber.e(error.cause, message)
@@ -139,10 +144,10 @@ class SyncErrorLogger @Inject constructor() {
             append("Retrying after ${error.javaClass.simpleName}")
             append(" (attempt $attemptNumber)")
             if (context.entityType != null) {
-                append(" for ${context.entityType} ${context.entityId}")
+                append(" for ${sanitize(context.entityType)} ${context.entityId}")
             }
             if (context.operation != null) {
-                append(" (${context.operation})")
+                append(" (${sanitize(context.operation)})")
             }
             append(", delay: ${delayMs}ms")
         }
@@ -158,7 +163,7 @@ class SyncErrorLogger @Inject constructor() {
      * @param resolution Resolution strategy used (e.g., "server_wins", "local_wins")
      */
     fun logConflictResolution(entityType: String, entityId: Long, resolution: String) {
-        val message = "Conflict resolved for $entityType $entityId using $resolution strategy"
+        val message = "Conflict resolved for ${sanitize(entityType)} $entityId using ${sanitize(resolution)} strategy"
         Timber.i(message)
     }
     
@@ -170,7 +175,7 @@ class SyncErrorLogger @Inject constructor() {
      * @param operation Operation that was queued
      */
     fun logQueuedChange(entityType: String, entityId: Long, operation: String) {
-        val message = "Queued $operation for $entityType $entityId (will sync when online)"
+        val message = "Queued ${sanitize(operation)} for ${sanitize(entityType)} $entityId (will sync when online)"
         Timber.d(message)
     }
     
@@ -203,24 +208,24 @@ class SyncErrorLogger @Inject constructor() {
             append("Sync error: ${error.javaClass.simpleName}")
             
             if (context.entityType != null) {
-                append(" for ${context.entityType}")
+                append(" for ${sanitize(context.entityType)}")
                 if (context.entityId != null) {
-                    append(" $context.entityId")
+                    append(" ${context.entityId}")
                 }
             }
             
             if (context.operation != null) {
-                append(" (${context.operation})")
+                append(" (${sanitize(context.operation)})")
             }
             
             if (context.attemptNumber != null) {
                 append(" [attempt ${context.attemptNumber}]")
             }
             
-            append(": ${error.message}")
+            append(": ${sanitize(error.message)}")
             
             if (context.additionalInfo != null) {
-                append(" - ${context.additionalInfo}")
+                append(" - ${sanitize(context.additionalInfo)}")
             }
         }
     }

@@ -24,6 +24,11 @@ class StartupOptimizerImpl @Inject constructor(
     private val performanceMonitor: PerformanceMonitor
 ) : StartupOptimizer {
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     companion object {
         private const val COLD_START_TARGET = 2000L // milliseconds
         private const val WARM_START_TARGET = 1000L // milliseconds
@@ -103,7 +108,7 @@ class StartupOptimizerImpl @Inject constructor(
         addTraceMarker(traceName, "completed")
         
         // Log phase completion
-        Timber.d("Startup phase ${phase.name} completed in ${duration}ms")
+        Timber.d("Startup phase ${sanitize(phase.name)} completed in ${duration}ms")
         
         // Check if we've completed first frame
         if (phase == StartupPhase.FIRST_FRAME) {
@@ -155,7 +160,7 @@ class StartupOptimizerImpl @Inject constructor(
             else -> StartType.COLD
         }
         
-        Timber.d("Detected ${startType?.name} start (${totalStartupTime}ms)")
+        Timber.d("Detected ${startType?.name?.let { sanitize(it) }} start (${totalStartupTime}ms)")
     }
     
     /**
@@ -165,7 +170,7 @@ class StartupOptimizerImpl @Inject constructor(
     private fun logStartupSummary(totalStartupTime: Long) {
         val summary = buildString {
             appendLine("=== Startup Performance Summary ===")
-            appendLine("Start type: ${startType?.name ?: "UNKNOWN"}")
+            appendLine("Start type: ${startType?.name?.let { sanitize(it) } ?: "UNKNOWN"}")
             appendLine("Total startup time: ${totalStartupTime}ms")
             appendLine()
             
@@ -182,7 +187,7 @@ class StartupOptimizerImpl @Inject constructor(
                 val duration = phaseDurations[phase]
                 if (duration != null) {
                     val percentage = (duration.toDouble() / totalStartupTime * 100).toInt()
-                    appendLine("  ${phase.name}: ${duration}ms ($percentage%)")
+                    appendLine("  ${sanitize(phase.name)}: ${duration}ms ($percentage%)")
                 }
             }
             appendLine("===================================")
@@ -201,7 +206,7 @@ class StartupOptimizerImpl @Inject constructor(
      * In production, this could integrate with Firebase Performance or similar.
      */
     private fun addTraceMarker(traceName: String, event: String) {
-        Timber.v("[TRACE] $traceName: $event")
+        Timber.v("[TRACE] ${sanitize(traceName)}: ${sanitize(event)}")
         // In production, add actual trace markers:
         // Trace.beginSection(traceName) / Trace.endSection()
         // or Firebase Performance Monitoring

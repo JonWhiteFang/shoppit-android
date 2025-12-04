@@ -78,6 +78,11 @@ object NavigationPerformanceAnalytics {
     private val _performanceScore = MutableStateFlow(PerformanceScore())
     val performanceScore: StateFlow<PerformanceScore> = _performanceScore.asStateFlow()
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     init {
         updatePerformanceScore()
     }
@@ -103,7 +108,7 @@ object NavigationPerformanceAnalytics {
         val startTime = System.currentTimeMillis()
         navigationStartTimes[route] = startTime
         
-        Timber.d("Started performance monitoring for route: $route")
+        Timber.d("Started performance monitoring for route: ${sanitize(route)}")
     }
     
     /**
@@ -115,7 +120,7 @@ object NavigationPerformanceAnalytics {
     fun stopMonitoring(route: String, success: Boolean = true) {
         val startTime = navigationStartTimes.remove(route)
         if (startTime == null) {
-            Timber.w("No start time found for route: $route")
+            Timber.w("No start time found for route: ${sanitize(route)}")
             return
         }
         
@@ -142,11 +147,11 @@ object NavigationPerformanceAnalytics {
         
         navigationMetrics[route] = metrics
         
-        Timber.d("Navigation performance for '$route': ${duration}ms, success=$success")
+        Timber.d("Navigation performance for '${sanitize(route)}': ${duration}ms, success=$success")
         
         // Log warning if navigation took too long
         if (duration > 1000) {
-            Timber.w("Slow navigation detected: $route took ${duration}ms")
+            Timber.w("Slow navigation detected: ${sanitize(route)} took ${duration}ms")
             recordIssue(
                 PerformanceIssue(
                     type = IssueType.SLOW_TRANSITION,
@@ -262,7 +267,7 @@ object NavigationPerformanceAnalytics {
             Navigation Performance Summary:
             - Total navigations: ${metrics.size}
             - Average duration: ${avgDuration}ms
-            - Slowest navigation: ${slowest?.route} (${slowest?.duration}ms)
+            - Slowest navigation: ${slowest?.route?.let { sanitize(it) }} (${slowest?.duration}ms)
             - Success rate: ${"%.2f".format(successRate)}%
         """.trimIndent())
     }

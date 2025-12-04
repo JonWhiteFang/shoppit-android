@@ -32,6 +32,11 @@ class NavigationPerformanceMonitor @Inject constructor(
         private const val MAX_HISTORY_SIZE = 50
     }
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     private val _metrics = MutableStateFlow<NavigationMetrics>(NavigationMetrics())
     val metrics: StateFlow<NavigationMetrics> = _metrics.asStateFlow()
     
@@ -47,7 +52,7 @@ class NavigationPerformanceMonitor @Inject constructor(
         val startTime = SystemClock.elapsedRealtime()
         navigationTimings[to] = NavigationTiming(from, to, startTime)
         
-        Timber.d("Navigation transition started: $from -> $to")
+        Timber.d("Navigation transition started: ${sanitize(from)} -> ${sanitize(to)}")
     }
     
     /**
@@ -66,9 +71,9 @@ class NavigationPerformanceMonitor @Inject constructor(
             performanceMonitor.trackNavigation(timing.from, to, duration)
             
             if (duration > TARGET_TRANSITION_TIME_MS) {
-                Timber.w("Slow navigation transition: ${timing.from} -> $to (${duration}ms, target: ${TARGET_TRANSITION_TIME_MS}ms)")
+                Timber.w("Slow navigation transition: ${sanitize(timing.from)} -> ${sanitize(to)} (${duration}ms, target: ${TARGET_TRANSITION_TIME_MS}ms)")
             } else {
-                Timber.d("Navigation transition completed: ${timing.from} -> $to (${duration}ms)")
+                Timber.d("Navigation transition completed: ${sanitize(timing.from)} -> ${sanitize(to)} (${duration}ms)")
             }
         }
     }

@@ -143,6 +143,15 @@ abstract class AnalyzeCodeQualityTask : DefaultTask() {
             throw GradleException("Analysis path must be within project directory")
         }
         
+        // Validate file extensions if path is a file
+        if (pathFile.isFile) {
+            val allowedExtensions = setOf("kt", "kts", "java", "xml", "gradle")
+            val extension = pathFile.extension.lowercase()
+            if (extension !in allowedExtensions) {
+                throw GradleException("Unsafe file extension: $extension. Allowed: ${allowedExtensions.joinToString(", ")}")
+            }
+        }
+        
         // Validate analyzers if specified
         val validAnalyzers = listOf(
             "architecture", "compose", "state-management", "error-handling",

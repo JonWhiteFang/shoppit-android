@@ -36,6 +36,11 @@ class MemoryManagerImpl @Inject constructor(
     
     private var lastPressureLevel: MemoryPressureLevel? = null
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     init {
         // Register for system memory callbacks
         context.registerComponentCallbacks(this)
@@ -96,13 +101,13 @@ class MemoryManagerImpl @Inject constructor(
     override fun registerMemoryPressureListener(listener: MemoryPressureListener) {
         if (!listeners.contains(listener)) {
             listeners.add(listener)
-            Timber.d("Registered memory pressure listener: ${listener.javaClass.simpleName}")
+            Timber.d("Registered memory pressure listener: ${sanitize(listener.javaClass.simpleName)}")
         }
     }
     
     override fun unregisterMemoryPressureListener(listener: MemoryPressureListener) {
         if (listeners.remove(listener)) {
-            Timber.d("Unregistered memory pressure listener: ${listener.javaClass.simpleName}")
+            Timber.d("Unregistered memory pressure listener: ${sanitize(listener.javaClass.simpleName)}")
         }
     }
     
@@ -142,7 +147,7 @@ class MemoryManagerImpl @Inject constructor(
                 try {
                     listener.onMemoryPressure(level)
                 } catch (e: Exception) {
-                    Timber.e(e, "Error notifying memory pressure listener: ${listener.javaClass.simpleName}")
+                    Timber.e(e, "Error notifying memory pressure listener: ${sanitize(listener.javaClass.simpleName)}")
                 }
             }
         }

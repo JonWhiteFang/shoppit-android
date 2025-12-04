@@ -8,6 +8,11 @@ import timber.log.Timber
  */
 object Logger {
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     /**
      * Log a debug message.
      * Only logged in debug builds.
@@ -17,13 +22,14 @@ object Logger {
      * @param throwable Optional throwable to log
      */
     fun d(tag: String? = null, message: String, throwable: Throwable? = null) {
+        val sanitizedMessage = sanitize(message)
         if (tag != null) {
-            Timber.tag(tag)
+            Timber.tag(sanitize(tag))
         }
         if (throwable != null) {
-            Timber.d(throwable, message)
+            Timber.d(throwable, sanitizedMessage)
         } else {
-            Timber.d(message)
+            Timber.d(sanitizedMessage)
         }
     }
     
@@ -35,13 +41,14 @@ object Logger {
      * @param throwable Optional throwable to log
      */
     fun i(tag: String? = null, message: String, throwable: Throwable? = null) {
+        val sanitizedMessage = sanitize(message)
         if (tag != null) {
-            Timber.tag(tag)
+            Timber.tag(sanitize(tag))
         }
         if (throwable != null) {
-            Timber.i(throwable, message)
+            Timber.i(throwable, sanitizedMessage)
         } else {
-            Timber.i(message)
+            Timber.i(sanitizedMessage)
         }
     }
     
@@ -53,13 +60,14 @@ object Logger {
      * @param throwable Optional throwable to log
      */
     fun w(tag: String? = null, message: String, throwable: Throwable? = null) {
+        val sanitizedMessage = sanitize(message)
         if (tag != null) {
-            Timber.tag(tag)
+            Timber.tag(sanitize(tag))
         }
         if (throwable != null) {
-            Timber.w(throwable, message)
+            Timber.w(throwable, sanitizedMessage)
         } else {
-            Timber.w(message)
+            Timber.w(sanitizedMessage)
         }
     }
     
@@ -71,13 +79,14 @@ object Logger {
      * @param throwable Optional throwable to log
      */
     fun e(tag: String? = null, message: String, throwable: Throwable? = null) {
+        val sanitizedMessage = sanitize(message)
         if (tag != null) {
-            Timber.tag(tag)
+            Timber.tag(sanitize(tag))
         }
         if (throwable != null) {
-            Timber.e(throwable, message)
+            Timber.e(throwable, sanitizedMessage)
         } else {
-            Timber.e(message)
+            Timber.e(sanitizedMessage)
         }
     }
     
@@ -90,13 +99,14 @@ object Logger {
      * @param throwable Optional throwable to log
      */
     fun v(tag: String? = null, message: String, throwable: Throwable? = null) {
+        val sanitizedMessage = sanitize(message)
         if (tag != null) {
-            Timber.tag(tag)
+            Timber.tag(sanitize(tag))
         }
         if (throwable != null) {
-            Timber.v(throwable, message)
+            Timber.v(throwable, sanitizedMessage)
         } else {
-            Timber.v(message)
+            Timber.v(sanitizedMessage)
         }
     }
 }

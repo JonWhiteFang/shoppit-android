@@ -36,6 +36,11 @@ object NavigationPreloader {
     private const val MAX_PATH_HISTORY = 100
     private const val PRELOAD_DELAY_MS = 500L // Delay before preloading to avoid unnecessary work
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     private val _frequentDestinations = MutableStateFlow<List<String>>(emptyList())
     val frequentDestinations: StateFlow<List<String>> = _frequentDestinations.asStateFlow()
     
@@ -67,7 +72,7 @@ object NavigationPreloader {
         
         updateFrequentDestinations()
         
-        Timber.d("Navigation recorded: $fromRoute -> $toRoute (count: ${navigationCounts[toRoute]})")
+        Timber.d("Navigation recorded: ${fromRoute?.let { sanitize(it) }} -> ${sanitize(toRoute)} (count: ${navigationCounts[toRoute]})")
     }
     
     /**
@@ -155,13 +160,13 @@ object NavigationPreloader {
                 delay(PRELOAD_DELAY_MS)
                 
                 // Simulate data preloading (actual implementation would load data)
-                Timber.d("Preloading data for route: $route")
+                Timber.d("Preloading data for route: ${sanitize(route)}")
                 
                 // Update status to loaded
                 updatePreloadStatus(route, PreloadStatus.Loaded(System.currentTimeMillis()))
                 
             } catch (e: Exception) {
-                Timber.e(e, "Failed to preload route: $route")
+                Timber.e(e, "Failed to preload route: ${sanitize(route)}")
                 updatePreloadStatus(route, PreloadStatus.Error(e.message ?: "Unknown error"))
             }
         }
@@ -220,7 +225,7 @@ object NavigationPreloader {
         currentStatus.remove(route)
         _preloadingStatus.value = currentStatus
         
-        Timber.d("Cleared preloaded data for route: $route")
+        Timber.d("Cleared preloaded data for route: ${sanitize(route)}")
     }
     
     /**
@@ -294,6 +299,14 @@ fun RecordNavigationForPreloading(
 }
 
 /**
+ * Sanitizes route strings for logging.
+ */
+private fun sanitizeRoute(value: String): String = value
+    .replace("\n", "\\n")
+    .replace("\r", "\\r")
+    .replace("\t", "\\t")
+
+/**
  * Composable that preloads data for a specific route using LaunchedEffect.
  * Can be used to preload meal detail data, shopping list data, etc.
  *
@@ -308,10 +321,10 @@ fun PreloadRouteData(
     LaunchedEffect(route) {
         if (!NavigationPreloader.isPreloaded(route)) {
             try {
-                Timber.d("Preloading data for route: $route")
+                Timber.d("Preloading data for route: ${sanitizeRoute(route)}")
                 preloadAction()
             } catch (e: Exception) {
-                Timber.e(e, "Failed to preload data for route: $route")
+                Timber.e(e, "Failed to preload data for route: ${sanitizeRoute(route)}")
             }
         }
     }
@@ -323,6 +336,11 @@ fun PreloadRouteData(
 object ViewModelCache {
     private val cache = mutableMapOf<String, ViewModel>()
     private const val MAX_CACHE_SIZE = 5
+    
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
     
     /**
      * Caches a ViewModel for a specific route.
@@ -337,7 +355,7 @@ object ViewModelCache {
         }
         
         cache[route] = viewModel
-        Timber.d("ViewModel cached for route: $route")
+        Timber.d("ViewModel cached for route: ${sanitize(route)}")
     }
     
     /**
@@ -355,7 +373,7 @@ object ViewModelCache {
      */
     fun removeViewModel(route: String) {
         cache.remove(route)
-        Timber.d("ViewModel removed from cache: $route")
+        Timber.d("ViewModel removed from cache: ${sanitize(route)}")
     }
     
     /**

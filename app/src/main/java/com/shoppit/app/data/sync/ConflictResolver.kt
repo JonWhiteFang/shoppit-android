@@ -21,6 +21,11 @@ import javax.inject.Singleton
 @Singleton
 class ConflictResolver @Inject constructor() {
     
+    private fun sanitize(value: Any?): String = value.toString()
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     /**
      * Resolves a conflict between local and remote versions of an entity.
      *
@@ -33,7 +38,7 @@ class ConflictResolver @Inject constructor() {
         remote: T
     ): ConflictResolution<T> {
         // Requirement 5.1: Detect conflict during synchronization
-        Timber.d("Detecting conflict for entity: localId=${local.id}, serverId=${local.serverId}")
+        Timber.d("Detecting conflict for entity: localId=${local.id}, serverId=${sanitize(local.serverId)}")
         
         // Requirement 5.2: Apply Last-Write-Wins resolution based on timestamps
         val resolution = when {
@@ -79,12 +84,12 @@ class ConflictResolver @Inject constructor() {
         
         val conflictLog = buildString {
             appendLine("=== SYNC CONFLICT DETECTED ===")
-            appendLine("Entity ID: ${local.id}")
-            appendLine("Server ID: ${local.serverId}")
-            appendLine("Local timestamp: ${local.updatedAt}")
-            appendLine("Remote timestamp: ${remote.updatedAt}")
-            appendLine("Resolution: $winner version kept")
-            appendLine("Discarded: ${if (winner == "LOCAL") "REMOTE" else "LOCAL"} version")
+            appendLine("Entity ID: ${sanitize(local.id)}")
+            appendLine("Server ID: ${sanitize(local.serverId)}")
+            appendLine("Local timestamp: ${sanitize(local.updatedAt)}")
+            appendLine("Remote timestamp: ${sanitize(remote.updatedAt)}")
+            appendLine("Resolution: ${sanitize(winner)} version kept")
+            appendLine("Discarded: ${sanitize(if (winner == "LOCAL") "REMOTE" else "LOCAL")} version")
             appendLine("==============================")
         }
         

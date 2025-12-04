@@ -243,11 +243,10 @@ class DatabaseMigrationTest {
         )
         
         testMeals.forEach { (id, name, notes) ->
+            val timestamp = System.currentTimeMillis()
             db.execSQL(
-                """
-                INSERT INTO meals (id, name, ingredients, notes, created_at, updated_at)
-                VALUES ($id, '$name', '[]', '$notes', ${System.currentTimeMillis()}, ${System.currentTimeMillis()})
-                """.trimIndent()
+                "INSERT INTO meals (id, name, ingredients, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                arrayOf(id, name, "[]", notes, timestamp, timestamp)
             )
         }
         
@@ -258,7 +257,7 @@ class DatabaseMigrationTest {
         
         // Then - Verify all meals are preserved with tags column
         testMeals.forEach { (id, name, notes) ->
-            val cursor = migratedDb.query("SELECT id, name, notes, tags FROM meals WHERE id = $id")
+            val cursor = migratedDb.query("SELECT id, name, notes, tags FROM meals WHERE id = ?", arrayOf(id.toString()))
             assertTrue("Meal $id should exist", cursor.moveToFirst())
             
             val nameIndex = cursor.getColumnIndex("name")
@@ -491,11 +490,10 @@ class DatabaseMigrationTest {
         )
         
         testMeals.forEach { (id, name, notes) ->
+            val timestamp = System.currentTimeMillis()
             db.execSQL(
-                """
-                INSERT INTO meals (id, name, ingredients, notes, tags, created_at, updated_at)
-                VALUES ($id, '$name', '[]', '$notes', '', ${System.currentTimeMillis()}, ${System.currentTimeMillis()})
-                """.trimIndent()
+                "INSERT INTO meals (id, name, ingredients, notes, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                arrayOf(id, name, "[]", notes, "", timestamp, timestamp)
             )
         }
         
@@ -548,7 +546,7 @@ class DatabaseMigrationTest {
         
         // Verify specific meal data
         testMeals.forEach { (id, name, notes) ->
-            val cursor = migratedDb.query("SELECT name, notes, sync_status FROM meals WHERE id = $id")
+            val cursor = migratedDb.query("SELECT name, notes, sync_status FROM meals WHERE id = ?", arrayOf(id.toString()))
             assertTrue("Meal $id should exist", cursor.moveToFirst())
             
             val nameIndex = cursor.getColumnIndex("name")

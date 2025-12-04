@@ -50,6 +50,11 @@ class SyncEngineImpl @Inject constructor(
     private val notificationHelper: SyncNotificationHelper
 ) : SyncEngine {
     
+    private fun sanitize(value: String): String = value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     // Current sync status
     private val _syncStatus = MutableStateFlow(SyncStatus.IDLE)
     
@@ -94,13 +99,13 @@ class SyncEngineImpl @Inject constructor(
             val mealResult = syncMeals()
             mealResult.fold(
                 onSuccess = { result ->
-                    totalSynced += result.syncedEntities
-                    totalFailed += result.failedEntities
-                    totalConflicts += result.conflicts
+                    totalSynced = (totalSynced.toLong() + result.syncedEntities).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    totalFailed = (totalFailed.toLong() + result.failedEntities).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    totalConflicts = (totalConflicts.toLong() + result.conflicts).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 },
                 onFailure = { error ->
                     Timber.e(error, "Failed to sync meals")
-                    totalFailed++
+                    totalFailed = (totalFailed + 1).coerceAtMost(Int.MAX_VALUE)
                 }
             )
             
@@ -108,13 +113,13 @@ class SyncEngineImpl @Inject constructor(
             val mealPlanResult = syncMealPlans()
             mealPlanResult.fold(
                 onSuccess = { result ->
-                    totalSynced += result.syncedEntities
-                    totalFailed += result.failedEntities
-                    totalConflicts += result.conflicts
+                    totalSynced = (totalSynced.toLong() + result.syncedEntities).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    totalFailed = (totalFailed.toLong() + result.failedEntities).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    totalConflicts = (totalConflicts.toLong() + result.conflicts).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 },
                 onFailure = { error ->
                     Timber.e(error, "Failed to sync meal plans")
-                    totalFailed++
+                    totalFailed = (totalFailed + 1).coerceAtMost(Int.MAX_VALUE)
                 }
             )
             
@@ -122,13 +127,13 @@ class SyncEngineImpl @Inject constructor(
             val shoppingListResult = syncShoppingLists()
             shoppingListResult.fold(
                 onSuccess = { result ->
-                    totalSynced += result.syncedEntities
-                    totalFailed += result.failedEntities
-                    totalConflicts += result.conflicts
+                    totalSynced = (totalSynced.toLong() + result.syncedEntities).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    totalFailed = (totalFailed.toLong() + result.failedEntities).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+                    totalConflicts = (totalConflicts.toLong() + result.conflicts).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                 },
                 onFailure = { error ->
                     Timber.e(error, "Failed to sync shopping lists")
-                    totalFailed++
+                    totalFailed = (totalFailed + 1).coerceAtMost(Int.MAX_VALUE)
                 }
             )
             
@@ -236,7 +241,7 @@ class SyncEngineImpl @Inject constructor(
                         syncMetadataDao.removeFromQueue(queuedChange)
                         
                         syncedCount++
-                        Timber.d("Synced ${queuedChange.operation} for $typeString ${queuedChange.entityId}")
+                        Timber.d("Synced ${sanitize(queuedChange.operation)} for ${sanitize(typeString)} ${queuedChange.entityId}")
                     },
                     onFailure = { error ->
                         errorLogger.logError(
@@ -296,7 +301,7 @@ class SyncEngineImpl @Inject constructor(
             val typeString = entityType.toStorageString()
             val operationString = operation.toStorageString()
             
-            Timber.d("Queueing $operationString for $typeString $entityId")
+            Timber.d("Queueing ${sanitize(operationString)} for ${sanitize(typeString)} $entityId")
             
             // Check if there's already a queued change for this entity
             val existingChange = syncMetadataDao.getQueuedChange(typeString, entityId)
@@ -311,7 +316,7 @@ class SyncEngineImpl @Inject constructor(
                         lastAttemptAt = null
                     )
                 )
-                Timber.d("Updated existing queued change for $typeString $entityId")
+                Timber.d("Updated existing queued change for ${sanitize(typeString)} $entityId")
             } else {
                 // Create new queued change
                 val queueEntity = SyncQueueEntity(
@@ -325,7 +330,7 @@ class SyncEngineImpl @Inject constructor(
                 )
                 
                 syncMetadataDao.queueChange(queueEntity)
-                Timber.d("Queued new change for $typeString $entityId")
+                Timber.d("Queued new change for ${sanitize(typeString)} $entityId")
             }
             
             // Update or create sync metadata
@@ -353,7 +358,7 @@ class SyncEngineImpl @Inject constructor(
             }
             
         } catch (e: Exception) {
-            Timber.e(e, "Failed to queue change for $entityType $entityId")
+            Timber.e(e, "Failed to queue change for ${sanitize(entityType.toStorageString())} $entityId")
         }
     }
     

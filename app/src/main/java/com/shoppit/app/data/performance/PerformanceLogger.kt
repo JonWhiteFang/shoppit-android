@@ -29,15 +29,19 @@ class PerformanceLogger @Inject constructor() {
         .replace("\n", "\\n")
         .replace("\r", "\\r")
         .replace("\t", "\\t")
+        .replace("\u001B", "")  // Remove ANSI escape sequences
+        .replace("\u0000", "")  // Remove null bytes
+        .filter { it.code >= 32 || it in "\n\r\t" }  // Remove control characters except safe ones
     
     /**
      * Logs a query execution with structured data.
      */
     fun logQuery(query: String, duration: Long, threshold: Long = 100) {
+        val sanitizedQuery = sanitize(query)
         if (duration >= threshold) {
-            Timber.tag(TAG_QUERY).w("Slow query: $query | Duration: ${duration}ms | Threshold: ${threshold}ms")
+            Timber.tag(TAG_QUERY).w("Slow query: $sanitizedQuery | Duration: ${duration}ms | Threshold: ${threshold}ms")
         } else if (BuildConfig.DEBUG) {
-            Timber.tag(TAG_QUERY).d("Query: $query | Duration: ${duration}ms")
+            Timber.tag(TAG_QUERY).d("Query: $sanitizedQuery | Duration: ${duration}ms")
         }
     }
     
@@ -45,10 +49,11 @@ class PerformanceLogger @Inject constructor() {
      * Logs a transaction execution with structured data.
      */
     fun logTransaction(operation: String, duration: Long, threshold: Long = 100) {
+        val sanitizedOperation = sanitize(operation)
         if (duration >= threshold) {
-            Timber.tag(TAG_TRANSACTION).w("Slow transaction: $operation | Duration: ${duration}ms | Threshold: ${threshold}ms")
+            Timber.tag(TAG_TRANSACTION).w("Slow transaction: $sanitizedOperation | Duration: ${duration}ms | Threshold: ${threshold}ms")
         } else if (BuildConfig.DEBUG) {
-            Timber.tag(TAG_TRANSACTION).d("Transaction: $operation | Duration: ${duration}ms")
+            Timber.tag(TAG_TRANSACTION).d("Transaction: $sanitizedOperation | Duration: ${duration}ms")
         }
     }
     
@@ -57,13 +62,13 @@ class PerformanceLogger @Inject constructor() {
      */
     fun logCacheHit(key: String) {
         if (BuildConfig.DEBUG) {
-            Timber.tag(TAG_CACHE).d("Cache hit: $key")
+            Timber.tag(TAG_CACHE).d("Cache hit: ${sanitize(key)}")
         }
     }
     
     fun logCacheMiss(key: String) {
         if (BuildConfig.DEBUG) {
-            Timber.tag(TAG_CACHE).d("Cache miss: $key")
+            Timber.tag(TAG_CACHE).d("Cache miss: ${sanitize(key)}")
         }
     }
     
@@ -90,17 +95,19 @@ class PerformanceLogger @Inject constructor() {
      * Logs memory pressure events.
      */
     fun logMemoryPressure(level: String, usedMB: Long, availableMB: Long) {
-        Timber.tag(TAG_MEMORY).w("Memory pressure: $level | Used: ${usedMB}MB | Available: ${availableMB}MB")
+        Timber.tag(TAG_MEMORY).w("Memory pressure: ${sanitize(level)} | Used: ${usedMB}MB | Available: ${availableMB}MB")
     }
     
     /**
      * Logs navigation transitions with structured data.
      */
     fun logNavigation(from: String, to: String, duration: Long, threshold: Long = 100) {
+        val sanitizedFrom = sanitize(from)
+        val sanitizedTo = sanitize(to)
         if (duration > threshold) {
-            Timber.tag(TAG_NAVIGATION).w("Slow navigation: $from -> $to | Duration: ${duration}ms | Threshold: ${threshold}ms")
+            Timber.tag(TAG_NAVIGATION).w("Slow navigation: $sanitizedFrom -> $sanitizedTo | Duration: ${duration}ms | Threshold: ${threshold}ms")
         } else if (BuildConfig.DEBUG) {
-            Timber.tag(TAG_NAVIGATION).d("Navigation: $from -> $to | Duration: ${duration}ms")
+            Timber.tag(TAG_NAVIGATION).d("Navigation: $sanitizedFrom -> $sanitizedTo | Duration: ${duration}ms")
         }
     }
     
@@ -108,10 +115,11 @@ class PerformanceLogger @Inject constructor() {
      * Logs frame rendering with structured data.
      */
     fun logFrame(screenName: String, frameTime: Long, threshold: Double = 16.67) {
+        val sanitizedScreenName = sanitize(screenName)
         if (frameTime > threshold) {
-            Timber.tag(TAG_FRAME).w("Slow frame: $screenName | Frame time: ${frameTime}ms | Threshold: ${threshold}ms | Target: 60 FPS")
+            Timber.tag(TAG_FRAME).w("Slow frame: $sanitizedScreenName | Frame time: ${frameTime}ms | Threshold: ${threshold}ms | Target: 60 FPS")
         } else if (BuildConfig.DEBUG) {
-            Timber.tag(TAG_FRAME).v("Frame: $screenName | Frame time: ${frameTime}ms")
+            Timber.tag(TAG_FRAME).v("Frame: $sanitizedScreenName | Frame time: ${frameTime}ms")
         }
     }
     
@@ -120,9 +128,10 @@ class PerformanceLogger @Inject constructor() {
      */
     fun logFrameDropStats(stats: FrameDropStats) {
         val dropRatePercent = (stats.frameDropRate * 100).toInt()
+        val avgFrameTimeFormatted = "%.2f".format(stats.avgFrameTime)
         Timber.tag(TAG_FRAME).i(
             "Frame stats | Total: ${stats.totalFrames} | Dropped: ${stats.droppedFrames} | " +
-            "Drop rate: $dropRatePercent% | Avg: ${String.format("%.2f", stats.avgFrameTime)}ms | " +
+            "Drop rate: $dropRatePercent% | Avg: ${avgFrameTimeFormatted}ms | " +
             "Max: ${stats.maxFrameTime}ms"
         )
     }
@@ -152,9 +161,10 @@ class PerformanceLogger @Inject constructor() {
         // Frame metrics
         summary.frameStats?.let { frameStats ->
             val dropRatePercent = (frameStats.frameDropRate * 100).toInt()
+            val avgFrameTimeFormatted = "%.2f".format(frameStats.avgFrameTime)
             Timber.tag(TAG_SUMMARY).i(
                 "Frames | Total: ${frameStats.totalFrames} | Dropped: ${frameStats.droppedFrames} | " +
-                "Drop rate: $dropRatePercent% | Avg: ${String.format("%.2f", frameStats.avgFrameTime)}ms"
+                "Drop rate: $dropRatePercent% | Avg: ${avgFrameTimeFormatted}ms"
             )
         }
         
@@ -191,7 +201,7 @@ class PerformanceLogger @Inject constructor() {
         Timber.tag(TAG_QUERY).w("=== Slow Queries (${queries.size}) ===")
         queries.take(10).forEach { query ->
             Timber.tag(TAG_QUERY).w(
-                "Query: ${query.query} | Avg: ${query.avgDuration}ms | " +
+                "Query: ${sanitize(query.query)} | Avg: ${query.avgDuration}ms | " +
                 "Count: ${query.executionCount} | Max: ${query.maxDuration}ms"
             )
         }
@@ -209,7 +219,7 @@ class PerformanceLogger @Inject constructor() {
         Timber.tag(TAG_NAVIGATION).w("=== Slow Navigations (${navigations.size}) ===")
         navigations.forEach { nav ->
             Timber.tag(TAG_NAVIGATION).w(
-                "Navigation: ${nav.from} -> ${nav.to} | Avg: ${nav.avgDuration}ms | " +
+                "Navigation: ${sanitize(nav.from)} -> ${sanitize(nav.to)} | Avg: ${nav.avgDuration}ms | " +
                 "Count: ${nav.transitionCount} | Max: ${nav.maxDuration}ms"
             )
         }
@@ -227,7 +237,7 @@ class PerformanceLogger @Inject constructor() {
         Timber.tag(TAG_FRAME).w("=== Slow Frames (${frames.size}) ===")
         frames.take(20).forEach { frame ->
             Timber.tag(TAG_FRAME).w(
-                "Frame: ${frame.screenName} | Time: ${frame.frameTime}ms | " +
+                "Frame: ${sanitize(frame.screenName)} | Time: ${frame.frameTime}ms | " +
                 "Timestamp: ${frame.timestamp}"
             )
         }
