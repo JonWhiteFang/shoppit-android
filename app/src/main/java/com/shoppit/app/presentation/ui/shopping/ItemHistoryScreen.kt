@@ -237,7 +237,7 @@ fun ItemHistoryCard(
                 // Average price if available
                 if (item.averagePrice != null) {
                     Text(
-                        text = "Avg price: $${String.format("%.2f", item.averagePrice)}",
+                        text = "Avg price: $${'$'}%.2f".format(item.averagePrice),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )

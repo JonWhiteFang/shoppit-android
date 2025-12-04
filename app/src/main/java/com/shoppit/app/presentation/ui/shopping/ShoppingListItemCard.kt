@@ -256,7 +256,7 @@ fun ShoppingListItemCard(
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
-                                text = String.format("%.2f", item.estimatedPrice),
+                                text = "%.2f".format(item.estimatedPrice),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )

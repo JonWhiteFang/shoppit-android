@@ -132,10 +132,15 @@ abstract class AnalyzeCodeQualityTask : DefaultTask() {
         val baseline = generateBaseline.getOrElse(false)
         val output = outputPath.getOrElse(".kiro/specs/code-quality-analysis")
         
-        // Validate path exists
+        // Validate path exists and is within project directory
         val pathFile = File(path)
         if (!pathFile.exists()) {
             throw GradleException("Analysis path does not exist: $path")
+        }
+        
+        val projectRoot = project.projectDir.canonicalPath
+        if (!pathFile.canonicalPath.startsWith(projectRoot)) {
+            throw GradleException("Analysis path must be within project directory")
         }
         
         // Validate analyzers if specified

@@ -102,11 +102,18 @@ abstract class AnalysisTask : DefaultTask() {
         
         var count = 0
         dir.walkTopDown().forEach { file ->
-            if (file.isFile && file.extension == "kt") {
+            if (file.isFile && isValidKotlinFile(file)) {
                 count++
             }
         }
         return count
+    }
+    
+    private fun isValidKotlinFile(file: File): Boolean {
+        val name = file.name
+        return name.endsWith(".kt", ignoreCase = false) && 
+               !name.contains("..") && 
+               name.matches(Regex("^[a-zA-Z0-9_.-]+\\.kt$"))
     }
     
     private fun generatePlaceholderReport(fileCount: Int, sourcePath: String): String {

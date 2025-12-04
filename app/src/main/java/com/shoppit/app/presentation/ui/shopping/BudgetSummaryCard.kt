@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.shoppit.app.domain.model.BudgetSummary
+import java.util.Locale
 
 /**
  * Card for displaying budget summary information.
@@ -66,7 +67,7 @@ fun BudgetSummaryCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "$${String.format("%.2f", budgetSummary.totalEstimated)}",
+                    text = "$${String.format(Locale.US, "%.2f", budgetSummary.totalEstimated)}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -85,7 +86,7 @@ fun BudgetSummaryCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "$${String.format("%.2f", budgetSummary.checkedTotal)}",
+                    text = "$${String.format(Locale.US, "%.2f", budgetSummary.checkedTotal)}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -104,7 +105,7 @@ fun BudgetSummaryCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "$${String.format("%.2f", budgetSummary.remainingBudget)}",
+                    text = "$${String.format(Locale.US, "%.2f", budgetSummary.remainingBudget)}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = if (budgetSummary.remainingBudget >= 0) {
@@ -153,7 +154,7 @@ fun UpdatePriceDialog(
 ) {
     var priceText by remember(item.estimatedPrice) {
         mutableStateOf(
-            item.estimatedPrice?.let { String.format("%.2f", it) } ?: ""
+            item.estimatedPrice?.let { String.format(Locale.US, "%.2f", it) } ?: ""
         )
     }
     
@@ -171,7 +172,7 @@ fun UpdatePriceDialog(
             ) {
                 // Item name for context
                 Text(
-                    text = "Item: ${item.name}",
+                    text = "Item: ${item.name.replace("\n", " ").replace("\r", " ")}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -25,6 +25,11 @@ class PerformanceLogger @Inject constructor() {
         private const val TAG_SUMMARY = "Performance:Summary"
     }
     
+    private fun sanitize(value: Any?): String = value.toString()
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    
     /**
      * Logs a query execution with structured data.
      */
@@ -235,7 +240,7 @@ class PerformanceLogger @Inject constructor() {
         if (BuildConfig.DEBUG) {
             Timber.tag(TAG_PERFORMANCE).d("=== Exported Metrics ===")
             metrics.forEach { (category, data) ->
-                Timber.tag(TAG_PERFORMANCE).d("$category: $data")
+                Timber.tag(TAG_PERFORMANCE).d("${sanitize(category)}: ${sanitize(data)}")
             }
             Timber.tag(TAG_PERFORMANCE).d("=======================")
         }

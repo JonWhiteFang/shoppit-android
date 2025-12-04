@@ -52,19 +52,19 @@ class ExportShoppingListUseCase @Inject constructor(
                 appendLine("-".repeat(category.displayName().length))
                 
                 categoryItems.forEach { item ->
-                    append("  • ${item.name}")
+                    append("  • ${sanitizeText(item.name)}")
                     if (item.quantity.isNotBlank() && item.unit.isNotBlank()) {
-                        append(" (${item.quantity} ${item.unit})")
+                        append(" (${sanitizeText(item.quantity)} ${sanitizeText(item.unit)})")
                     } else if (item.quantity.isNotBlank()) {
-                        append(" (${item.quantity})")
+                        append(" (${sanitizeText(item.quantity)})")
                     }
                     
                     if (item.notes.isNotBlank()) {
-                        append(" - ${item.notes}")
+                        append(" - ${sanitizeText(item.notes)}")
                     }
                     
                     if (item.estimatedPrice != null) {
-                        append(" [$${String.format("%.2f", item.estimatedPrice)}]")
+                        append(" [${'$'}%.2f".format(item.estimatedPrice) + "]")
                     }
                     
                     appendLine()
@@ -77,9 +77,16 @@ class ExportShoppingListUseCase @Inject constructor(
             
             val totalPrice = items.mapNotNull { it.estimatedPrice }.sum()
             if (totalPrice > 0) {
-                appendLine("Estimated Total: $${String.format("%.2f", totalPrice)}")
+                appendLine("Estimated Total: $${'$'}%.2f".format(totalPrice))
             }
         }
+    }
+
+    /**
+     * Sanitizes text for plain text export.
+     */
+    private fun sanitizeText(value: String): String {
+        return value.replace("\n", " ").replace("\r", " ").replace("\t", " ")
     }
 
     /**
@@ -97,7 +104,7 @@ class ExportShoppingListUseCase @Inject constructor(
                 val quantity = escapeCsv(item.quantity)
                 val unit = escapeCsv(item.unit)
                 val notes = escapeCsv(item.notes)
-                val price = item.estimatedPrice?.let { String.format("%.2f", it) } ?: ""
+                val price = item.estimatedPrice?.let { "%.2f".format(it) } ?: ""
                 val priority = if (item.isPriority) "Yes" else "No"
                 
                 appendLine("$category,$name,$quantity,$unit,$notes,$price,$priority")
@@ -116,7 +123,7 @@ class ExportShoppingListUseCase @Inject constructor(
             appendLine("    \"totalItems\": ${items.size},")
             
             val totalPrice = items.mapNotNull { it.estimatedPrice }.sum()
-            appendLine("    \"estimatedTotal\": ${String.format("%.2f", totalPrice)},")
+            appendLine("    \"estimatedTotal\": ${'$'}%.2f".format(totalPrice) + ",")
             
             appendLine("    \"items\": [")
             
@@ -125,7 +132,7 @@ class ExportShoppingListUseCase @Inject constructor(
                 appendLine("        \"name\": \"${escapeJson(item.name)}\",")
                 appendLine("        \"quantity\": \"${escapeJson(item.quantity)}\",")
                 appendLine("        \"unit\": \"${escapeJson(item.unit)}\",")
-                appendLine("        \"category\": \"${item.category.displayName()}\",")
+                appendLine("        \"category\": \"${escapeJson(item.category.displayName())}\",")
                 appendLine("        \"notes\": \"${escapeJson(item.notes)}\",")
                 appendLine("        \"estimatedPrice\": ${item.estimatedPrice ?: "null"},")
                 appendLine("        \"isPriority\": ${item.isPriority},")
