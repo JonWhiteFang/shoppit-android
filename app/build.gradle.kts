@@ -286,14 +286,6 @@ dependencies {
     debugImplementation(libs.compose.ui.test.manifest)
     
     // Detekt
-    implementation(libs.detekt.api)
-    implementation(libs.detekt.cli)
-    implementation(libs.detekt.core)
     detektPlugins(libs.detekt.formatting)
     detektPlugins(libs.detekt.compose)
-    
-    // Kotlin Compiler for PSI parsing - must match Detekt's requirement (2.0.10)
-    // Detekt 1.23.7 strictly requires kotlin-compiler-embeddable:2.0.10
-    // TODO: Upgrade Detekt when version compatible with Kotlin 2.1.0 is available
-    implementation("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.0.10")
 }
