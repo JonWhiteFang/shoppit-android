@@ -28,7 +28,7 @@ android {
         create("benchmark") {
             initWith(buildTypes.getByName("release"))
             signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks += listOf("release")
+            matchingFallbacks = listOf("release")
             isDebuggable = false
         }
         release {
@@ -55,7 +55,7 @@ android {
     
     kotlinOptions {
         jvmTarget = "17"
-        freeCompilerArgs += listOf(
+        freeCompilerArgs = listOf(
             "-opt-in=androidx.compose.foundation.layout.ExperimentalLayoutApi",
             "-opt-in=androidx.compose.ui.ExperimentalComposeUiApi",
             "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api"
@@ -69,12 +69,12 @@ android {
     
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes.add("/META-INF/{AL2.0,LGPL2.1}")
         }
     }
     
     lint {
-        disable += "AutoboxingStateCreation"
+        disable.add("AutoboxingStateCreation")
     }
     
     testOptions {

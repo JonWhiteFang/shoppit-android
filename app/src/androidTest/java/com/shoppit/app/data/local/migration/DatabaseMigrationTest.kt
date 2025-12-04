@@ -44,7 +44,9 @@ class DatabaseMigrationTest {
             context,
             AppDatabase::class.java,
             TEST_DB_NAME
-        ).build()
+        )
+            .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
+            .build()
         
         // Then
         val dbHelper = db.openHelper
@@ -74,11 +76,14 @@ class DatabaseMigrationTest {
             context,
             AppDatabase::class.java,
             TEST_DB_NAME
-        ).build()
+        )
+            .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
+            .build()
         
         // Then - Verify data is preserved
         val cursor = migratedDb.openHelper.writableDatabase.query(
-            "SELECT * FROM meals WHERE id = 1"
+            "SELECT * FROM meals WHERE id = ?",
+            arrayOf("1")
         )
         
         assertTrue(cursor.moveToFirst())
@@ -101,11 +106,14 @@ class DatabaseMigrationTest {
             context,
             AppDatabase::class.java,
             TEST_DB_NAME
-        ).build()
+        )
+            .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
+            .build()
         
         // Then - Verify tables exist
-        val cursor = db.openHelper.writableDatabase.query(
-            "SELECT name FROM sqlite_master WHERE type='table'"
+        val cursor = db.openHelper.writableDatabase.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type=?",
+            arrayOf("table")
         )
         
         val tables = mutableListOf<String>()

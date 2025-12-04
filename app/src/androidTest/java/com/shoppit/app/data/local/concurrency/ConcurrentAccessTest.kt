@@ -31,6 +31,7 @@ class ConcurrentAccessTest {
             ShoppitDatabase::class.java
         )
             .allowMainThreadQueries()
+            .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
             .build()
     }
     
@@ -163,7 +164,8 @@ class ConcurrentAccessTest {
         
         // Then - The record should exist and have one of the updated names
         val cursor = database.openHelper.writableDatabase.query(
-            "SELECT name FROM meals WHERE id = 1"
+            "SELECT name FROM meals WHERE id = ?",
+            arrayOf("1")
         )
         
         assertTrue(cursor.moveToFirst())
@@ -199,8 +201,9 @@ class ConcurrentAccessTest {
         jobs.awaitAll()
         
         // Then - All meals should be deleted
-        val cursor = database.openHelper.writableDatabase.query(
-            "SELECT COUNT(*) FROM meals"
+        val cursor = database.openHelper.writableDatabase.rawQuery(
+            "SELECT COUNT(*) FROM meals",
+            null
         )
         
         assertTrue(cursor.moveToFirst())

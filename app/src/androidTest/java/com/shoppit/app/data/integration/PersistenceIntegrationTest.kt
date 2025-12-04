@@ -39,6 +39,7 @@ class PersistenceIntegrationTest {
             ShoppitDatabase::class.java
         )
             .allowMainThreadQueries()
+            .setJournalMode(androidx.room.RoomDatabase.JournalMode.TRUNCATE)
             .build()
         
         mealListCache = LruCacheManager(maxSize = 10)
